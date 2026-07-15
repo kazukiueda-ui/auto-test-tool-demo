@@ -102,7 +102,7 @@
  #mmdz-holder svg{display:block;height:auto}
 </style></head><body>
 <header><h1>Auto-test-tool ── N vs N+1 回帰比較レポート</h1>
- <div class="muted" style="color:#cdd">https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/ → https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/ ／ 2026-07-15T09:21:14.558Z</div></header>
+ <div class="muted" style="color:#cdd">https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/ → https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/ ／ 2026-07-15T11:34:02.141Z</div></header>
 <div class="wrap">
  <div class="cards">
   <div class="card"><div>比較したテストケース</div><div class="big">10</div><div class="muted">件</div></div>
@@ -266,7 +266,7 @@
  <div class="filter"><label><input type="checkbox" id="onlyDiff"> 「完全一致」以外（差異・疑い・未実行）のみ表示</label>　<span class="muted">各ケースは「判定＋名前」のみ表示。クリックで詳細を展開</span></div>
  <h2>テストケース一覧（業務領域 ＞ 機能 ＞ サブ機能 ＞ ケース）</h2>
  <div class="muted" style="margin-bottom:8px">判定：<b style="color:#2e7d32">✓ 完全一致</b> ／ <b style="color:#c62828">✕ 明確に異なる</b>（構造/通信/API/表示の差） ／ <b style="color:#ef6c00">? 差異の疑い</b>（非機能/到達不能） ／ <b style="color:#90a4ae">− 対象外</b>　※仕様書が無いため「明確に異なる」も不具合と断定せず要確認扱い</div>
- <details class="cat cat1" open><summary>🗂 ToDo管理</summary><details class="cat cat2" open><summary>📁 一覧・表示</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS" open>
+ <details class="cat cat1" open><summary>🗂 ToDo管理</summary><details class="cat cat2" open><summary>📁 一覧・表示</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">トップ表示：初期ToDo一覧が表示される</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-001</dd>
@@ -290,7 +290,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details></details><details class="cat cat2" open><summary>📁 追加</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS" open>
+    </details></details><details class="cat cat2" open><summary>📁 追加</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">新規ToDoを追加できる</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-002</dd>
@@ -314,7 +314,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details><details class="case r-DIFF" open>
+    </details><details class="case r-DIFF">
       <summary><span class="ricon" style="color:#c62828">✕</span><span class="rlabel" style="background:#c62828">明確に異なる</span><span class="cname">記号を含むToDo「I'm done!」を追加</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-008</dd>
@@ -327,7 +327,7 @@
         <dt>入力値</dt><dd>入力=I'm done! = <code>I'm done!</code></dd>
         <dt>期待結果</dt><dd>保存済みN（修正前）と同一の表示・通信</dd>
         <dt>パッチ前後の差分</dt><dd>本文テキスト（正規化）が不一致</dd>
-        <dt>具体的な相違点</dt><dd><div class="cdiff"><div class="cdiff-f">本文テキスト</div><div class="cdiff-b"><span class="ctx">追加結果: I</span><del>'m done!</del><ins>m done!  （アポストロフィ「'」が除去される）</ins><span class="ctx"></span></div></div></dd>
+        <dt>具体的な相違点</dt><dd><div class="cdiff"><div class="cdiff-f">本文テキスト</div><div class="cdiff-b"><span class="ctx">I</span><del>'</del><ins>∅（追加）</ins><span class="ctx">m</span></div></div></dd>
         <dt>API観測結果</dt><dd>APIなし</dd>
         
         <dt>データ更新結果</dt><dd>更新系API観測なし</dd>
@@ -338,7 +338,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details><details class="case r-DIFF" open>
+    </details><details class="case r-DIFF">
       <summary><span class="ricon" style="color:#c62828">✕</span><span class="rlabel" style="background:#c62828">明確に異なる</span><span class="cname">「A &amp; B」を追加して一覧表示</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-009</dd>
@@ -351,7 +351,7 @@
         <dt>入力値</dt><dd>入力=A &amp; B = <code>A &amp; B</code></dd>
         <dt>期待結果</dt><dd>保存済みN（修正前）と同一の表示・通信</dd>
         <dt>パッチ前後の差分</dt><dd>本文テキスト（正規化）が不一致</dd>
-        <dt>具体的な相違点</dt><dd><div class="cdiff"><div class="cdiff-f">本文テキスト</div><div class="cdiff-b"><span class="ctx">表示結果: A &amp;</span><del> B</del><ins>amp; B  （実体参照がそのまま見える＝二重エスケープ）</ins><span class="ctx"></span></div></div></dd>
+        <dt>具体的な相違点</dt><dd><div class="cdiff"><div class="cdiff-f">本文テキスト</div><div class="cdiff-b"><span class="ctx">&amp;</span><del>∅（削除）</del><ins>amp;</ins><span class="ctx"></span></div></div></dd>
         <dt>API観測結果</dt><dd>APIなし</dd>
         
         <dt>データ更新結果</dt><dd>更新系API観測なし</dd>
@@ -362,7 +362,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details><details class="case r-PASS" open>
+    </details><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">空入力の送信は拒否される</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-010</dd>
@@ -386,7 +386,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details></details><details class="cat cat2" open><summary>📁 更新</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS" open>
+    </details></details><details class="cat cat2" open><summary>📁 更新</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">ToDoを完了にする（チェック）</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-003</dd>
@@ -410,7 +410,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details></details><details class="cat cat2" open><summary>📁 削除</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS" open>
+    </details></details><details class="cat cat2" open><summary>📁 削除</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">ToDoを削除できる</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-004</dd>
@@ -434,7 +434,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details></details><details class="cat cat2" open><summary>📁 フィルタ</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS" open>
+    </details></details><details class="cat cat2" open><summary>📁 フィルタ</summary><div class="cat3">▸ 画面表示</div><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">「すべて」フィルタで全件表示</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-005</dd>
@@ -458,7 +458,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details><details class="case r-PASS" open>
+    </details><details class="case r-PASS">
       <summary><span class="ricon" style="color:#2e7d32">✓</span><span class="rlabel" style="background:#2e7d32">完全一致</span><span class="cname">「完了」フィルタで完了のみ表示</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-006</dd>
@@ -482,7 +482,7 @@
         <dt>再実行可否</dt><dd>可（保存済みスイートから再実行可能）</dd>
         
       </dl></div>
-    </details><details class="case r-DIFF" open>
+    </details><details class="case r-DIFF">
       <summary><span class="ricon" style="color:#c62828">✕</span><span class="rlabel" style="background:#c62828">明確に異なる</span><span class="cname">「未完了」フィルタで未完了のみ表示</span></summary>
       <div class="casebody"><dl class="detail">
         <dt>テストケースID</dt><dd>SCN-007</dd>
@@ -495,7 +495,7 @@
         <dt>入力値</dt><dd>—</dd>
         <dt>期待結果</dt><dd>保存済みN（修正前）と同一の表示・通信</dd>
         <dt>パッチ前後の差分</dt><dd>本文テキスト（正規化）が不一致</dd>
-        <dt>具体的な相違点</dt><dd><div class="cdiff"><div class="cdiff-f">本文テキスト</div><div class="cdiff-b"><span class="ctx">未完了</span><del>: 牛乳を買う / レポート提出</del><ins>フィルタなのに完了が表示: 部屋の掃除(完了)</ins><span class="ctx"></span></div></div></dd>
+        <dt>具体的な相違点</dt><dd><div class="cdiff"><div class="cdiff-f">本文テキスト</div><div class="cdiff-b"><span class="ctx">未完了:</span><del>牛乳を買う / レポート提出</del><ins>部屋の掃除(完了)</ins><span class="ctx"></span></div></div></dd>
         <dt>API観測結果</dt><dd>APIなし</dd>
         
         <dt>データ更新結果</dt><dd>更新系API観測なし</dd>

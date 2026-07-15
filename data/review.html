@@ -58,7 +58,7 @@
  <div class="hero">
   <div class="hero-m"><div class="hero-num" style="color:#2e7d32">90%</div><div class="hero-lbl">テスト信頼度<br><span class="muted">高い</span></div></div>
   <div class="hero-sep"></div>
-  <div class="hero-m"><div class="hero-num" style="color:#ef6c00">67%</div><div class="hero-lbl">テスト観点網羅<br><span class="muted">4/6種</span></div></div>
+  <div class="hero-m"><div class="hero-num">10</div><div class="hero-lbl">生成テストケース<br><span class="muted">件（1回目=Nで作成）</span></div></div>
   
   <div class="hero-v v-mid">△ おおむね良好 ── 下の詳細で不足観点・信頼度の改善余地を確認できます。</div>
  </div>
@@ -66,11 +66,25 @@
  <div class="muted" style="margin:4px 0 8px">詳細は各項目を開いて確認。改善の「追加」は下の<b>追加アクション</b>から行えます（既存テストは保持）。</div>
 
  <details><summary>🛡 テストの信頼性・正当性（根拠・内訳・推奨あり）</summary>
-  <ul class="grounds"><li>全テストケースは実際のブラウザ操作で観測した挙動から自動生成（人手の推測ではありません）。</li><li>各ケースは決定論的な再現スクリプトで、2回目に同一手順を再実行し修正前後の一致を検証します（再現性が信頼の根拠）。</li><li>各ケースは N観測エビデンス（スクリーンショット・DOM構造・API通信）を保持し、いつでも根拠を提示できます。</li><li>ISO/IEC 25010 の品質観点で網羅を可視化し、テスト観点の抜けを定量化しています。</li></ul>
-  <div class="covbox" style="margin-top:8px"><b>信頼度の内訳</b>
-   <div class="frow"><span class="tname">再現性（決定論スクリプト）</span><span class="tbar"><i style="width:100%;background:#2e7d32"></i></span><b>100%</b></div><div class="frow"><span class="tname">エビデンス（スクショ/DOM/API）</span><span class="tbar"><i style="width:80%;background:#2e7d32"></i></span><b>80%</b></div><div class="frow"><span class="tname">正常到達（HTTP/コンソール）</span><span class="tbar"><i style="width:100%;background:#2e7d32"></i></span><b>100%</b></div><div class="frow"><span class="tname">ロケータ安定性</span><span class="tbar"><i style="width:85%;background:#2e7d32"></i></span><b>85%</b></div><div class="frow"><span class="tname">検証シグナルの豊富さ</span><span class="tbar"><i style="width:67%;background:#ef6c00"></i></span><b>67%</b></div>
+  <div class="covbox" style="margin-top:4px;background:#f4f9f5;border-color:#d8ecdd">
+   <b>「テスト信頼度 90%」とは？</b>
+   <div class="muted" style="margin-top:3px">生成したテストが「あてになるか（＝結果を信用してよいか）」の指標です。下の<b>5項目のスコアを加重平均</b>したものが信頼度になります。数値が高いほど、このテストで挙動差を見逃しにくいことを意味します（仕様書に基づく合否判定ではなく、テスト自体の質の目安です）。</div>
   </div>
-  <div class="covbox" style="margin-top:8px"><b>どこまでテストしたか（網羅度）</b><div>画面 <b>1</b> ／ 操作 <b>23</b> ／ 到達状態 <b>10</b> ／ API <b>0</b> ／ テスト観点網羅 <b>67%</b></div></div>
+  <ul class="grounds"><li>全テストケースは実際のブラウザ操作で観測した挙動から自動生成（人手の推測ではありません）。</li><li>各ケースは決定論的な再現スクリプトで、2回目に同一手順を再実行し修正前後の一致を検証します（再現性が信頼の根拠）。</li><li>各ケースは N観測エビデンス（スクリーンショット・DOM構造・API通信）を保持し、いつでも根拠を提示できます。</li><li>ISO/IEC 25010 の品質観点で網羅を可視化し、テスト観点の抜けを定量化しています。</li></ul>
+  <div class="covbox" style="margin-top:8px"><b>信頼度の内訳（この5項目の加重平均＝90%）</b>
+   <div class="frow"><span class="tname">再現性（決定論スクリプト）</span><span class="tbar"><i style="width:100%;background:#2e7d32"></i></span><b>100%</b></div><div class="frow"><span class="tname">エビデンス（スクショ/DOM/API）</span><span class="tbar"><i style="width:80%;background:#2e7d32"></i></span><b>80%</b></div><div class="frow"><span class="tname">正常到達（HTTP/コンソール）</span><span class="tbar"><i style="width:100%;background:#2e7d32"></i></span><b>100%</b></div><div class="frow"><span class="tname">ロケータ安定性</span><span class="tbar"><i style="width:85%;background:#2e7d32"></i></span><b>85%</b></div><div class="frow"><span class="tname">検証シグナルの豊富さ</span><span class="tbar"><i style="width:67%;background:#ef6c00"></i></span><b>67%</b></div>
+   <div class="muted" style="margin-top:6px;line-height:1.8">
+    ・<b>再現性</b>：同じ手順を何度でも同一に再実行できるか（決定論的な操作列か）<br>
+    ・<b>エビデンス</b>：スクショ/DOM要約/API等の証跡がどれだけ残っているか<br>
+    ・<b>正常到達</b>：HTTPエラーやコンソールエラー無く目的の画面へ到達できたか<br>
+    ・<b>ロケータ安定性</b>：要素の指定が壊れにくい安定した方法か（id/role優先か）<br>
+    ・<b>検証シグナル</b>：比較の手掛かり（テキスト/API/状態変化）がどれだけ観測できたか
+   </div>
+  </div>
+  <div class="covbox" style="margin-top:8px"><b>どれだけテストケースを作ったか（生成規模・まだ実行前）</b>
+   <div>生成ケース <b>10</b> 件 ／ カバーした画面 <b>1</b> ／ 操作 <b>23</b> ／ 到達状態 <b>10</b> ／ 観測API <b>0</b></div>
+   <div class="muted" style="margin-top:3px">※これは1回目(N)の捜索で<b>作成したテストの規模</b>です。修正後(N+1)との比較（合否）はまだ行っていません。</div>
+  </div>
   <div class="covbox" style="margin-top:8px;border-left:4px solid #37507a"><b>🛠 信頼度を上げる推奨アクション（自動提示）</b>
        <div class="rec"><div class="rec-hd"><span class="rec-pri" style="background:#c62828">高</span><b>ロケータを安定要素に変更（id / name / data-testid / role）</b> <span class="rec-gain">信頼度 +2%（92% へ）</span></div><div class="muted">テキスト依存・位置依存のセレクタは画面変更で壊れやすく回帰時の誤検知を招きます。安定属性へ変更すると信頼度が上がります。</div><div class="rec-tg">対象：SCN-003（ToDoを完了にする（チェック））: .item input[type=checkbox] ／ SCN-004（ToDoを削除できる）: .item .del ／ SCN-005（「すべて」フィルタで全件表示）: [data-filter=all] ／ SCN-006（「完了」フィルタで完了のみ表示）: [data-filter=completed] ／ SCN-007（「未完了」フィルタで未完了のみ表示）: [data-filter=active]</div></div><div class="rec"><div class="rec-hd"><span class="rec-pri" style="background:#ef6c00">中</span><b>不足テスト観点を追加する</b> <span class="rec-gain">テスト観点網羅 67% → 100%</span></div><div class="muted">レビュー画面の「不足観点のテストケースを自動生成」または該当なしを「対象外」に設定すると観点網羅が上がります。</div><div class="rec-tg">対象：未カバー: 境界値・API</div></div></div>
   <table class="grid" style="margin-top:8px"><thead><tr><th>ID</th><th>ケース</th><th style="text-align:right">信頼度</th><th>根拠</th></tr></thead><tbody><tr><td>SCN-001</td><td>トップ表示：初期ToDo一覧が表示される</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし）</td></tr><tr><td>SCN-002</td><td>新規ToDoを追加できる</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr><tr><td>SCN-003</td><td>ToDoを完了にする（チェック）</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-004</td><td>ToDoを削除できる</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-005</td><td>「すべて」フィルタで全件表示</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-006</td><td>「完了」フィルタで完了のみ表示</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-007</td><td>「未完了」フィルタで未完了のみ表示</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-008</td><td>記号を含むToDo「I'm done!」を追加</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr><tr><td>SCN-009</td><td>「A &amp; B」を追加して一覧表示</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr><tr><td>SCN-010</td><td>空入力の送信は拒否される</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr></tbody></table>
@@ -102,12 +116,9 @@
    </div>
   </details>
 
- <details><summary>④ 逆生成した機能一覧（業務領域 ＞ 機能 ＞ サブ機能）</summary>
+ <details><summary>④ 逆生成した機能一覧（業務領域 ＞ 機能 ＞ サブ機能 ／ ケース数）</summary>
+  <p class="muted" style="margin:2px 0 6px">生成テストケースを分類し、どの業務領域・機能をどれだけカバーしたかを集約したものです。</p>
   <table class="grid"><thead><tr><th>業務領域</th><th>機能</th><th>サブ機能（観測）</th><th style="text-align:right">ケース</th></tr></thead><tbody><tr><td>ToDo管理</td><td>追加</td><td>—</td><td style="text-align:right"><b>4</b></td></tr><tr><td>ToDo管理</td><td>フィルタ</td><td>—</td><td style="text-align:right"><b>3</b></td></tr><tr><td>ToDo管理</td><td>一覧・表示</td><td>—</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理</td><td>更新</td><td>—</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理</td><td>削除</td><td>—</td><td style="text-align:right"><b>1</b></td></tr></tbody></table>
- </details>
-
- <details><summary>⑤ カテゴリ別ケース数</summary>
-  <table class="grid"><thead><tr><th>カテゴリ</th><th style="text-align:right">ケース</th></tr></thead><tbody><tr><td>ToDo管理 ＞ 追加</td><td style="text-align:right"><b>4</b></td></tr><tr><td>ToDo管理 ＞ フィルタ</td><td style="text-align:right"><b>3</b></td></tr><tr><td>ToDo管理 ＞ 一覧・表示</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理 ＞ 更新</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理 ＞ 削除</td><td style="text-align:right"><b>1</b></td></tr></tbody></table>
  </details>
 
  <details><summary>⑥ 画面遷移図（捜索ツリー：開始→操作→到達状態）</summary>

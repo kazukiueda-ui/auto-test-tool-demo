@@ -1,3 +1,4 @@
 .playwright-mcp/
 data/_issues_store.json
+_ui_raw.html
 .DS_Store
