@@ -356,7 +356,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
       <div class="muted">深いほど各観点の指摘・生成ケース数の上限が増え（最大30指摘/40ケース）、修正箇所を残らず洗い出します（トークン＝課金も増加）。</div>
      </div>
      <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">🤖 AIレビューを実施</button>
-     <span class="muted">※実施は任意。AI（架空のレビュアー）による評価で、Claude APIを使用します（要APIキー・従量課金）。</span>
+     <span class="muted">※実施は任意。AI（架空のレビュアー）による評価で、Claude APIを使用します（要APIキー・従量課金）。<b style="color:#6a1b9a">※本デモはモックのため課金は発生しません。</b></span>
      <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
      <div id="m-aiResult"></div>
      <!-- レビュー本文を読んだ後に「反映するか」を決める（本文の下に配置） -->
@@ -366,7 +366,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      </div>
      <div style="border-top:1px dashed #cdb6e0;margin-top:12px;padding-top:10px">
       <div class="act-hd" style="color:#6a1b9a">🎯 目標評価まで自動改善（レビュー↔改善を自律反復）</div>
-      <p class="muted" style="margin:2px 0 8px">「レビュー→不足観点＋AI改善ケースを追加→再レビュー」を、<b>目標評価に到達するか改善が頭打ちになるまで自動で繰り返します</b>。追加ケースは既存を保持したまま増やします。<b>API呼び出しが複数ラウンド分（＝相応の従量課金）</b>発生します。</p>
+      <p class="muted" style="margin:2px 0 8px">「レビュー→不足観点＋AI改善ケースを追加→再レビュー」を、<b>目標評価に到達するか改善が頭打ちになるまで自動で繰り返します</b>。追加ケースは既存を保持したまま増やします。<b>API呼び出しが複数ラウンド分（＝相応の従量課金）</b>発生します。<b style="color:#6a1b9a">※本デモはモックのため課金は発生しません。</b></p>
       <div class="slider" style="max-width:520px;margin:2px 0 6px">
        <div class="lab"><span>目標 総合評価</span><b id="m-aiTargetv">85点</b></div>
        <input type="range" id="m-aiTarget" min="60" max="100" step="1" value="85">
@@ -799,7 +799,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  $('m-autoBtn').addEventListener('click',function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var target=+$('m-aiTarget').value, rounds=+$('m-aiRounds').value, depth=aiDepth();
-   if(!confirm('目標 '+target+'点まで、レビュー↔改善を最大 '+rounds+' ラウンド自動反復します。\n各ラウンドで複数回のClaude API呼び出し（従量課金）が発生します。実行しますか？')) return;
+   if(!confirm('目標 '+target+'点まで、レビュー↔改善を最大 '+rounds+' ラウンド自動反復します。\n（本番では各ラウンドで複数回のClaude API呼び出し＝従量課金が発生しますが、本デモはモックのため実際のAPI呼び出し・課金は一切発生しません）\n実行しますか？')) return;
    var btn=$('m-autoBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='自律改善を開始しています…'; $('m-autoResult').innerHTML='';
    fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,target:target,maxRounds:rounds,depth:depth})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
