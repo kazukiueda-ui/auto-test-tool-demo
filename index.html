@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Auto-test-tool デモ（モック）── ToDoアプリ N vs N+1 回帰比較</title>
+<style>
+ :root{--ok:#2e7d32;--warn:#ef6c00;--ng:#c62828;--ink:#1a2733;--mut:#667;--line:#e3e8f0;--bg:#f5f7fa;--head:#1f2d4d}
+ *{box-sizing:border-box}
+ body{font-family:system-ui,"Segoe UI",Meiryo,sans-serif;margin:0;background:var(--bg);color:var(--ink);line-height:1.55}
+ header{background:var(--head);color:#fff;padding:14px 20px}
+ header h1{font-size:17px;margin:0}
+ header .sub{font-size:12px;opacity:.85;margin-top:3px}
+ .demo-badge{display:inline-block;background:#6a1b9a;color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:2px 10px;margin-left:8px;vertical-align:middle}
+ .wrap{max-width:1000px;margin:0 auto;padding:16px}
+ .card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px 18px;margin:14px 0}
+ h2{font-size:15px;margin:2px 0 10px}
+ h3{font-size:14px;margin:0 0 8px}
+ .muted{color:var(--mut);font-size:12px}
+ label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+ input[type=url],textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit}
+ textarea{white-space:pre;overflow:auto}
+ .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ .slider{margin:8px 0}
+ .slider .lab{display:flex;justify-content:space-between;font-size:12px;color:#455}
+ input[type=range]{width:100%}
+ details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0;background:#fbfcfe}
+ details>summary{cursor:pointer;font-weight:600;font-size:13px}
+ button{background:var(--head);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer}
+ button:hover{background:#2a3d61}
+ button:disabled{opacity:.5;cursor:default}
+ .btn-purple{background:#6a1b9a}.btn-purple:hover{background:#54137a}
+ pre.log{background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap;max-height:210px;overflow:auto;margin:12px 0 0}
+ .hidden{display:none}
+ .hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+ .hero-m{text-align:center;min-width:96px}
+ .hero-num{font-size:34px;font-weight:800;line-height:1}
+ .hero-lbl{font-size:12px;color:#556;margin-top:2px}
+ .hero-sep{width:1px;align-self:stretch;background:var(--line)}
+ .hero-v{flex:1;min-width:220px;font-weight:600;font-size:13px;padding:8px 12px;border-radius:8px}
+ .v-ok{background:#e8f5e9;color:#1b5e20}.v-mid{background:#fff3e0;color:#e65100}.v-ng{background:#fdecea;color:#b71c1c}
+ table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden}
+ th,td{border-bottom:1px solid #eef1f6;padding:7px 9px;text-align:left;vertical-align:top}
+ th{background:#f0f4fb;font-size:12px}
+ .pill{display:inline-block;border-radius:10px;padding:1px 9px;font-size:11px;font-weight:700}
+ .pill.pass{background:#e8f5e9;color:var(--ok)}
+ .pill.diff{background:#fdecea;color:var(--ng)}
+ .chip{display:inline-block;background:#eef4ff;color:#2455b0;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px}
+ .kbadge{display:inline-block;background:#eceff3;color:#455;border-radius:8px;padding:0 7px;font-size:10px;margin-left:4px}
+ .diffbox{margin-top:6px;font-size:12px;background:#fbfcfe;border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+ .diffbox .bad{color:var(--ng)}.diffbox .good{color:var(--ok)}
+ .ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ .ai-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+ .ai-card h4{margin:0 0 6px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+ .ai-sc{font-size:20px;font-weight:800}
+ .ai-card ul{margin:4px 0;padding-left:18px;font-size:12px}
+ .sev{display:inline-block;color:#fff;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;margin-right:4px}
+ .sev.h{background:var(--ng)}.sev.m{background:var(--warn)}.sev.l{background:#607d8b}
+ .synth{background:#faf5ff;border:1px solid #e6d6f2;border-radius:10px;padding:12px 14px;margin-top:12px}
+ .synth .big{font-size:22px;font-weight:800}
+ .pri{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px}
+ .pri .p{color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;flex:none}
+ .cov{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .covbox{background:#fbfcfe;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px}
+ .mbadge{display:inline-block;border:1px solid #f5c6c0;background:#fdecea;color:var(--ng);border-radius:12px;padding:2px 9px;margin:2px 3px 2px 0;font-size:12px}
+ .mbadge.hit{background:#e8f5e9;color:var(--ok);border-color:#bfe3c4}
+ .foot{font-size:11px;color:var(--mut);margin:18px 0 8px;text-align:center}
+ @media(max-width:720px){.row2,.ai-grid,.cov{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+ <h1>Auto-test-tool <span class="demo-badge">DEMO / モック</span></h1>
+ <div class="sub">N vs N+1 回帰比較ツール ── 修正前後で Web システムが同一挙動かを検証（本ページは API・ブラウザ不要の静的デモ）</div>
+</header>
+
+<div class="wrap">
+
+ <!-- 設定 -->
+ <div class="card">
+  <h2>① 対象URL（修正前 N ／ 修正後 N+1）</h2>
+  <div class="row2">
+   <div><label>修正前 N（正常版）</label><input id="urlN" type="url" readonly></div>
+   <div><label>修正後 N+1（パッチ版・不具合入り）</label><input id="urlN1" type="url" readonly></div>
+  </div>
+
+  <details>
+   <summary>詳細設定（捜索スライダー）</summary>
+   <div class="slider"><div class="lab"><span>捜索の深さ</span><b>0.50</b></div><input type="range" min="0" max="1" step="0.01" value="0.5" disabled></div>
+   <div class="slider"><div class="lab"><span>捜索の広さ</span><b>0.50</b></div><input type="range" min="0" max="1" step="0.01" value="0.5" disabled></div>
+   <div class="slider"><div class="lab"><span>メイン⇔例外</span><b>0.40</b></div><input type="range" min="0" max="1" step="0.01" value="0.4" disabled></div>
+   <p class="muted">※デモではスライダーは固定表示です。</p>
+  </details>
+
+  <details open>
+   <summary>🗺 仕様の画面遷移図（Mermaid）── 1回目走査の遷移図と比較する</summary>
+   <label>画面遷移図（Mermaid記法）</label>
+   <textarea id="specMermaid" rows="8" readonly></textarea>
+   <p class="muted">走査で生成した遷移と照合し、下のレビューで「遷移網羅率」を表示します。</p>
+  </details>
+
+  <div style="margin-top:14px">
+   <button id="runBtn">▶ デモを実行（捜索 → 再実行 → 比較 → AIレビュー）</button>
+   <span class="muted" style="margin-left:10px">結果はこの比較用に用意した固定データを再生します（従量課金なし）。</span>
+  </div>
+  <pre id="log" class="log hidden"></pre>
+ </div>
+
+ <!-- 結果 -->
+ <div id="results" class="hidden">
+
+  <div class="hero" style="margin-top:14px">
+   <div class="hero-m"><div class="hero-num" style="color:var(--warn)" id="hRel">78%</div><div class="hero-lbl">テスト信頼度</div></div>
+   <div class="hero-sep"></div>
+   <div class="hero-m"><div class="hero-num" style="color:var(--ok)" id="hVp">100%</div><div class="hero-lbl">テスト観点網羅</div></div>
+   <div class="hero-sep"></div>
+   <div class="hero-m"><div class="hero-num" style="color:var(--ok)" id="hSpec">100%</div><div class="hero-lbl">遷移網羅率</div></div>
+   <div class="hero-v v-ng" id="verdict"></div>
+  </div>
+
+  <!-- 比較ダッシュボード -->
+  <div class="card">
+   <h2>⑤ N vs N+1 比較ダッシュボード</h2>
+   <div id="cmpSummary" class="muted"></div>
+   <table style="margin-top:10px">
+    <thead><tr><th style="width:78px">ID</th><th>テストケース</th><th>観点</th><th style="width:96px">結果</th></tr></thead>
+    <tbody id="cmpRows"></tbody>
+   </table>
+   <p class="muted" style="margin-top:8px">※本ツールは仕様書が無い前提のため、差分は不具合と断定せず「要確認(DIFF)」として提示します（この比較では3件の回帰が検出されました）。</p>
+  </div>
+
+  <!-- 遷移比較 -->
+  <div class="card">
+   <h2>🗺 仕様の画面遷移図 × 1回目走査の比較 ── 遷移網羅 <span id="specOverall">100%</span></h2>
+   <div class="covbox" style="margin-bottom:6px"><b>画面(ノード)到達：<span id="nodeRate"></span></b><div id="nodeItems" style="margin-top:4px"></div></div>
+   <div class="covbox"><b>画面遷移(エッジ)再現：<span id="edgeRate"></span></b><div id="edgeItems" style="margin-top:4px"></div></div>
+   <p class="muted" style="margin-top:6px"><b style="color:var(--ok)">✓緑＝走査で再現</b> ／ <b style="color:var(--ng)">×赤＝未再現</b>。この比較では仕様の全画面・全遷移を走査が踏破しています。</p>
+  </div>
+
+  <!-- AIレビュー -->
+  <div class="card">
+   <h2>② AIレビュー（4観点 ＋ 合議）<span class="demo-badge">モック応答</span></h2>
+   <p class="muted" style="margin-bottom:10px">4名の架空AIレビュアーが生成テストを評価し、合議して総合評価と改善提案をまとめます（本デモは固定応答。実運用では Claude API を使用）。</p>
+   <div class="ai-grid" id="aiCards"></div>
+   <div class="synth" id="synth"></div>
+   <p class="muted" style="margin-top:10px">※本評価は実在人物ではなく AI（デモではモック）による参考評価であり、正式な品質認証・網羅保証を意味しません。</p>
+  </div>
+
+ </div>
+
+ <div class="foot">
+  Auto-test-tool デモ（モック）／ 対象アプリ: <a href="https://uedakazuki-plainliving.github.io/auto-test-site-demo/">auto-test-site-demo</a>
+  ── 実行・レビューの結果はこの normal/patched 比較用に用意した固定データです。
+ </div>
+</div>
+
+<script>
+//===== 対象URL・仕様 =====
+var N_URL  = "https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/";
+var N1_URL = "https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/";
+var SPEC_MERMAID = [
+ "graph TD",
+ "  A[ToDo一覧] --> B[ToDo追加]",
+ "  A --> C[完了トグル]",
+ "  A --> D[ToDo削除]",
+ "  A --> E[フィルタ:未完了]",
+ "  A --> F[フィルタ:完了]",
+ "  B --> G[入力バリデーション]"
+].join("\n");
+
+//===== 比較シナリオ（10件・うち3件が回帰=DIFF） =====
+var SCENARIOS = [
+ {id:"SCN-001",name:"トップ表示：初期ToDo一覧が表示される",cat:["ToDo管理","一覧","表示"],tags:["正常系"],result:"PASS"},
+ {id:"SCN-002",name:"新規ToDoを追加できる",cat:["ToDo管理","追加","登録"],tags:["正常系","CRUD"],result:"PASS"},
+ {id:"SCN-003",name:"ToDoを完了にする（チェック）",cat:["ToDo管理","更新","状態変更"],tags:["正常系","状態遷移"],result:"PASS"},
+ {id:"SCN-004",name:"ToDoを削除できる",cat:["ToDo管理","削除","CRUD"],tags:["正常系","CRUD"],result:"PASS"},
+ {id:"SCN-005",name:"「すべて」フィルタで全件表示",cat:["ToDo管理","フィルタ","表示"],tags:["正常系"],result:"PASS"},
+ {id:"SCN-006",name:"「完了」フィルタで完了のみ表示",cat:["ToDo管理","フィルタ","表示"],tags:["正常系"],result:"PASS"},
+ {id:"SCN-007",name:"「未完了」フィルタで未完了のみ表示",cat:["ToDo管理","フィルタ","表示"],tags:["正常系","状態遷移"],result:"DIFF",kind:"diff-structure",
+   n:"未完了のToDoのみ表示（例：牛乳を買う／レポート提出）",
+   n1:"完了済みのToDoが表示される（例：部屋の掃除）＝判定が反転",
+   why:"不具合3：未完了フィルタの条件が反転（t.completed を返している）"},
+ {id:"SCN-008",name:"記号を含むToDo「I'm done!」を追加",cat:["ToDo管理","追加","入力"],tags:["異常系","境界値"],result:"DIFF",kind:"diff-structure",
+   n:"入力どおり「I'm done!」が登録される",
+   n1:"「Im done!」＝アポストロフィ「'」が消える",
+   why:"不具合1：危険文字除去 replace(/['\"<>]/g,'') が正当な入力まで壊す"},
+ {id:"SCN-009",name:"「A & B」を追加して一覧表示",cat:["ToDo管理","追加","表示"],tags:["異常系","境界値"],result:"DIFF",kind:"diff-visual",
+   n:"「A & B」と表示される",
+   n1:"「A &amp; B」＝実体参照がそのまま見える",
+   why:"不具合2：textContent へ二重エスケープ（escapeHtml の多重適用）"},
+ {id:"SCN-010",name:"空入力の送信は拒否される",cat:["ToDo管理","追加","バリデーション"],tags:["異常系"],result:"PASS"}
+];
+
+//===== 遷移網羅（仕様 vs 走査。全ノード・全エッジを走査が踏破） =====
+var SPEC_NODES = ["ToDo一覧","ToDo追加","完了トグル","ToDo削除","フィルタ:未完了","フィルタ:完了","入力バリデーション"].map(function(n){return {name:n,covered:true};});
+var SPEC_EDGES = [
+ ["ToDo一覧","ToDo追加"],["ToDo一覧","完了トグル"],["ToDo一覧","ToDo削除"],
+ ["ToDo一覧","フィルタ:未完了"],["ToDo一覧","フィルタ:完了"],["ToDo追加","入力バリデーション"]
+].map(function(e){return {from:e[0],to:e[1],covered:true};});
+
+//===== AIレビュー（モック応答） =====
+var PERSONAS = [
+ {icon:"🧭",label:"網羅観点レビュアー",score:78,verdict:"主要CRUD・フィルタ・入力異常系は押さえられている。",
+  strengths:["追加/完了/削除/フィルタの主要導線をカバー","記号入力・空入力の異常系を含む"],
+  issues:[{s:"中",p:"最大長・多数件（100件超）での一覧描画が未検証"},{s:"低",p:"完了→未完了へ戻す逆操作の状態遷移が薄い"}],
+  improvements:["長文/最大長ToDoの境界値ケースを追加","完了状態のトグル往復（完了→未完了）を追加"]},
+ {icon:"⚠️",label:"リスク観点レビュアー",score:70,verdict:"XSS・入力サニタイズ周りは要注意。回帰の芽を捉えている。",
+  strengths:["特殊文字（&, ', <>）の表示・登録を検証","パッチで壊れやすいサニタイズ経路に触れている"],
+  issues:[{s:"高",p:"<script>等のXSSペイロード表示が明示ケースになっていない"},{s:"中",p:"localStorage 破損時のフォールバック挙動が未検証"}],
+  improvements:["XSSペイロード（<img onerror> 等）の表示安全性ケースを追加","保存データ不整合時の復旧挙動を検証"]},
+ {icon:"🙂",label:"利用者観点レビュアー",score:80,verdict:"実利用の主要フローに沿っており自然。",
+  strengths:["“追加→完了→フィルタ確認”という実利用フローを再現","記号入りタスク名など現実的な入力を使用"],
+  issues:[{s:"低",p:"連続追加・並び順の期待が明文化されていない"}],
+  improvements:["複数件を連続追加した際の並び順・件数表示の期待値を明記"]},
+ {icon:"😈",label:"敵対的レビュアー",score:62,verdict:"壊せる余地あり。境界・多重操作の詰めが甘い。",
+  strengths:["フィルタ反転・二重エスケープなど“壊れる箇所”に到達している"],
+  issues:[{s:"高",p:"同名ToDoの重複追加や絵文字/多言語文字の扱いが未検証"},{s:"中",p:"完了トグルの高速連打による状態不整合が未検証"}],
+  improvements:["重複・絵文字・長文の境界値を投入","トグル連打・追加連打の競合系ケースを追加"]}
+];
+var SYNTH = {
+ score:70,
+ verdict:"主要フローと回帰検知は十分。XSS/境界値の補強で確度が上がる。",
+ consensus:"CRUD・フィルタ・入力異常系を押さえ、パッチ版の3回帰（フィルタ反転・記号除去・二重エスケープ）を検出できている。一方でXSSペイロードや最大長・多重操作の境界系が不足。",
+ agreements:["主要CRUD/フィルタ導線はカバー","パッチで混入した回帰を検出できている"],
+ disagreements:["XSS明示ケースの要否（リスク=高 / 利用者=低）"],
+ actions:[
+  {p:"高",a:"XSSペイロード（<img onerror=...> / <script>）の表示安全性ケースを追加",r:"サニタイズ経路の回帰を確実に捕捉するため"},
+  {p:"中",a:"最大長・多数件・絵文字/多言語の境界値ケースを追加",r:"入力除去や描画の破綻を検知するため"},
+  {p:"中",a:"完了トグル往復・連続追加など多重操作の状態遷移を追加",r:"状態不整合の回帰を防ぐため"}
+ ]
+};
+
+//===== 実行シミュレーション =====
+function $(id){return document.getElementById(id);}
+$("urlN").value=N_URL; $("urlN1").value=N1_URL; $("specMermaid").value=SPEC_MERMAID;
+
+var LOG_STEPS = [
+ "[捜索] "+N_URL+" を走査中…（ルールベース）",
+ "　└ リンク/フォーム/ボタンを検出：ToDo入力・追加ボタン・フィルタ3種・各項目のチェック/削除",
+ "✔ テストケース 10 本を生成（正常系6・異常系4）",
+ "[再実行] N（正常版）で 10 ケースを実行しベースライン取得…",
+ "[再実行] N+1（パッチ版）で 10 ケースを実行…",
+ "[比較] N vs N+1 の差分を判定中…",
+ "　└ SCN-007 未完了フィルタ：一覧内容が相違 → DIFF",
+ "　└ SCN-008 記号ToDo：登録テキストが相違（' が欠落）→ DIFF",
+ "　└ SCN-009 A & B 表示：表示テキストが相違（&amp; が露出）→ DIFF",
+ "[レビュー] 🧭⚠️🙂😈 4観点で並行レビュー → 合議中…",
+ "✅ 完了：一致 7/10（70%）／ 要確認(DIFF) 3件 ／ 総合評価 70点"
+];
+
+$("runBtn").addEventListener("click",function(){
+ var btn=$("runBtn"); btn.disabled=true;
+ var lg=$("log"); lg.classList.remove("hidden"); lg.textContent="";
+ $("results").classList.add("hidden");
+ var i=0;
+ (function tick(){
+  if(i<LOG_STEPS.length){ lg.textContent += (i?"\n":"")+LOG_STEPS[i]; lg.scrollTop=lg.scrollHeight; i++; setTimeout(tick, 380); }
+  else { render(); $("results").classList.remove("hidden"); btn.disabled=false; $("results").scrollIntoView({behavior:"smooth"}); }
+ })();
+});
+
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+function render(){
+ // 判定
+ var pass=SCENARIOS.filter(function(s){return s.result==="PASS";}).length;
+ var diff=SCENARIOS.length-pass;
+ var rate=Math.round(pass/SCENARIOS.length*100);
+ $("verdict").className="hero-v v-ng";
+ $("verdict").innerHTML="⚠ 回帰あり ── 一致率 "+rate+"%（DIFF "+diff+"件）。パッチ版で3件の挙動差分を検出しました。修正が必要です。";
+
+ // 比較サマリ・行
+ $("cmpSummary").innerHTML="一致 <b style='color:var(--ok)'>"+pass+"</b> / "+SCENARIOS.length+
+   "（<b>"+rate+"%</b>）　要確認(DIFF) <b style='color:var(--ng)'>"+diff+"</b>　内訳: diff-structure 2・diff-visual 1";
+ $("cmpRows").innerHTML=SCENARIOS.map(function(s){
+   var pill=s.result==="PASS"?'<span class="pill pass">PASS</span>':'<span class="pill diff">DIFF</span>';
+   var k=s.kind?'<span class="kbadge">'+s.kind+'</span>':'';
+   var det="";
+   if(s.result==="DIFF"){
+     det='<div class="diffbox"><div><b>N（正常版）：</b><span class="good">'+esc(s.n)+'</span></div>'+
+         '<div><b>N+1（パッチ版）：</b><span class="bad">'+esc(s.n1)+'</span></div>'+
+         '<div class="muted" style="margin-top:3px">原因: '+esc(s.why)+'</div></div>';
+   }
+   return '<tr><td>'+s.id+'</td><td>'+esc(s.name)+det+'</td><td>'+s.cat.join(' ＞ ')+'<br>'+
+          s.tags.map(function(t){return '<span class="chip">'+t+'</span>';}).join('')+'</td>'+
+          '<td>'+pill+k+'</td></tr>';
+ }).join("");
+
+ // 遷移比較
+ var nc=SPEC_NODES.filter(function(n){return n.covered;}).length, ec=SPEC_EDGES.filter(function(e){return e.covered;}).length;
+ $("nodeRate").textContent=nc+"/"+SPEC_NODES.length+"（"+Math.round(nc/SPEC_NODES.length*100)+"%）";
+ $("edgeRate").textContent=ec+"/"+SPEC_EDGES.length+"（"+Math.round(ec/SPEC_EDGES.length*100)+"%）";
+ $("nodeItems").innerHTML=SPEC_NODES.map(function(n){return '<span class="mbadge '+(n.covered?'hit':'')+'">'+(n.covered?'✓':'×')+' '+esc(n.name)+'</span>';}).join("");
+ $("edgeItems").innerHTML=SPEC_EDGES.map(function(e){return '<span class="mbadge '+(e.covered?'hit':'')+'">'+(e.covered?'✓':'×')+' '+esc(e.from)+' → '+esc(e.to)+'</span>';}).join("");
+ var ov=Math.round((nc+ec)/(SPEC_NODES.length+SPEC_EDGES.length)*100);
+ $("specOverall").textContent=ov+"%"; $("hSpec").textContent=ov+"%";
+
+ // AIレビュー
+ $("aiCards").innerHTML=PERSONAS.map(function(p){
+   var col=p.score>=80?'var(--ok)':p.score>=60?'var(--warn)':'var(--ng)';
+   return '<div class="ai-card"><h4>'+p.icon+' '+esc(p.label)+'<span class="ai-sc" style="color:'+col+'">'+p.score+'</span></h4>'+
+     '<div class="muted">'+esc(p.verdict)+'</div>'+
+     '<div style="font-size:12px;margin-top:6px"><b>指摘</b><ul>'+p.issues.map(function(x){var c=x.s==="高"?"h":x.s==="中"?"m":"l";return '<li><span class="sev '+c+'">'+x.s+'</span>'+esc(x.p)+'</li>';}).join("")+'</ul></div>'+
+     '<div style="font-size:12px"><b>改善提案</b><ul>'+p.improvements.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul></div></div>';
+ }).join("");
+ var scol=SYNTH.score>=80?'var(--ok)':SYNTH.score>=60?'var(--warn)':'var(--ng)';
+ var pcol={"高":"var(--ng)","中":"var(--warn)","低":"#607d8b"};
+ $("synth").innerHTML='<div><span class="big" style="color:'+scol+'">合議 総合評価 '+SYNTH.score+'</span> ／ '+esc(SYNTH.verdict)+'</div>'+
+   '<div class="muted" style="margin:6px 0">'+esc(SYNTH.consensus)+'</div>'+
+   '<div style="font-size:13px"><b>全員一致</b>：'+SYNTH.agreements.map(esc).join(' ／ ')+'</div>'+
+   '<div style="font-size:13px;margin-bottom:6px"><b>意見の相違</b>：'+SYNTH.disagreements.map(esc).join(' ／ ')+'</div>'+
+   '<b style="font-size:13px">優先度つき改善アクション</b>'+
+   SYNTH.actions.map(function(a){return '<div class="pri"><span class="p" style="background:'+pcol[a.p]+'">'+a.p+'</span><div><b>'+esc(a.a)+'</b><div class="muted">'+esc(a.r)+'</div></div></div>';}).join("");
+}
+</script>
+</body>
+</html>
