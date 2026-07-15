@@ -1,0 +1,292 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>捜索レビュー（テスト仕様の逆生成）</title>
+<style>
+ body{font-family:system-ui,"Segoe UI",Meiryo,sans-serif;margin:0;background:#f5f7fa;color:#1a2733}
+ .wrap{max-width:1000px;margin:0 auto;padding:16px}
+ h1{font-size:17px;margin:6px 0 2px}h2{font-size:15px;margin:20px 0 8px}
+ .muted{color:#667;font-size:12px}
+ .banner{display:flex;align-items:center;gap:18px;background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:8px solid #ef6c00}
+ .score{font-size:40px;font-weight:800;color:#ef6c00;line-height:1}
+ .miss{margin-top:10px}.mbadge{display:inline-block;background:#fdecea;color:#c62828;border:1px solid #f5c6c0;border-radius:12px;padding:2px 10px;margin:2px 4px 2px 0;font-size:12px}
+ .ok-note{margin-top:10px;color:#2e7d32;font-weight:600}
+ .cov{display:grid;grid-template-columns:1fr 1fr;gap:10px}.covbox{background:#fff;border:1px solid #e3e8f0;border-radius:8px;padding:10px 12px;font-size:13px}.covbox.iso{grid-column:1/-1}
+ .iso-tbl{width:100%;border-collapse:collapse;font-size:13px}.iso-tbl td{border-top:1px solid #eef1f6;padding:5px 6px}.iso-tbl td:first-child{color:#556;width:200px}
+ b.ok{color:#2e7d32}b.ng{color:#c62828}
+ details{background:#fff;border-radius:10px;padding:8px 16px;margin:12px 0;box-shadow:0 1px 4px rgba(0,0,0,.08)}details>summary{cursor:pointer;font-weight:600}
+ table.grid{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden}
+ table.grid th,table.grid td{border-bottom:1px solid #eef1f6;padding:6px 8px;text-align:left}table.grid th{background:#f0f4fb;font-size:12px}
+ .chip{display:inline-block;background:#eef4ff;color:#2455b0;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px}
+ .trow{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}.tname{width:150px}.badge{background:#e8f5e9;color:#2e7d32;border-radius:8px;padding:0 6px;font-size:10px}
+ .tbar{flex:1;background:#eef1f6;border-radius:6px;height:12px;overflow:hidden}.tbar i{display:block;height:100%;background:#4a78d0}
+ .tree ul{list-style:none;margin:2px 0 2px 14px;padding-left:12px;border-left:1px dashed #c7d0dd}.tree li{margin:2px 0;font-size:13px}
+ .tree>ul{border:0;margin-left:0}
+ .mmd-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:4px 0 8px}
+ .mmd-btn{background:#37507a;color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
+ .mmd-btn:hover{background:#2a3d61}
+ .mmd-wrap{overflow:auto;background:#fbfcfe;border:1px solid #e3e8f0;border-radius:8px;padding:8px;text-align:center}
+ pre.mermaid{margin:0;font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#556;white-space:pre;text-align:left}
+ pre.mermaid svg{max-width:100%;height:auto}
+ .mmd-wrap{cursor:zoom-in;position:relative}
+ .mmd-wrap::after{content:"🔍 クリックで拡大";position:absolute;top:6px;right:8px;background:rgba(31,56,100,.82);color:#fff;font-size:11px;padding:2px 8px;border-radius:10px;pointer-events:none}
+ #mmdz{display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,22,32,.88);flex-direction:column}
+ #mmdz-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#1f2d4d;color:#fff;flex-wrap:wrap}
+ #mmdz-bar button{background:#37507a;color:#fff;border:0;border-radius:6px;padding:5px 12px;font-size:13px;cursor:pointer}
+ #mmdz-bar button:hover{background:#4a659c}.mmdz-sp{flex:1}
+ #mmdz-stage{flex:1;overflow:auto;padding:16px;cursor:grab}
+ #mmdz-stage.drag{cursor:grabbing}
+ #mmdz-holder{display:inline-block;background:#fff;border-radius:8px;padding:10px}
+ #mmdz-holder svg{display:block;height:auto}
+ .hero{display:flex;align-items:center;gap:18px;background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.08);flex-wrap:wrap}
+ .hero-m{text-align:center;min-width:96px}.hero-num{font-size:34px;font-weight:800;line-height:1}.hero-lbl{font-size:12px;margin-top:4px;line-height:1.4}
+ .hero-sep{width:1px;align-self:stretch;background:#e3e8f0}
+ .hero-v{flex:1;min-width:220px;font-weight:700;font-size:14px;padding:10px 14px;border-radius:8px}
+ .hero-v.v-ok{background:#eafaf0;color:#1b5e20}.hero-v.v-mid{background:#fff5e6;color:#8a4b00}.hero-v.v-ng{background:#fdecea;color:#b71c1c}
+ .rel-banner{display:flex;gap:18px;align-items:flex-start;background:#f4f9f5;border:1px solid #d8ecdd;border-left:8px solid #2e7d32;border-radius:12px;padding:14px 18px}
+ .rel-score{font-size:38px;font-weight:800;line-height:1}
+ .grounds{margin:4px 0 0;padding-left:18px;font-size:13px;line-height:1.7}.grounds li{margin:2px 0}
+ .frow{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:13px}
+ .rec{border-top:1px solid #eef1f6;padding:7px 0}.rec:first-of-type{border-top:0}
+ .rec-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+ .rec-pri{color:#fff;font-size:11px;font-weight:700;border-radius:4px;padding:1px 7px}
+ .rec-gain{color:#2e7d32;font-weight:700;font-size:12px}
+ .rec-tg{font-size:12px;color:#455;margin-top:2px}
+</style></head><body><div class="wrap">
+ <h1>捜索レビュー ── 生成テストの妥当性（1回目）</h1>
+ <div class="muted">対象: https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/ ／ 生成ケース 10 件</div>
+
+ <!-- まず結論：このテストは十分か（信頼度＋網羅性） -->
+ <div class="hero">
+  <div class="hero-m"><div class="hero-num" style="color:#2e7d32">90%</div><div class="hero-lbl">テスト信頼度<br><span class="muted">高い</span></div></div>
+  <div class="hero-sep"></div>
+  <div class="hero-m"><div class="hero-num" style="color:#ef6c00">67%</div><div class="hero-lbl">テスト観点網羅<br><span class="muted">4/6種</span></div></div>
+  
+  <div class="hero-v v-mid">△ おおむね良好 ── 下の詳細で不足観点・信頼度の改善余地を確認できます。</div>
+ </div>
+ 
+ <div class="muted" style="margin:4px 0 8px">詳細は各項目を開いて確認。改善の「追加」は下の<b>追加アクション</b>から行えます（既存テストは保持）。</div>
+
+ <details><summary>🛡 テストの信頼性・正当性（根拠・内訳・推奨あり）</summary>
+  <ul class="grounds"><li>全テストケースは実際のブラウザ操作で観測した挙動から自動生成（人手の推測ではありません）。</li><li>各ケースは決定論的な再現スクリプトで、2回目に同一手順を再実行し修正前後の一致を検証します（再現性が信頼の根拠）。</li><li>各ケースは N観測エビデンス（スクリーンショット・DOM構造・API通信）を保持し、いつでも根拠を提示できます。</li><li>ISO/IEC 25010 の品質観点で網羅を可視化し、テスト観点の抜けを定量化しています。</li></ul>
+  <div class="covbox" style="margin-top:8px"><b>信頼度の内訳</b>
+   <div class="frow"><span class="tname">再現性（決定論スクリプト）</span><span class="tbar"><i style="width:100%;background:#2e7d32"></i></span><b>100%</b></div><div class="frow"><span class="tname">エビデンス（スクショ/DOM/API）</span><span class="tbar"><i style="width:80%;background:#2e7d32"></i></span><b>80%</b></div><div class="frow"><span class="tname">正常到達（HTTP/コンソール）</span><span class="tbar"><i style="width:100%;background:#2e7d32"></i></span><b>100%</b></div><div class="frow"><span class="tname">ロケータ安定性</span><span class="tbar"><i style="width:85%;background:#2e7d32"></i></span><b>85%</b></div><div class="frow"><span class="tname">検証シグナルの豊富さ</span><span class="tbar"><i style="width:67%;background:#ef6c00"></i></span><b>67%</b></div>
+  </div>
+  <div class="covbox" style="margin-top:8px"><b>どこまでテストしたか（網羅度）</b><div>画面 <b>1</b> ／ 操作 <b>23</b> ／ 到達状態 <b>10</b> ／ API <b>0</b> ／ テスト観点網羅 <b>67%</b></div></div>
+  <div class="covbox" style="margin-top:8px;border-left:4px solid #37507a"><b>🛠 信頼度を上げる推奨アクション（自動提示）</b>
+       <div class="rec"><div class="rec-hd"><span class="rec-pri" style="background:#c62828">高</span><b>ロケータを安定要素に変更（id / name / data-testid / role）</b> <span class="rec-gain">信頼度 +2%（92% へ）</span></div><div class="muted">テキスト依存・位置依存のセレクタは画面変更で壊れやすく回帰時の誤検知を招きます。安定属性へ変更すると信頼度が上がります。</div><div class="rec-tg">対象：SCN-003（ToDoを完了にする（チェック））: .item input[type=checkbox] ／ SCN-004（ToDoを削除できる）: .item .del ／ SCN-005（「すべて」フィルタで全件表示）: [data-filter=all] ／ SCN-006（「完了」フィルタで完了のみ表示）: [data-filter=completed] ／ SCN-007（「未完了」フィルタで未完了のみ表示）: [data-filter=active]</div></div><div class="rec"><div class="rec-hd"><span class="rec-pri" style="background:#ef6c00">中</span><b>不足テスト観点を追加する</b> <span class="rec-gain">テスト観点網羅 67% → 100%</span></div><div class="muted">レビュー画面の「不足観点のテストケースを自動生成」または該当なしを「対象外」に設定すると観点網羅が上がります。</div><div class="rec-tg">対象：未カバー: 境界値・API</div></div></div>
+  <table class="grid" style="margin-top:8px"><thead><tr><th>ID</th><th>ケース</th><th style="text-align:right">信頼度</th><th>根拠</th></tr></thead><tbody><tr><td>SCN-001</td><td>トップ表示：初期ToDo一覧が表示される</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし）</td></tr><tr><td>SCN-002</td><td>新規ToDoを追加できる</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr><tr><td>SCN-003</td><td>ToDoを完了にする（チェック）</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-004</td><td>ToDoを削除できる</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-005</td><td>「すべて」フィルタで全件表示</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-006</td><td>「完了」フィルタで完了のみ表示</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-007</td><td>「未完了」フィルタで未完了のみ表示</td><td style="text-align:right"><b style="color:#2e7d32">87</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 0/1</td></tr><tr><td>SCN-008</td><td>記号を含むToDo「I'm done!」を追加</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr><tr><td>SCN-009</td><td>「A &amp; B」を追加して一覧表示</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr><tr><td>SCN-010</td><td>空入力の送信は拒否される</td><td style="text-align:right"><b style="color:#2e7d32">92</b></td><td>決定論的な再現スクリプト（毎回同一手順で再実行可能） ／ N観測エビデンス保持（DOM構造） ／ 正常到達（HTTP OK・コンソールエラーなし） ／ 安定ロケータ 2/2</td></tr></tbody></table>
+  <div class="muted" style="margin-top:6px">前提と範囲：捜索範囲（深さ・広さ・時間上限）に依存します。範囲外の画面・操作は対象外です。 ／ 仕様書が無い前提のため、2回目の差分は不具合と断定せず「要確認」として提示します。 ／ ロケータ安定性が低いケースは編集で強化できます（該当は下表で確認できます）。</div>
+ </details>
+
+ <details><summary>① テスト観点の網羅性（未カバー・対象外）</summary>
+  <div>期待観点 6 種のうち <b>4</b> 種をカバー（網羅性 67%）</div><div class="miss">未カバーのテスト観点：<span class="mbadge">境界値</span><span class="mbadge">API</span>
+       <div class="muted">100%にするには、右上の画面で <b>「不足観点のテストケースを自動生成」</b>（異常系＝空/不正/最大長、境界値＝桁上限、状態遷移＝連続操作 などを既存操作から生成）するか、該当機能が無い観点を <b>「対象外」</b> にしてください。</div></div>
+ </details>
+
+ <details><summary>② テスト観点タグ 集計</summary>
+  <div class="covbox"><div class="trow"><span class="tname">UI</span><span class="tbar"><i style="width:100%"></i></span><b>10</b></div><div class="trow"><span class="tname">回帰</span><span class="tbar"><i style="width:100%"></i></span><b>10</b></div><div class="trow"><span class="tname">パッチ後</span><span class="tbar"><i style="width:100%"></i></span><b>10</b></div><div class="trow"><span class="tname">正常系 <span class="badge">観点</span></span><span class="tbar"><i style="width:90%"></i></span><b>9</b></div><div class="trow"><span class="tname">状態遷移 <span class="badge">観点</span></span><span class="tbar"><i style="width:90%"></i></span><b>9</b></div><div class="trow"><span class="tname">CRUD <span class="badge">観点</span></span><span class="tbar"><i style="width:50%"></i></span><b>5</b></div><div class="trow"><span class="tname">異常系 <span class="badge">観点</span></span><span class="tbar"><i style="width:10%"></i></span><b>1</b></div></div>
+ </details>
+
+ <details><summary>③ 品質メトリクス（ISO/IEC 25010・N観測ベース）</summary>
+   <div class="cov">
+    <div class="covbox"><b>UIカバレッジ</b><div>テストケース <b>10</b> ／ 操作 <b>23</b> ／ 画面 <b>1</b> ／ 状態 <b>10</b> ／ 入力実行 <b>4</b></div></div>
+    <div class="covbox"><b>APIカバレッジ（観測ベース）</b><div>通信 <b>0</b> ／ ユニークAPI <b>0</b> ／ 2xx 0・4xx 0・5xx 0 ／ WS 0・SSE 0<br>method別: なし</div><div class="muted">※システム全体のAPI網羅率ではなく「捜索中に観測された通信に対する集計」</div></div>
+    <div class="covbox iso"><b>ISO/IEC 25010 品質特性（観測ベース）</b>
+     <table class="iso-tbl">
+      <tr><td>機能適合性 / 回帰一致</td><td><b class="ok">100%</b>（OK 10/10）</td></tr>
+      <tr><td>信頼性</td><td>コンソールエラー 0 ／ HTTP 4xx 0・5xx 0 ／ リンク切れ 0</td></tr>
+      <tr><td>性能効率性</td><td>画面 平均120ms／最大120ms ・ API 平均0ms／最大0ms</td></tr>
+     </table>
+     <div class="muted">※観測に基づく参考メトリクス。正式な品質認証・網羅保証を意味しない。</div>
+    </div>
+    
+   </div>
+  </details>
+
+ <details><summary>④ 逆生成した機能一覧（業務領域 ＞ 機能 ＞ サブ機能）</summary>
+  <table class="grid"><thead><tr><th>業務領域</th><th>機能</th><th>サブ機能（観測）</th><th style="text-align:right">ケース</th></tr></thead><tbody><tr><td>ToDo管理</td><td>追加</td><td>—</td><td style="text-align:right"><b>4</b></td></tr><tr><td>ToDo管理</td><td>フィルタ</td><td>—</td><td style="text-align:right"><b>3</b></td></tr><tr><td>ToDo管理</td><td>一覧・表示</td><td>—</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理</td><td>更新</td><td>—</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理</td><td>削除</td><td>—</td><td style="text-align:right"><b>1</b></td></tr></tbody></table>
+ </details>
+
+ <details><summary>⑤ カテゴリ別ケース数</summary>
+  <table class="grid"><thead><tr><th>カテゴリ</th><th style="text-align:right">ケース</th></tr></thead><tbody><tr><td>ToDo管理 ＞ 追加</td><td style="text-align:right"><b>4</b></td></tr><tr><td>ToDo管理 ＞ フィルタ</td><td style="text-align:right"><b>3</b></td></tr><tr><td>ToDo管理 ＞ 一覧・表示</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理 ＞ 更新</td><td style="text-align:right"><b>1</b></td></tr><tr><td>ToDo管理 ＞ 削除</td><td style="text-align:right"><b>1</b></td></tr></tbody></table>
+ </details>
+
+ <details><summary>⑥ 画面遷移図（捜索ツリー：開始→操作→到達状態）</summary>
+  <div class="mmd-actions">
+   <button type="button" id="mmd-zoom" class="mmd-btn">🔍 拡大表示</button>
+   <button type="button" id="mmd-copy" class="mmd-btn">📋 Mermaidコードをコピー</button>
+   <a class="mmd-btn" href="data:application/xml;base64,PG14ZmlsZSBob3N0PSJhdXRvLXRlc3QtdG9vbCI+PGRpYWdyYW0gbmFtZT0i55S76Z2i6YG356e75ZuzIj48bXhHcmFwaE1vZGVsIGR4PSI4MDAiIGR5PSI2MDAiIGdyaWQ9IjEiIGdyaWRTaXplPSIxMCIgZ3VpZGVzPSIxIiB0b29sdGlwcz0iMSIgY29ubmVjdD0iMSIgYXJyb3dzPSIxIiBmb2xkPSIxIiBwYWdlPSIxIiBwYWdlU2NhbGU9IjEiIG1hdGg9IjAiIHNoYWRvdz0iMCI+PHJvb3Q+PG14Q2VsbCBpZD0iMCIvPjxteENlbGwgaWQ9IjEiIHBhcmVudD0iMCIvPjxteENlbGwgaWQ9Im4wIiB2YWx1ZT0i6ZaL5aeLIiBzdHlsZT0icm91bmRlZD0xO2FyY1NpemU9NTA7ZmlsbENvbG9yPSNlOGVlZmM7c3Ryb2tlQ29sb3I9IzM3NTA3YTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9IjAiIHk9IjE3NSIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjEiIHZhbHVlPSLplovlp4s6IC9ub3JtYWwvIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSIyMjAiIHk9IjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im4yIiB2YWx1ZT0i5LiA6Kan44GM6KGo56S644GV44KM44KLIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI0NDAiIHk9IjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im4zIiB2YWx1ZT0i6ZaL5aeLIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSIyMjAiIHk9IjM1MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjQiIHZhbHVlPSLlhaXlips96LK344GE54mp44Gr6KGM44GPIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI0NDAiIHk9IjcwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuNSIgdmFsdWU9Iui/veWKoOODnOOCv+ODsyIgc3R5bGU9InJvdW5kZWQ9MTtmaWxsQ29sb3I9I2ZmZmZmZjtzdHJva2VDb2xvcj0jOTBhNGFlO3doaXRlU3BhY2U9d3JhcDtodG1sPTE7IiB2ZXJ0ZXg9IjEiIHBhcmVudD0iMSI+PG14R2VvbWV0cnkgeD0iNjYwIiB5PSI3MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjYiIHZhbHVlPSLkuIDopqfjgavov73liqDjgZXjgozjgosiIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9Ijg4MCIgeT0iNzAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im43IiB2YWx1ZT0i44OB44Kn44OD44KvOiDniZvkubPjgpLosrfjgYYiIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9IjQ0MCIgeT0iMTQwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuOCIgdmFsdWU9IuWujOS6huOCueOCv+OCpOODq+OBq+OBquOCiyIgc3R5bGU9InJvdW5kZWQ9MTtmaWxsQ29sb3I9I2ZmZmZmZjtzdHJva2VDb2xvcj0jOTBhNGFlO3doaXRlU3BhY2U9d3JhcDtodG1sPTE7IiB2ZXJ0ZXg9IjEiIHBhcmVudD0iMSI+PG14R2VvbWV0cnkgeD0iNjYwIiB5PSIxNDAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im45IiB2YWx1ZT0i5YmK6ZmkOiDjg6zjg53jg7zjg4jmj5Dlh7oiIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9IjQ0MCIgeT0iMjEwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuMTAiIHZhbHVlPSLkuIDopqfjgYvjgonmtojjgYjjgosiIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9IjY2MCIgeT0iMjEwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuMTEiIHZhbHVlPSLjg5XjgqPjg6vjgr86IOOBmeOBueOBpiIgc3R5bGU9InJvdW5kZWQ9MTtmaWxsQ29sb3I9I2ZmZmZmZjtzdHJva2VDb2xvcj0jOTBhNGFlO3doaXRlU3BhY2U9d3JhcDtodG1sPTE7IiB2ZXJ0ZXg9IjEiIHBhcmVudD0iMSI+PG14R2VvbWV0cnkgeD0iNDQwIiB5PSIyODAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im4xMiIgdmFsdWU9IuWFqOS7tuihqOekuiIgc3R5bGU9InJvdW5kZWQ9MTtmaWxsQ29sb3I9I2ZmZmZmZjtzdHJva2VDb2xvcj0jOTBhNGFlO3doaXRlU3BhY2U9d3JhcDtodG1sPTE7IiB2ZXJ0ZXg9IjEiIHBhcmVudD0iMSI+PG14R2VvbWV0cnkgeD0iNjYwIiB5PSIyODAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im4xMyIgdmFsdWU9IuODleOCo+ODq+OCvzog5a6M5LqGIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI0NDAiIHk9IjM1MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjE0IiB2YWx1ZT0i5a6M5LqG44Gu44G/IiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI2NjAiIHk9IjM1MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjE1IiB2YWx1ZT0i44OV44Kj44Or44K/OiDmnKrlrozkuoYiIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9IjQ0MCIgeT0iNDIwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuMTYiIHZhbHVlPSLmnKrlrozkuobjga7jgb8iIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9IjY2MCIgeT0iNDIwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuMTciIHZhbHVlPSLlhaXlips9SSdtIGRvbmUhIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI0NDAiIHk9IjQ5MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjE4IiB2YWx1ZT0i6L+95Yqg44Oc44K/44OzIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI2NjAiIHk9IjQ5MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjE5IiB2YWx1ZT0i5YWl5Yqb44Gp44GK44KK55m76YyyIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI4ODAiIHk9IjQ5MCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjIwIiB2YWx1ZT0i5YWl5YqbPUEgJmFtcDsgQiIgc3R5bGU9InJvdW5kZWQ9MTtmaWxsQ29sb3I9I2ZmZmZmZjtzdHJva2VDb2xvcj0jOTBhNGFlO3doaXRlU3BhY2U9d3JhcDtodG1sPTE7IiB2ZXJ0ZXg9IjEiIHBhcmVudD0iMSI+PG14R2VvbWV0cnkgeD0iNDQwIiB5PSI1NjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im4yMSIgdmFsdWU9Iui/veWKoOODnOOCv+ODsyIgc3R5bGU9InJvdW5kZWQ9MTtmaWxsQ29sb3I9I2ZmZmZmZjtzdHJva2VDb2xvcj0jOTBhNGFlO3doaXRlU3BhY2U9d3JhcDtodG1sPTE7IiB2ZXJ0ZXg9IjEiIHBhcmVudD0iMSI+PG14R2VvbWV0cnkgeD0iNjYwIiB5PSI1NjAiIHdpZHRoPSIxODAiIGhlaWdodD0iNDYiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9Im4yMiIgdmFsdWU9IkEgJmFtcDsgQiDjgajooajnpLoiIHN0eWxlPSJyb3VuZGVkPTE7ZmlsbENvbG9yPSNmZmZmZmY7c3Ryb2tlQ29sb3I9IzkwYTRhZTt3aGl0ZVNwYWNlPXdyYXA7aHRtbD0xOyIgdmVydGV4PSIxIiBwYXJlbnQ9IjEiPjxteEdlb21ldHJ5IHg9Ijg4MCIgeT0iNTYwIiB3aWR0aD0iMTgwIiBoZWlnaHQ9IjQ2IiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJuMjMiIHZhbHVlPSLlhaXlips977yI56m677yJIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI0NDAiIHk9IjYzMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjI0IiB2YWx1ZT0i6L+95Yqg44Oc44K/44OzIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI2NjAiIHk9IjYzMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0ibjI1IiB2YWx1ZT0i6L+95Yqg44GV44KM44Gq44GEIiBzdHlsZT0icm91bmRlZD0xO2ZpbGxDb2xvcj0jZmZmZmZmO3N0cm9rZUNvbG9yPSM5MGE0YWU7d2hpdGVTcGFjZT13cmFwO2h0bWw9MTsiIHZlcnRleD0iMSIgcGFyZW50PSIxIj48bXhHZW9tZXRyeSB4PSI4ODAiIHk9IjYzMCIgd2lkdGg9IjE4MCIgaGVpZ2h0PSI0NiIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTAiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4wIiB0YXJnZXQ9Im4xIj48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTEiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4xIiB0YXJnZXQ9Im4yIj48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTIiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4wIiB0YXJnZXQ9Im4zIj48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTMiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4zIiB0YXJnZXQ9Im40Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTQiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im40IiB0YXJnZXQ9Im41Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTUiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im41IiB0YXJnZXQ9Im42Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTYiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4zIiB0YXJnZXQ9Im43Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTciIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im43IiB0YXJnZXQ9Im44Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTgiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4zIiB0YXJnZXQ9Im45Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTkiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im45IiB0YXJnZXQ9Im4xMCI+PG14R2VvbWV0cnkgcmVsYXRpdmU9IjEiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9ImUxMCIgc3R5bGU9ImVkZ2VTdHlsZT1vcnRob2dvbmFsRWRnZVN0eWxlO3JvdW5kZWQ9MDtodG1sPTE7IiBlZGdlPSIxIiBwYXJlbnQ9IjEiIHNvdXJjZT0ibjMiIHRhcmdldD0ibjExIj48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTExIiBzdHlsZT0iZWRnZVN0eWxlPW9ydGhvZ29uYWxFZGdlU3R5bGU7cm91bmRlZD0wO2h0bWw9MTsiIGVkZ2U9IjEiIHBhcmVudD0iMSIgc291cmNlPSJuMTEiIHRhcmdldD0ibjEyIj48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTEyIiBzdHlsZT0iZWRnZVN0eWxlPW9ydGhvZ29uYWxFZGdlU3R5bGU7cm91bmRlZD0wO2h0bWw9MTsiIGVkZ2U9IjEiIHBhcmVudD0iMSIgc291cmNlPSJuMyIgdGFyZ2V0PSJuMTMiPjxteEdlb21ldHJ5IHJlbGF0aXZlPSIxIiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJlMTMiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4xMyIgdGFyZ2V0PSJuMTQiPjxteEdlb21ldHJ5IHJlbGF0aXZlPSIxIiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJlMTQiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4zIiB0YXJnZXQ9Im4xNSI+PG14R2VvbWV0cnkgcmVsYXRpdmU9IjEiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9ImUxNSIgc3R5bGU9ImVkZ2VTdHlsZT1vcnRob2dvbmFsRWRnZVN0eWxlO3JvdW5kZWQ9MDtodG1sPTE7IiBlZGdlPSIxIiBwYXJlbnQ9IjEiIHNvdXJjZT0ibjE1IiB0YXJnZXQ9Im4xNiI+PG14R2VvbWV0cnkgcmVsYXRpdmU9IjEiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9ImUxNiIgc3R5bGU9ImVkZ2VTdHlsZT1vcnRob2dvbmFsRWRnZVN0eWxlO3JvdW5kZWQ9MDtodG1sPTE7IiBlZGdlPSIxIiBwYXJlbnQ9IjEiIHNvdXJjZT0ibjMiIHRhcmdldD0ibjE3Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTE3IiBzdHlsZT0iZWRnZVN0eWxlPW9ydGhvZ29uYWxFZGdlU3R5bGU7cm91bmRlZD0wO2h0bWw9MTsiIGVkZ2U9IjEiIHBhcmVudD0iMSIgc291cmNlPSJuMTciIHRhcmdldD0ibjE4Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTE4IiBzdHlsZT0iZWRnZVN0eWxlPW9ydGhvZ29uYWxFZGdlU3R5bGU7cm91bmRlZD0wO2h0bWw9MTsiIGVkZ2U9IjEiIHBhcmVudD0iMSIgc291cmNlPSJuMTgiIHRhcmdldD0ibjE5Ij48bXhHZW9tZXRyeSByZWxhdGl2ZT0iMSIgYXM9Imdlb21ldHJ5Ii8+PC9teENlbGw+PG14Q2VsbCBpZD0iZTE5IiBzdHlsZT0iZWRnZVN0eWxlPW9ydGhvZ29uYWxFZGdlU3R5bGU7cm91bmRlZD0wO2h0bWw9MTsiIGVkZ2U9IjEiIHBhcmVudD0iMSIgc291cmNlPSJuMyIgdGFyZ2V0PSJuMjAiPjxteEdlb21ldHJ5IHJlbGF0aXZlPSIxIiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJlMjAiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4yMCIgdGFyZ2V0PSJuMjEiPjxteEdlb21ldHJ5IHJlbGF0aXZlPSIxIiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJlMjEiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4yMSIgdGFyZ2V0PSJuMjIiPjxteEdlb21ldHJ5IHJlbGF0aXZlPSIxIiBhcz0iZ2VvbWV0cnkiLz48L214Q2VsbD48bXhDZWxsIGlkPSJlMjIiIHN0eWxlPSJlZGdlU3R5bGU9b3J0aG9nb25hbEVkZ2VTdHlsZTtyb3VuZGVkPTA7aHRtbD0xOyIgZWRnZT0iMSIgcGFyZW50PSIxIiBzb3VyY2U9Im4zIiB0YXJnZXQ9Im4yMyI+PG14R2VvbWV0cnkgcmVsYXRpdmU9IjEiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9ImUyMyIgc3R5bGU9ImVkZ2VTdHlsZT1vcnRob2dvbmFsRWRnZVN0eWxlO3JvdW5kZWQ9MDtodG1sPTE7IiBlZGdlPSIxIiBwYXJlbnQ9IjEiIHNvdXJjZT0ibjIzIiB0YXJnZXQ9Im4yNCI+PG14R2VvbWV0cnkgcmVsYXRpdmU9IjEiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjxteENlbGwgaWQ9ImUyNCIgc3R5bGU9ImVkZ2VTdHlsZT1vcnRob2dvbmFsRWRnZVN0eWxlO3JvdW5kZWQ9MDtodG1sPTE7IiBlZGdlPSIxIiBwYXJlbnQ9IjEiIHNvdXJjZT0ibjI0IiB0YXJnZXQ9Im4yNSI+PG14R2VvbWV0cnkgcmVsYXRpdmU9IjEiIGFzPSJnZW9tZXRyeSIvPjwvbXhDZWxsPjwvcm9vdD48L214R3JhcGhNb2RlbD48L2RpYWdyYW0+PC9teGZpbGU+" download="transitions-1st.drawio">✏ draw.io ファイル（.drawio）をダウンロード</a>
+   <span class="muted">1回目は未判定のため中立色。draw.io で編集できます</span>
+  </div>
+  <div class="mmd-wrap"><pre class="mermaid" id="mmd">flowchart TD
+  n0([&quot;開始&quot;])
+  n1[&quot;開始: /normal/&quot;]
+  n2[&quot;一覧が表示される&quot;]
+  n3[&quot;開始&quot;]
+  n4[&quot;入力=買い物に行く&quot;]
+  n5[&quot;追加ボタン&quot;]
+  n6[&quot;一覧に追加される&quot;]
+  n7[&quot;チェック: 牛乳を買う&quot;]
+  n8[&quot;完了スタイルになる&quot;]
+  n9[&quot;削除: レポート提出&quot;]
+  n10[&quot;一覧から消える&quot;]
+  n11[&quot;フィルタ: すべて&quot;]
+  n12[&quot;全件表示&quot;]
+  n13[&quot;フィルタ: 完了&quot;]
+  n14[&quot;完了のみ&quot;]
+  n15[&quot;フィルタ: 未完了&quot;]
+  n16[&quot;未完了のみ&quot;]
+  n17[&quot;入力=I'm done!&quot;]
+  n18[&quot;追加ボタン&quot;]
+  n19[&quot;入力どおり登録&quot;]
+  n20[&quot;入力=A &amp; B&quot;]
+  n21[&quot;追加ボタン&quot;]
+  n22[&quot;A &amp; B と表示&quot;]
+  n23[&quot;入力=（空）&quot;]
+  n24[&quot;追加ボタン&quot;]
+  n25[&quot;追加されない&quot;]
+  n0 --&gt; n1
+  n1 --&gt; n2
+  n0 --&gt; n3
+  n3 --&gt; n4
+  n4 --&gt; n5
+  n5 --&gt; n6
+  n3 --&gt; n7
+  n7 --&gt; n8
+  n3 --&gt; n9
+  n9 --&gt; n10
+  n3 --&gt; n11
+  n11 --&gt; n12
+  n3 --&gt; n13
+  n13 --&gt; n14
+  n3 --&gt; n15
+  n15 --&gt; n16
+  n3 --&gt; n17
+  n17 --&gt; n18
+  n18 --&gt; n19
+  n3 --&gt; n20
+  n20 --&gt; n21
+  n21 --&gt; n22
+  n3 --&gt; n23
+  n23 --&gt; n24
+  n24 --&gt; n25
+  classDef same fill:#eafaf0,stroke:#2e7d32,color:#1b5e20;
+  classDef diff fill:#fdecea,stroke:#c62828,color:#b71c1c;
+  classDef suspect fill:#fff5e6,stroke:#ef6c00,color:#8a4b00;
+  classDef root fill:#e8eefc,stroke:#37507a,color:#243;
+  class n0 root;</pre></div>
+  <textarea id="mmd-src" style="position:absolute;left:-9999px" aria-hidden="true">flowchart TD
+  n0([&quot;開始&quot;])
+  n1[&quot;開始: /normal/&quot;]
+  n2[&quot;一覧が表示される&quot;]
+  n3[&quot;開始&quot;]
+  n4[&quot;入力=買い物に行く&quot;]
+  n5[&quot;追加ボタン&quot;]
+  n6[&quot;一覧に追加される&quot;]
+  n7[&quot;チェック: 牛乳を買う&quot;]
+  n8[&quot;完了スタイルになる&quot;]
+  n9[&quot;削除: レポート提出&quot;]
+  n10[&quot;一覧から消える&quot;]
+  n11[&quot;フィルタ: すべて&quot;]
+  n12[&quot;全件表示&quot;]
+  n13[&quot;フィルタ: 完了&quot;]
+  n14[&quot;完了のみ&quot;]
+  n15[&quot;フィルタ: 未完了&quot;]
+  n16[&quot;未完了のみ&quot;]
+  n17[&quot;入力=I'm done!&quot;]
+  n18[&quot;追加ボタン&quot;]
+  n19[&quot;入力どおり登録&quot;]
+  n20[&quot;入力=A &amp; B&quot;]
+  n21[&quot;追加ボタン&quot;]
+  n22[&quot;A &amp; B と表示&quot;]
+  n23[&quot;入力=（空）&quot;]
+  n24[&quot;追加ボタン&quot;]
+  n25[&quot;追加されない&quot;]
+  n0 --&gt; n1
+  n1 --&gt; n2
+  n0 --&gt; n3
+  n3 --&gt; n4
+  n4 --&gt; n5
+  n5 --&gt; n6
+  n3 --&gt; n7
+  n7 --&gt; n8
+  n3 --&gt; n9
+  n9 --&gt; n10
+  n3 --&gt; n11
+  n11 --&gt; n12
+  n3 --&gt; n13
+  n13 --&gt; n14
+  n3 --&gt; n15
+  n15 --&gt; n16
+  n3 --&gt; n17
+  n17 --&gt; n18
+  n18 --&gt; n19
+  n3 --&gt; n20
+  n20 --&gt; n21
+  n21 --&gt; n22
+  n3 --&gt; n23
+  n23 --&gt; n24
+  n24 --&gt; n25
+  classDef same fill:#eafaf0,stroke:#2e7d32,color:#1b5e20;
+  classDef diff fill:#fdecea,stroke:#c62828,color:#b71c1c;
+  classDef suspect fill:#fff5e6,stroke:#ef6c00,color:#8a4b00;
+  classDef root fill:#e8eefc,stroke:#37507a,color:#243;
+  class n0 root;</textarea>
+  <details style="margin-top:8px"><summary>テキスト版（遷移ツリー）</summary>
+   <div class="tree"><ul><li>開始: /normal/<ul><li>一覧が表示される</li></ul></li><li>開始<ul><li>入力=買い物に行く<ul><li>追加ボタン<ul><li>一覧に追加される</li></ul></li></ul></li><li>チェック: 牛乳を買う<ul><li>完了スタイルになる</li></ul></li><li>削除: レポート提出<ul><li>一覧から消える</li></ul></li><li>フィルタ: すべて<ul><li>全件表示</li></ul></li><li>フィルタ: 完了<ul><li>完了のみ</li></ul></li><li>フィルタ: 未完了<ul><li>未完了のみ</li></ul></li><li>入力=I'm done!<ul><li>追加ボタン<ul><li>入力どおり登録</li></ul></li></ul></li><li>入力=A &amp; B<ul><li>追加ボタン<ul><li>A &amp; B と表示</li></ul></li></ul></li><li>入力=（空）<ul><li>追加ボタン<ul><li>追加されない</li></ul></li></ul></li></ul></li></ul></div>
+  </details>
+ </details>
+ <script>
+  (function(){ var el=document.getElementById('mmd'); var cmp=document.getElementById('mmd-cmp');
+    var nodes=[el,cmp].filter(function(x){return !!x;}); if(!nodes.length) return;
+    var sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    sc.onload=function(){ try{ mermaid.initialize({startOnLoad:false,securityLevel:'loose',flowchart:{useMaxWidth:true}}); mermaid.run({nodes:nodes}); }catch(e){ nodes.forEach(function(n){n.textContent='(図の描画に失敗)';}); } };
+    sc.onerror=function(){ nodes.forEach(function(n){n.textContent='(オフラインのため図を描画できません。Mermaidコードをコピーして draw.io / mermaid.live へ、または下のテキスト版をご覧ください)';}); };
+    document.head.appendChild(sc);
+    var b=document.getElementById('mmd-copy'); if(b) b.addEventListener('click',function(){ var t=document.getElementById('mmd-src'); t.select(); try{document.execCommand('copy'); b.textContent='✓ コピーしました'; setTimeout(function(){b.textContent='📋 Mermaidコードをコピー';},1500);}catch(e){} });
+  })();
+ </script>
+</div><div id="mmdz">
+ <div id="mmdz-bar">
+  <b>画面遷移図 拡大表示</b>
+  <button type="button" id="mmdz-out">－ 縮小</button>
+  <button type="button" id="mmdz-in">＋ 拡大</button>
+  <button type="button" id="mmdz-reset">リセット</button>
+  <span id="mmdz-val">100%</span>
+  <span class="mmdz-sp"></span>
+  <span style="font-size:12px;opacity:.85">ドラッグで移動 ／ ホイールで拡大縮小</span>
+  <button type="button" id="mmdz-close">✕ 閉じる (Esc)</button>
+ </div>
+ <div id="mmdz-stage"><div id="mmdz-holder"></div></div>
+</div>
+<script>
+ (function(){
+   var modal=document.getElementById('mmdz'); if(!modal) return;
+   var stage=document.getElementById('mmdz-stage'), holder=document.getElementById('mmdz-holder'), val=document.getElementById('mmdz-val');
+   var z=1, base=800;
+   function apply(){ var svg=holder.querySelector('svg'); if(svg){ svg.style.width=(base*z)+'px'; svg.style.maxWidth='none'; } val.textContent=Math.round(z*100)+'%'; }
+   function setZ(nz){ z=Math.max(0.2,Math.min(8,nz)); apply(); }
+   function openZ(){
+     var src=document.querySelector('.mmd-wrap svg');
+     if(!src){ alert('図の描画がまだ完了していません。数秒待ってから再度お試しください。'); return; }
+     holder.innerHTML=''; var c=src.cloneNode(true); c.removeAttribute('style'); holder.appendChild(c);
+     var vb=src.viewBox&&src.viewBox.baseVal; base=(vb&&vb.width)?vb.width:(src.getBoundingClientRect().width||800);
+     modal.style.display='flex';
+     var fit=(stage.clientWidth-40)/base; z=Math.max(0.2,Math.min(2, fit>0?fit:1)); apply();
+     stage.scrollTop=0; stage.scrollLeft=0;
+   }
+   function closeZ(){ modal.style.display='none'; }
+   var zb=document.getElementById('mmd-zoom'); if(zb) zb.addEventListener('click',openZ);
+   var wrap=document.querySelector('.mmd-wrap'); if(wrap) wrap.addEventListener('click',openZ);
+   document.getElementById('mmdz-in').addEventListener('click',function(){ setZ(z*1.25); });
+   document.getElementById('mmdz-out').addEventListener('click',function(){ setZ(z/1.25); });
+   document.getElementById('mmdz-reset').addEventListener('click',function(){ setZ(1); });
+   document.getElementById('mmdz-close').addEventListener('click',closeZ);
+   document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeZ(); });
+   stage.addEventListener('wheel',function(e){ if(modal.style.display==='none') return; e.preventDefault(); setZ(z*(e.deltaY<0?1.1:0.9)); },{passive:false});
+   var dr=false,sx=0,sy=0,sl=0,st=0;
+   stage.addEventListener('pointerdown',function(e){ dr=true; stage.classList.add('drag'); sx=e.clientX; sy=e.clientY; sl=stage.scrollLeft; st=stage.scrollTop; try{stage.setPointerCapture(e.pointerId);}catch(_){} });
+   stage.addEventListener('pointermove',function(e){ if(!dr) return; stage.scrollLeft=sl-(e.clientX-sx); stage.scrollTop=st-(e.clientY-sy); });
+   stage.addEventListener('pointerup',function(){ dr=false; stage.classList.remove('drag'); });
+ })();
+</script>
+</body></html>

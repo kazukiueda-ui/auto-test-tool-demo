@@ -1,317 +1,995 @@
-<!doctype html>
-<html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Auto-test-tool デモ（モック）── ToDoアプリ N vs N+1 回帰比較</title>
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Auto-test-tool</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>%F0%9F%A7%AA</text></svg>">
 <style>
- :root{--ok:#2e7d32;--warn:#ef6c00;--ng:#c62828;--ink:#1a2733;--mut:#667;--line:#e3e8f0;--bg:#f5f7fa;--head:#1f2d4d}
- *{box-sizing:border-box}
- body{font-family:system-ui,"Segoe UI",Meiryo,sans-serif;margin:0;background:var(--bg);color:var(--ink);line-height:1.55}
- header{background:var(--head);color:#fff;padding:14px 20px}
- header h1{font-size:17px;margin:0}
- header .sub{font-size:12px;opacity:.85;margin-top:3px}
- .demo-badge{display:inline-block;background:#6a1b9a;color:#fff;font-size:11px;font-weight:700;border-radius:10px;padding:2px 10px;margin-left:8px;vertical-align:middle}
- .wrap{max-width:1000px;margin:0 auto;padding:16px}
- .card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px 18px;margin:14px 0}
- h2{font-size:15px;margin:2px 0 10px}
- h3{font-size:14px;margin:0 0 8px}
- .muted{color:var(--mut);font-size:12px}
- label{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
- input[type=url],textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;font-family:inherit}
- textarea{white-space:pre;overflow:auto}
- .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
- .slider{margin:8px 0}
- .slider .lab{display:flex;justify-content:space-between;font-size:12px;color:#455}
+ body{font-family:'Segoe UI','Meiryo',sans-serif;margin:0;background:#eef1f5;color:#1e2430}
+ header{background:#1f3864;color:#fff;padding:14px 22px}header h1{margin:0;font-size:19px}
+ .wrap{max-width:1000px;margin:18px auto;padding:0 14px}
+ .card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 5px rgba(0,0,0,.08);margin-bottom:16px;scroll-margin-top:56px}
+ .stepper{position:sticky;top:0;z-index:1500;display:flex;gap:6px;background:#eef1f5;padding:9px 0 8px;margin:0 0 10px;flex-wrap:wrap;border-bottom:1px solid #dde3ec}
+ .stepper .step{display:inline-flex;align-items:center;gap:5px;background:#fff;color:#37507a;border:1px solid #d3dcea;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+ .stepper .step:hover{background:#e7eefc}
+ .stepper .step.active{background:#1f3864;color:#fff;border-color:#1f3864}
+ .stepper .step.is-locked{opacity:.4;cursor:not-allowed;pointer-events:none;background:#f2f4f8}
+ .stepper .step.done::before{content:"✓";color:#1f9d55;font-weight:900;margin-right:1px}
+ .stepper .step.done.active::before{color:#7ff0a8}
+ @media(max-width:640px){.stepper{gap:4px}.stepper .step{padding:5px 10px;font-size:12px}}
+ label{font-size:13px;font-weight:600;display:block;margin:10px 0 4px}
+ input[type=url]{width:100%;padding:9px 10px;border:1px solid #cfd6e0;border-radius:8px;font-size:14px;box-sizing:border-box}
+ .row{display:flex;gap:14px;flex-wrap:wrap}.row>div{flex:1;min-width:280px}
+ details summary{cursor:pointer;font-weight:700;margin:6px 0}
+ .slider{margin:12px 0}.slider .lab{display:flex;justify-content:space-between;font-size:13px}
+ .slider.main{background:#f0f4fb;border:1px solid #d6e0f0;border-radius:8px;padding:10px 12px;margin:14px 0}
  input[type=range]{width:100%}
- details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0;background:#fbfcfe}
- details>summary{cursor:pointer;font-weight:600;font-size:13px}
- button{background:var(--head);color:#fff;border:0;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer}
- button:hover{background:#2a3d61}
- button:disabled{opacity:.5;cursor:default}
- .btn-purple{background:#6a1b9a}.btn-purple:hover{background:#54137a}
- pre.log{background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap;max-height:210px;overflow:auto;margin:12px 0 0}
+ textarea{width:100%;box-sizing:border-box;border:1px solid #cfd6e0;border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical}
+ .estimate{background:#fff7e6;border:1px solid #f0d9a8;border-radius:8px;padding:10px 12px;font-size:14px;margin:6px 0 4px}
+ .estimate b{font-size:18px;color:#b26a00}
+ .opts{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px}
+ button{background:#1f3864;color:#fff;border:0;border-radius:8px;padding:11px 22px;font-size:15px;cursor:pointer;margin-top:14px}
+ button:disabled{opacity:.5;cursor:not-allowed}
+ pre#log{background:#0f1620;color:#cfe3ff;padding:12px;border-radius:8px;min-height:60px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap}
+ .muted{color:#77808c;font-size:12px}
+ iframe{width:100%;height:720px;border:1px solid #cfd6e0;border-radius:8px;background:#fff}
  .hidden{display:none}
- .hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
- .hero-m{text-align:center;min-width:96px}
- .hero-num{font-size:34px;font-weight:800;line-height:1}
- .hero-lbl{font-size:12px;color:#556;margin-top:2px}
- .hero-sep{width:1px;align-self:stretch;background:var(--line)}
- .hero-v{flex:1;min-width:220px;font-weight:600;font-size:13px;padding:8px 12px;border-radius:8px}
- .v-ok{background:#e8f5e9;color:#1b5e20}.v-mid{background:#fff3e0;color:#e65100}.v-ng{background:#fdecea;color:#b71c1c}
- table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:8px;overflow:hidden}
- th,td{border-bottom:1px solid #eef1f6;padding:7px 9px;text-align:left;vertical-align:top}
- th{background:#f0f4fb;font-size:12px}
- .pill{display:inline-block;border-radius:10px;padding:1px 9px;font-size:11px;font-weight:700}
- .pill.pass{background:#e8f5e9;color:var(--ok)}
- .pill.diff{background:#fdecea;color:var(--ng)}
- .chip{display:inline-block;background:#eef4ff;color:#2455b0;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px}
- .kbadge{display:inline-block;background:#eceff3;color:#455;border-radius:8px;padding:0 7px;font-size:10px;margin-left:4px}
- .diffbox{margin-top:6px;font-size:12px;background:#fbfcfe;border:1px solid var(--line);border-radius:6px;padding:6px 8px}
- .diffbox .bad{color:var(--ng)}.diffbox .good{color:var(--ok)}
- .ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
- .ai-card{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
- .ai-card h4{margin:0 0 6px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
- .ai-sc{font-size:20px;font-weight:800}
- .ai-card ul{margin:4px 0;padding-left:18px;font-size:12px}
- .sev{display:inline-block;color:#fff;border-radius:4px;padding:0 6px;font-size:10px;font-weight:700;margin-right:4px}
- .sev.h{background:var(--ng)}.sev.m{background:var(--warn)}.sev.l{background:#607d8b}
- .synth{background:#faf5ff;border:1px solid #e6d6f2;border-radius:10px;padding:12px 14px;margin-top:12px}
- .synth .big{font-size:22px;font-weight:800}
- .pri{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:13px}
- .pri .p{color:#fff;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;flex:none}
- .cov{display:grid;grid-template-columns:1fr 1fr;gap:8px}
- .covbox{background:#fbfcfe;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px}
- .mbadge{display:inline-block;border:1px solid #f5c6c0;background:#fdecea;color:var(--ng);border-radius:12px;padding:2px 9px;margin:2px 3px 2px 0;font-size:12px}
- .mbadge.hit{background:#e8f5e9;color:var(--ok);border-color:#bfe3c4}
- .foot{font-size:11px;color:var(--mut);margin:18px 0 8px;text-align:center}
- @media(max-width:720px){.row2,.ai-grid,.cov{grid-template-columns:1fr}}
-</style>
-</head>
-<body>
-<header>
- <h1>Auto-test-tool <span class="demo-badge">DEMO / モック</span></h1>
- <div class="sub">N vs N+1 回帰比較ツール ── 修正前後で Web システムが同一挙動かを検証（本ページは API・ブラウザ不要の静的デモ）</div>
-</header>
-
+ .sumcard{display:inline-block;margin-right:16px;font-size:14px}.big{font-size:26px;font-weight:700}
+ .tabs{max-width:1000px;margin:14px auto 0;padding:0 14px;display:flex;gap:6px}
+ .tab{background:#dbe2ec;color:#33415c;border:0;border-radius:8px 8px 0 0;padding:10px 18px;font-size:14px;cursor:pointer;margin:0}
+ .tab.active{background:#fff;color:#1f3864;font-weight:700}
+ h3{font-size:16px;margin:0 0 10px}
+ select{padding:8px 10px;border:1px solid #cfd6e0;border-radius:8px;font-size:14px}
+ input[type=text]{padding:9px 10px;border:1px solid #cfd6e0;border-radius:8px;font-size:14px;box-sizing:border-box}
+ #m-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);max-width:90vw;z-index:2000;padding:14px 20px;border-radius:10px;color:#fff;font-weight:700;font-size:15px;box-shadow:0 6px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;cursor:pointer}
+ #m-toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+ #m-toast.ok{background:#2e7d32}#m-toast.ng{background:#c62828}
+ .explorer{display:flex;gap:0;border:1px solid #d5dde8;border-radius:8px;overflow:hidden;min-height:340px;margin:8px 0}
+ .ex-tree{width:240px;flex:0 0 240px;background:#f6f8fb;border-right:1px solid #d5dde8;padding:6px 4px;overflow:auto;max-height:600px}
+ .ex-main{flex:1;min-width:0;display:flex;flex-direction:column}
+ .ex-path{padding:6px 10px;border-bottom:1px solid #eef1f6;font-size:12px;color:#4a5b70;background:#fbfcfe}
+ .ex-list{padding:8px 10px;overflow:auto;max-height:600px}
+ .fnode{user-select:none}
+ .fnode .frow{display:flex;align-items:center;gap:4px;padding:3px 6px;border-radius:5px;cursor:pointer;font-size:13px;white-space:nowrap}
+ .fnode .frow:hover{background:#e9eff7}
+ .fnode .frow.sel{background:#dbe7fb;font-weight:600}
+ .fnode .frow.dnd{outline:2px dashed #2e7d32;background:#eafaf0}
+ .fnode .ftw{width:14px;display:inline-block;text-align:center;color:#8a97a8;font-size:10px}
+ .fnode .ftog{cursor:pointer;border-radius:3px}.fnode .ftog:hover{background:#d3ddea;color:#37507a}
+ .fnode .fcount{color:#8a97a8;font-size:11px;margin-left:2px}
+ .fnode .fchildren{margin-left:12px}
+ details.caserow[draggable=true] > summary.csum{cursor:grab}
+ details.caserow.dragging{opacity:.5}
+ details.caserow.selected{outline:2px solid #2e7d32;outline-offset:-1px;background:#eafaf0}
+ .ex-toolbar{display:flex;align-items:center;gap:10px;margin:6px 0}
+ .ctxmenu{position:fixed;z-index:3000;background:#fff;border:1px solid #cfd6e0;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:4px;min-width:160px}
+ .ctxmenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:7px 12px;font-size:13px;color:#243;border-radius:4px;cursor:pointer;margin:0}
+ .ctxmenu button:hover{background:#eef4ff}
+ .ctxmenu .sep{border-top:1px solid #eef1f6;margin:3px 0}
+ .sufbar{background:#f4f7fb;border:1px solid #dbe2ec;border-radius:8px;padding:10px 12px;margin-bottom:6px}
+ .airev-box{border:1px dashed #cdb6e0;border-radius:8px;padding:10px;margin:6px 0 12px;background:#faf6fd}
+ .actions-box{border:2px solid #dbe2ec;border-radius:10px;padding:14px 16px;margin-top:14px;background:#f7f9fc}
+ .actions-box h4{font-size:15px;color:#2a4b7c}
+ .act-sec{border-top:1px solid #e3e8f0;padding:10px 0}.act-sec:first-of-type{border-top:0}
+ .act-hd{font-weight:700;font-size:13px;color:#37507a;margin-bottom:6px}
+ .ai-synth{background:#f3ecfa;border:1px solid #d6bdea;border-radius:8px;padding:12px;margin:10px 0}
+ .ai-synth .ai-big{font-size:26px;font-weight:800;color:#6a1b9a}
+ .ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:640px){.ai-grid{grid-template-columns:1fr}}
+ .ai-card{border:1px solid #e3e0ea;border-radius:8px;padding:10px;background:#fff}
+ .ai-card h4{margin:0 0 4px;font-size:14px}.ai-card .ai-sc{float:right;font-weight:800}
+ .ai-card ul{margin:4px 0;padding-left:16px;font-size:12.5px;line-height:1.6}
+ .ai-sev{display:inline-block;color:#fff;border-radius:4px;font-size:10px;padding:0 5px;margin-right:4px}
+ .ai-act{border-top:1px solid #eee;padding:6px 0;font-size:13px}.ai-act:first-child{border-top:0}
+ .ai-disc{font-size:11px;color:#8a6fa0;margin-top:8px}
+ .verdict.big{display:flex;align-items:center;gap:16px;border-radius:12px;padding:18px 22px}
+ .verdict.big .vico{font-size:40px;line-height:1}
+ .verdict.big .vtxt{font-size:22px;font-weight:800}
+ .verdict.big .vsub{font-size:13px;opacity:.9;margin-top:3px}
+ .verdict.big.v-ok{background:#eafaf0;border-left:10px solid #2e7d32;color:#1b5e20}
+ .verdict.big.v-ng{background:#fff5e6;border-left:10px solid #ef6c00;color:#8a4b00}
+ #m-dashDetails>summary{cursor:pointer;font-weight:600;color:#37507a;font-size:13px}
+ .nav{display:flex;gap:6px;margin-bottom:12px}
+ .navbtn{background:#e7ecf3;color:#37507a;border:0;border-radius:8px 8px 0 0;padding:8px 18px;font-size:14px;font-weight:700;cursor:pointer;margin:0}
+ .navbtn.active{background:#1f2d4d;color:#fff}
+ .navcount{background:#c62828;color:#fff;border-radius:10px;font-size:11px;padding:0 7px;margin-left:4px}
+ .issbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+ .iss-split{display:flex;gap:12px}@media(max-width:760px){.iss-split{flex-direction:column}}
+ .iss-listcol{flex:0 0 42%;max-height:640px;overflow:auto;border:1px solid #e3e8f0;border-radius:8px}
+ .iss-detailcol{flex:1;min-width:0;border:1px solid #e3e8f0;border-radius:8px;padding:12px}
+ table.iss{width:100%;border-collapse:collapse;font-size:12.5px}
+ table.iss th,table.iss td{border-bottom:1px solid #eef1f6;padding:6px 8px;text-align:left;vertical-align:middle}
+ table.iss th{background:#f0f4fb;font-size:12px;position:sticky;top:0}
+ table.iss tr.irow{cursor:pointer}table.iss tr.irow:hover{background:#eef4ff}table.iss tr.irow.sel{background:#dbe7fb}
+ .st-未対応{color:#c62828;font-weight:700}.st-対応中{color:#1565c0;font-weight:700}.st-確認中{color:#6a1b9a;font-weight:700}.st-完了{color:#2e7d32;font-weight:700}.st-対象外{color:#90a4ae}
+ .stchip{display:inline-block;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;color:#fff}
+ .sc-未対応{background:#c62828}.sc-対応中{background:#1565c0}.sc-確認中{background:#6a1b9a}.sc-完了{background:#2e7d32}.sc-対象外{background:#90a4ae}
+ .idl dt{font-weight:700;color:#556;font-size:12px;margin-top:8px}.idl dd{margin:2px 0;font-size:13px}
+ .iss-diff{font-size:12px;color:#455;word-break:break-all;background:#fbfcfe;border:1px solid #eef1f6;border-radius:6px;padding:6px}
+ .issbadge{display:inline-block;background:#c62828;color:#fff;border-radius:10px;font-size:10px;padding:0 6px;margin-left:4px;cursor:pointer}
+ .sufbar .excl{display:inline-block;margin:2px 8px 2px 0;font-size:12px;background:#fff;border:1px solid #d6dee8;border-radius:12px;padding:2px 8px;cursor:pointer}
+ details.catgroup{border:1px solid #dbe2ec;border-radius:8px;margin:10px 0;background:#f4f7fb;padding:2px 10px}
+ details.catgroup>summary{cursor:pointer;font-weight:700;padding:8px 4px;font-size:14px;color:#2a4b7c}
+ .chips{margin:2px 0 6px}.chips .tchip{display:inline-block;background:#eef4ff;color:#2455b0;border:1px solid #d6e2fb;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px 3px 1px 0}
+ .obadge{display:inline-block;color:#fff;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;margin:0 4px}
+ .o-捜索{background:#607d8b}.o-自動生成{background:#2e7d32}.o-推奨反映{background:#37507a}.o-AI改善{background:#6a1b9a}.o-手動追加{background:#ef6c00}
+ details.caserow{border:1px solid #e2e7ee;border-radius:8px;margin:8px 0;background:#fafbfc}
+ details.caserow>summary.csum{cursor:pointer;padding:9px 12px;list-style:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+ details.caserow>summary.csum::-webkit-details-marker{display:none}
+ details.caserow>summary.csum::before{content:"▸";color:#8a97a8;font-size:12px}
+ details.caserow[open]>summary.csum::before{content:"▾"}
+ details.caserow .cname{font-weight:600}
+ details.caserow .cedit{margin-left:auto;font-size:11px}
+ details.caserow .cbody{padding:2px 12px 12px}
+ .caserow .cn{display:flex;gap:8px;align-items:center;margin:6px 0 8px}.caserow .clbl{width:auto;font-size:12px;color:#556}
+ .cinfo{background:#fff;border:1px solid #e6ebf2;border-radius:8px;padding:8px 12px;margin:2px 0 8px}
+ .cinfo .cihd{font-weight:700;font-size:12px;color:#2a4b7c;margin-bottom:6px}
+ .cinfo dl{display:grid;grid-template-columns:150px 1fr;gap:2px 10px;margin:0;font-size:13px}
+ .cinfo dt{color:#556;font-weight:600}.cinfo dd{margin:0}
+ .cinfo ol.steps{margin:2px 0;padding-left:18px}.cinfo code{background:#f2f5f9;border-radius:3px;padding:0 4px}
+ .cinfo .apath{color:#555;font-family:ui-monospace,monospace;font-size:12px}
+ table.ci-api{border-collapse:collapse;font-size:12px;width:100%}table.ci-api th,table.ci-api td{border:1px solid #eef1f6;padding:2px 6px;text-align:left}table.ci-api th{background:#f4f7fb}
+ .cinfo .ci-shot{max-width:100%;border:1px solid #ddd;border-radius:6px;margin-top:4px}
+ details.editsec{border:1px dashed #cfd6e0;border-radius:8px;margin-top:4px;padding:2px 10px;background:#fcfdff}
+ details.editsec>summary{cursor:pointer;font-size:13px;font-weight:600;color:#37507a;padding:6px 2px}
+ .caserow input.nm{flex:1;padding:6px 8px;border:1px solid #cfd6e0;border-radius:6px;font-size:14px}
+ .steps-tbl{width:100%;border-collapse:collapse;font-size:13px}
+ .steps-tbl th,.steps-tbl td{border:1px solid #eee;padding:3px 5px;text-align:left;vertical-align:middle}
+ .steps-tbl input,.steps-tbl select{width:100%;box-sizing:border-box;border:1px solid #d5dbe3;border-radius:4px;padding:3px 4px;font-size:12px;margin:0}
+ .btn-sm{padding:5px 12px;font-size:13px;margin:6px 0 0}
+ .btn-del{background:#c62828}.btn-gray{background:#607d8b}.btn-mini{background:#90a4ae;padding:2px 8px;font-size:12px;margin:0}
+</style></head><body>
+<!-- ==== デモ(モック) shim：サーバAPIを canned データに差し替え、本物のUIをそのまま駆動 ==== -->
+<script>
+(function(){
+ var origFetch = window.fetch.bind(window);
+ function J(o){ return Promise.resolve(new Response(JSON.stringify(o),{status:200,headers:{'Content-Type':'application/json'}})); }
+ function H(t){ return Promise.resolve(new Response(t,{status:200,headers:{'Content-Type':'text/html; charset=utf-8'}})); }
+ var cache={};
+ function load(p){ if(!cache[p]) cache[p]=origFetch(p).then(function(r){return r.text();}); return cache[p]; }
+ var EXP=[
+  '[捜索] https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/ を走査中…（ルールベース）',
+  '　└ 入力欄/追加ボタン/フィルタ3種/各項目のチェック・削除 を検出',
+  '✔ テストケース 10 本を生成（正常系6・異常系4）',
+  '　└ ノウハウ適用: KH-01(典型UI優先) / KH-03(例外値投入) / KH-05(状態遷移)',
+  '完了：スイートを生成しました。②で妥当性を確認できます。'
+ ];
+ var CMP=[
+  '保存済みベースライン(10件) を N として使用',
+  'N+1 を実行: https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/',
+  '比較・ダッシュボード生成',
+  '　└ SCN-007 未完了フィルタ：一覧内容が相違 → DIFF',
+  '　└ SCN-008 記号ToDo：登録テキストが相違（アポストロフィが欠落）→ DIFF',
+  '　└ SCN-009 A & B 表示：表示テキストが相違（&amp; が露出）→ DIFF',
+  '完了: OK 7/10（70%）／ NG 3'
+ ];
+ var AIP=['🧭⚠️🙂😈 4観点で並行レビュー中…','🧩 4観点で合議し、総合評価をまとめ中…','✅ 完了'];
+ window.fetch=function(input,init){
+   var url = typeof input==='string'?input:((input&&input.url)||'');
+   var method=(init&&init.method||'GET').toUpperCase();
+   var path=url.split('?')[0];
+   var has=function(s){ return path.indexOf(s)>=0; };
+   if(has('/api/explore')) return J({runId:'demo-explore'});
+   if(has('/api/ai-review')) return J({runId:'demo-ai'});
+   if(has('/api/auto-improve')) return J({runId:'demo-ai'});
+   if(has('/api/apply-recs')) return J({runId:'demo-ai'});
+   if(has('/api/regenerate')) return J({runId:'demo-ai'});
+   if(has('/api/run-baseline')||has('/api/run-suite')||path.match(/\/api\/run$/)) return J({runId:'demo-cmp'});
+   if(has('/api/status')){
+     var id=(url.split('id=')[1]||'').split('&')[0];
+     if(id==='demo-explore') return load('data/suite.json').then(function(t){ return J({status:'done',progress:EXP,suite:JSON.parse(t)}); });
+     if(id==='demo-ai') return load('data/aireview.json').then(function(t){ return J({status:'done',progress:AIP,aiReview:JSON.parse(t)}); });
+     if(id==='demo-cmp') return load('data/summary.json').then(function(t){ return J({status:'done',progress:CMP,summary:JSON.parse(t).summary}); });
+     return J({status:'done',progress:[]});
+   }
+   if(has('/api/review')) return load('data/review.html').then(function(t){ return H(t); });
+   if(has('/api/spec')) return load('data/spec.json').then(function(t){ return J(JSON.parse(t)); });
+   if(has('/api/issues')) return J({issues:[]});
+   if(has('/api/suites')&&method==='GET') return J({suites:[]});
+   if(has('/api/suites')&&method==='POST') return J({id:'demo',name:'ToDo管理 デモ',count:10,updatedAt:''});
+   if(has('/api/suite')&&method==='GET') return load('data/suite.json').then(function(t){ return J({id:'demo',name:'ToDo管理 デモ',suite:JSON.parse(t)}); });
+   if(has('/api/issue-update')) return J({issue:{}});
+   if(has('/api/augment')) return J({suite:null,added:[],notDerivable:['デモではケース追加は無効です']});
+   if(has('/api/export-xlsx')) return origFetch('runs/demo-cmp/testcases.xlsx',init);
+   return origFetch(input,init); // data/*, runs/* 等の静的ファイルは素通し
+ };
+ window.addEventListener('DOMContentLoaded',function(){
+   var u=document.getElementById('m-url'); if(u){ u.value='https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/'; }
+   var a=document.getElementById('m-after'); if(a){ a.value='https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/'; }
+ });
+})();
+</script>
+<div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+<header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="wrap">
-
- <!-- 設定 -->
- <div class="card">
-  <h2>① 対象URL（修正前 N ／ 修正後 N+1）</h2>
-  <div class="row2">
-   <div><label>修正前 N（正常版）</label><input id="urlN" type="url" readonly></div>
-   <div><label>修正後 N+1（パッチ版・不具合入り）</label><input id="urlN1" type="url" readonly></div>
-  </div>
-
-  <details>
-   <summary>詳細設定（捜索スライダー）</summary>
-   <div class="slider"><div class="lab"><span>捜索の深さ</span><b>0.50</b></div><input type="range" min="0" max="1" step="0.01" value="0.5" disabled></div>
-   <div class="slider"><div class="lab"><span>捜索の広さ</span><b>0.50</b></div><input type="range" min="0" max="1" step="0.01" value="0.5" disabled></div>
-   <div class="slider"><div class="lab"><span>メイン⇔例外</span><b>0.40</b></div><input type="range" min="0" max="1" step="0.01" value="0.4" disabled></div>
-   <p class="muted">※デモではスライダーは固定表示です。</p>
-  </details>
-
-  <details open>
-   <summary>🗺 仕様の画面遷移図（Mermaid）── 1回目走査の遷移図と比較する</summary>
-   <label>画面遷移図（Mermaid記法）</label>
-   <textarea id="specMermaid" rows="8" readonly></textarea>
-   <p class="muted">走査で生成した遷移と照合し、下のレビューで「遷移網羅率」を表示します。</p>
-  </details>
-
-  <div style="margin-top:14px">
-   <button id="runBtn">▶ デモを実行（捜索 → 再実行 → 比較 → AIレビュー）</button>
-   <span class="muted" style="margin-left:10px">結果はこの比較用に用意した固定データを再生します（従量課金なし）。</span>
-  </div>
-  <pre id="log" class="log hidden"></pre>
+ <div class="nav">
+  <button id="nav-manage" class="navbtn active" type="button">🧪 テスト管理</button>
+  <button id="nav-issues" class="navbtn" type="button">🐞 課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
  </div>
+ <div id="view-manage">
+  <!-- 工程ステッパー（クリックで各工程へジャンプ・現在地をハイライト） -->
+  <div class="stepper" id="m-stepper">
+   <span class="step active" data-target="m-explore">① 捜索</span>
+   <span class="step is-locked" data-target="m-review">② レビュー</span>
+   <span class="step is-locked" data-target="m-editor">③ 編集</span>
+   <span class="step is-locked" data-target="m-save">④ 保存</span>
+   <span class="step is-locked" data-target="m-runner">⑤ 比較</span>
+  </div>
+  <!-- ① 捜索 or 読み込み -->
+  <div class="card" id="m-explore">
+   <h3>① 修正前(N)を捜索して、テストケースを生成</h3>
+   <label>テストケース生成のターゲットURL（修正前 N）</label>
+   <input id="m-url" type="url" placeholder="https://n.example.com/">
 
- <!-- 結果 -->
- <div id="results" class="hidden">
+   <!-- 捜索の方針（表出スライダー） -->
+   <div class="slider main">
+    <div class="lab"><span>捜索の方針：<b>重要なものから</b> ⇔ <b>均等に</b></span><b id="m-priorityv">0.20</b></div>
+    <input type="range" id="m-priority" min="0" max="1" step="0.01" value="0.2">
+    <div class="muted">左＝認証/フォーム等の重要導線を優先 ／ 右＝優先度を無視して全リンクを均等に捜索</div>
+   </div>
 
-  <div class="hero" style="margin-top:14px">
-   <div class="hero-m"><div class="hero-num" style="color:var(--warn)" id="hRel">78%</div><div class="hero-lbl">テスト信頼度</div></div>
-   <div class="hero-sep"></div>
-   <div class="hero-m"><div class="hero-num" style="color:var(--ok)" id="hVp">100%</div><div class="hero-lbl">テスト観点網羅</div></div>
-   <div class="hero-sep"></div>
-   <div class="hero-m"><div class="hero-num" style="color:var(--ok)" id="hSpec">100%</div><div class="hero-lbl">遷移網羅率</div></div>
-   <div class="hero-v v-ng" id="verdict"></div>
+   <!-- 推定 -->
+   <div class="estimate">推定テストケース数：最大 <b id="m-estCases">30</b> 件 ／ 推定所要時間：約 <b id="m-estTime">3</b> 分 <span class="muted" id="m-estNote"></span></div>
+
+   <details>
+    <summary>詳細設定（捜索スライダー）</summary>
+    <p class="muted">スライダー値が Playwright 捜索の行動に反映されます（広い/深い・メイン/例外）。</p>
+    <div class="slider"><div class="lab"><span>捜索の深さ</span><b id="m-depthv">0.5</b></div><input type="range" id="m-depth" min="0" max="1" step="0.01" value="0.5"></div><div class="slider"><div class="lab"><span>捜索の広さ</span><b id="m-breadthv">0.5</b></div><input type="range" id="m-breadth" min="0" max="1" step="0.01" value="0.5"></div><div class="slider"><div class="lab"><span>メイン⇔例外</span><b id="m-exceptionv">0.3</b></div><input type="range" id="m-exception" min="0" max="1" step="0.01" value="0.3"></div>
+    <div class="slider"><div class="lab"><span>画面数（捜索する画面の最大数）</span><b id="m-maxPagesv">30</b></div><input type="range" id="m-maxPages" min="3" max="60" step="1" value="30"></div>
+    <div class="slider"><div class="lab"><span>実行時間の上限（捜索＋再実行の合計）</span><b id="m-maxRunSecv">4分00秒</b></div><input type="range" id="m-maxRunSec" min="30" max="900" step="30" value="240"><div class="muted">短いほど早く終わりますが途中打ち切り（N件で確定）になりやすく、長いほど網羅的に捜索します。捜索はこの上限の約65%を使います。</div></div>
+    <div class="opts"><label style="display:inline;font-weight:400"><input type="checkbox" id="m-llm" checked> LLM誘導捜索（要APIキー）</label>
+     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-headed"> 画面動作を表示（捜索を目視・ローカル実行時のみ）</label></div>
+    <label style="margin-top:12px">補足プロンプト（この捜索への追加指示・任意）</label>
+    <textarea id="m-supplement" rows="3" placeholder="例）ログイン後のマイページを重点的に。異常系（空・不正値）も試して。"></textarea>
+   </details>
+
+   <details>
+    <summary>有識者ノウハウ（プロンプト編集） ── LLM誘導捜索の system に注入</summary>
+    <p class="muted">捜索の“勘所”をプロンプトとして編集できます。空欄にすると既定ノウハウが使われます。</p>
+    <textarea id="m-knowhow" rows="8">あなたは、Webアプリケーション、捜索的テスト、ブラウザ自動化、HTTP通信解析に精通した熟練QAエンジニアです。
+入力として与えられるのは、原則として開始URLのみです。
+仕様書、設計書、画面一覧、API仕様書、DB定義書、テストケースは存在しないものとして扱ってください。
+指定URLを起点として、ブラウザから到達可能な画面、状態、操作、入力項目、状態遷移、および捜索中に観測されたAPI通信を発見してください。
+その結果から、パッチ適用後に同じ条件で再実行可能なUI回帰テストおよびAPI通信比較テストを生成してください。
+
+# 目的
+1. Webアプリケーションの構造を捜索によって把握する
+2. 発見した画面・状態・操作・入力項目・状態遷移をモデル化する
+3. UI操作によって発生したAPI通信を記録する
+4. 未捜索の対象を優先して確認する
+5. 捜索した経路を再実行可能なテストケースに変換する
+6. パッチ適用前後で、UIとAPI通信の差分を比較できるようにする
+7. 実行済み範囲と未到達範囲を明示する
+保証するのは「不具合が存在しないこと」ではなく、指定条件下で発見済み対象を定義基準で実行したことです。
+
+# 捜索対象（UI）
+ページ / 画面状態 / モーダル / ダイアログ / タブ / メニュー / ドロワー / フォーム / ボタン / リンク / チェックボックス / ラジオボタン / セレクトボックス / ファイル選択 / ページネーション / 検索 / 並べ替え / フィルター / ログイン・ログアウト / 戻る・進む・再読み込み / エラーメッセージ / 完了メッセージ
+
+# 捜索対象（状態）
+同じURLでも表示内容や操作可能要素が異なる場合は別の状態として扱う。
+例：未ログイン / ログイン済み / データなし / データあり / 検索結果なし・あり / 入力前・入力中・入力エラー / 確認画面 / 登録完了 / 編集モード / 読み取り専用 / モーダル表示中 / ローディング中 / APIエラー発生中
+
+# 捜索対象（API）
+ブラウザ操作中に実際に発生した通信のみを対象：Fetch / XHR / GraphQL / REST / WebSocket / SSE / アップロード / ダウンロード / 認証通信 / バックグラウンド通信。
+観測されなかったAPI・内部API・バッチ・Webhookは網羅と判定しない。保証範囲は「捜索中に観測された通信」に限定。
+
+# 入力テストの観点
+HTML属性・ラベル・エラーメッセージ・APIレスポンスから制約を推定し、各入力項目に対し可能な範囲で：
+代表正常値 / 空欄 / 最小値・最小未満 / 最大値・最大超過 / 最短長・最短未満 / 最大長・最大超過 / 不正形式 / 全角・半角 / 空白・前後空白・改行 / 記号 / 絵文字 / 重複値 / 存在しない値。
+破壊的・危険・違法・環境に重大影響を与える入力は実行しない。全組み合わせはせず、代表値・境界値・ペアワイズ・高リスク組み合わせを優先。
+
+# 捜索アルゴリズム（繰り返す）
+1. 現在の画面・DOM・URL・操作可能要素を観測
+2. 現在の状態を識別（新規なら登録）
+3. 未実行の操作可能要素を列挙
+4. 未実行の状態・遷移・入力分類につながる操作を優先
+5. 操作前スクショと状態を保存 / ネットワーク監視を開始
+6. 操作を実行し、UI変化・URL変化・DOM変化・API通信・コンソールエラーを記録
+7. 操作後スクショを保存し、状態遷移と再実行手順を登録
+8. 必要に応じて元状態へ戻り、未捜索対象を再評価
+
+# 捜索の優先順位
+1.未到達画面 2.未確認状態 3.未実行操作 4.未確認状態遷移 5.未確認入力分類 6.未確認の権限/認証状態 7.新しいAPIを発生させる操作 8.エラー/警告/通信失敗箇所 9.処理時間が長い箇所 10.既存経路の組み合わせ変更 11.自由捜索
+
+# 必須捜索と自由捜索
+必須：発見済み画面への到達 / 発見済み操作の実行 / 発見済み状態遷移の実行 / フォーム正常値 / 必須項目の空欄 / HTML属性由来の境界値 / 画面エラー・コンソールエラー・HTTP 4xx/5xx の記録 / 主要操作で発生したAPI通信の記録。
+自由：戻る・進む・再読み込み / 二重クリック / 連続送信 / 操作順序変更 / 入力途中の遷移 / モーダル外クリック / 複数タブ / セッション切れ / 通信遅延・APIエラー時のUI / 同一操作反復 / 境界値の組み合わせ / 想定外遷移。
+
+# 安全制御（明示許可がない限り実行しない）
+本番データ削除 / 大量データ登録 / 大量リクエスト / 負荷試験・DoS相当 / 実ユーザーへのメール・通知 / 実決済 / 外部サービスへの実送信 / アカウント削除 / 権限変更 / パスワード変更 / 契約変更 / 個人情報の取得・出力 / セキュリティ攻撃。
+破壊的の可能性がある操作は実行せず、未実行理由として記録。
+
+# API・秘匿情報の扱い
+認証情報・Cookie・トークン・個人情報・秘密情報はそのまま出力せずマスキング（例 Authorization: Bearer ******** / email: u***@example.com）。
+比較用に日時・タイムスタンプ・UUID・セッションID・CSRF・トークン・乱数・自動採番ID・環境依存値・順不同配列などの動的値は正規化（除外/別管理）。元データと正規化後の両方を保持。
+API仕様書が無いため、パッチ前レスポンスは「期待結果」ではなく「観測ベースライン」として扱う。
+
+# 保証表現（禁止事項）
+「システム全体を完全に網羅」「すべてのAPIを確認」「不具合が存在しないことを保証」「業務仕様どおりを保証」「セキュリティ上問題がないことを保証」とは表現しない。
+保証は「指定URL・指定認証状態・テストデータ・実行環境・捜索条件のもとで、到達・観測できた対象を定義基準で確認し、再実行可能なテストと証跡を生成した」範囲に限定。</textarea>
+   </details>
+
+   <button id="m-exploreBtn">捜索してテストケース生成</button>
+   <span class="muted" style="margin:0 8px">または</span>
+   <select id="m-savedSel"><option value="">保存済みスイートを読み込む…</option></select>
+   <button id="m-loadBtn" class="btn-gray">読み込む</button>
+   <pre id="m-log" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:12px;font-size:12px;white-space:pre-wrap;max-height:160px;overflow:auto">…</pre>
   </div>
 
-  <!-- 比較ダッシュボード -->
+  <!-- ② 妥当性レビュー（捜索直後に、まず「十分か」を確認し、追加を判断） -->
+  <div class="card hidden" id="m-review">
+   <h3>② 妥当性レビュー ── 生成テストは十分か（1回目）</h3>
+   <p class="muted" style="margin:0 0 10px">捜索結果から<b>テスト仕様（機能一覧・テスト観点・画面遷移図）を逆生成</b>し、まず「十分か」を確認します。追加は下の「追加アクション」から。下の③でロケータ等を修正したら「レビュー表示を更新」で反映できます。</p>
+   <div id="m-suf"></div>
+   <button id="m-reviewBtn" class="btn-sm btn-gray" style="margin:8px 0 10px">🔄 レビュー表示を更新（編集を反映・テストは変更しません）</button>
+   <iframe id="m-reviewFrame" src="about:blank" style="width:100%;height:640px;border:1px solid #cfd6e0;border-radius:8px;background:#fff"></iframe>
+
+   <!-- 結果を一通り見た後の「追加アクション」を末尾にまとめて設置 -->
+   <div class="actions-box" id="m-actions">
+    <h4 style="margin:0 0 4px">📝 結果を確認したら、追加するものを選びましょう</h4>
+    <p class="muted" style="margin:0 0 10px">上のレビュー（網羅性・信頼性・推奨アクション・遷移図）を確認し、必要に応じて以下を実施してください。<b>いずれも既存テストは保持したまま「追加」します</b>（作り直しません。誤りは下の③で修正）。</p>
+    <div class="act-sec">
+     <div class="act-hd">① テスト観点の網羅を上げる</div>
+     <div id="m-covActions"><span class="muted">捜索後に表示されます</span></div>
+    </div>
+    <div class="act-sec">
+     <div class="act-hd">② 信頼度の推奨アクションを反映</div>
+     <button id="m-applyRecBtn" class="btn-sm" style="background:#37507a">🛠 信頼度の推奨アクションを反映（不足観点追加＋LLM補強）</button>
+    </div>
+    <div class="act-sec">
+     <div class="act-hd">③ AIレビューして改善（4観点で合議）</div>
+     <div class="slider" style="max-width:520px;margin:2px 0 8px">
+      <div class="lab"><span>レビュー深度（浅い＝速い・要点 ⇔ 深い＝網羅的に全部洗い出す）</span><b id="m-aiDepthv">0.60</b></div>
+      <input type="range" id="m-aiDepth" min="0" max="1" step="0.05" value="0.6">
+      <div class="muted">深いほど各観点の指摘・生成ケース数の上限が増え（最大30指摘/40ケース）、修正箇所を残らず洗い出します（トークン＝課金も増加）。</div>
+     </div>
+     <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">🤖 AIレビューを実施</button>
+     <span class="muted">※実施は任意。AI（架空のレビュアー）による評価で、Claude APIを使用します（要APIキー・従量課金）。</span>
+     <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
+     <div id="m-aiResult"></div>
+     <!-- レビュー本文を読んだ後に「反映するか」を決める（本文の下に配置） -->
+     <div id="m-regenWrap" class="hidden" style="border-top:1px dashed #cdb6e0;margin-top:12px;padding-top:10px">
+      <div class="muted" style="margin-bottom:6px">レビューを確認し、改善提案を取り入れる場合は（既存テストは保持したまま追加）：</div>
+      <button id="m-regenBtn" class="btn-sm" style="background:#2e7d32">✨ 改善提案のテストケースを追加</button>
+     </div>
+     <div style="border-top:1px dashed #cdb6e0;margin-top:12px;padding-top:10px">
+      <div class="act-hd" style="color:#6a1b9a">🎯 目標評価まで自動改善（レビュー↔改善を自律反復）</div>
+      <p class="muted" style="margin:2px 0 8px">「レビュー→不足観点＋AI改善ケースを追加→再レビュー」を、<b>目標評価に到達するか改善が頭打ちになるまで自動で繰り返します</b>。追加ケースは既存を保持したまま増やします。<b>API呼び出しが複数ラウンド分（＝相応の従量課金）</b>発生します。</p>
+      <div class="slider" style="max-width:520px;margin:2px 0 6px">
+       <div class="lab"><span>目標 総合評価</span><b id="m-aiTargetv">85点</b></div>
+       <input type="range" id="m-aiTarget" min="60" max="100" step="1" value="85">
+      </div>
+      <div class="slider" style="max-width:520px;margin:2px 0 6px">
+       <div class="lab"><span>最大ラウンド数（頭打ちなら早期終了）</span><b id="m-aiRoundsv">3回</b></div>
+       <input type="range" id="m-aiRounds" min="1" max="6" step="1" value="3">
+      </div>
+      <button id="m-autoBtn" class="btn-sm" style="background:#8a1f5c">🔁 目標まで自動改善を実行</button>
+      <div id="m-autoResult" style="margin-top:8px"></div>
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <!-- ③ テストケース管理・編集（エクスプローラー風：左フォルダツリー＋右ケース一覧、D&Dで移動） -->
+  <div class="card hidden" id="m-editor">
+   <h3>③ テストケース管理（フォルダ分類・D&Dで移動・修正）</h3>
+   <div class="muted" id="m-meta"></div>
+   <div class="ex-toolbar">
+    <button id="m-newFolder" class="btn-mini">＋ 新規フォルダ</button>
+    <button id="m-treeExpand" class="btn-mini btn-gray">⊞ 全て展開</button>
+    <button id="m-treeCollapse" class="btn-mini btn-gray">⊟ 全て折り畳む</button>
+    <span class="muted" id="m-selInfo"></span>
+    <span class="muted" style="margin-left:auto">フォルダ右クリック＝作成/名前変更/削除　／　Ctrl+クリックで複数選択</span>
+   </div>
+   <div class="explorer">
+    <div class="ex-tree" id="m-tree"></div>
+    <div class="ex-main"><div class="ex-path" id="m-path"></div><div class="ex-list" id="m-cases"></div></div>
+   </div>
+   <div id="m-ctx" class="ctxmenu hidden"></div>
+   <button id="m-addCase" class="btn-sm" style="background:#2e7d32">＋ 空のテストケースを追加</button>
+   <button id="m-xlsx" class="btn-sm btn-gray">📊 テストケースをExcel出力</button>
+  </div>
+
+  <!-- ④ 名前を付けて保存（③編集とは別カードに分離し、ステッパー5工程と1対1対応） -->
+  <div class="card hidden" id="m-save">
+   <h3 id="m-saveHead">④ 名前を付けて保存（サーバに保存し、後日再利用できます）</h3>
+   <div class="row" style="align-items:flex-end">
+    <div><label>スイート名</label><input id="m-name" type="text" style="width:100%" placeholder="例）ToDoサイト回帰スイートv1"></div>
+    <div style="flex:0"><button id="m-saveBtn" style="margin:0">保存</button></div>
+   </div>
+   <span id="m-saveMsg" class="muted"></span>
+  </div>
+
+  <!-- ⑤ N+1を実行して保存済みNと比較 -->
+  <div class="card hidden" id="m-runner">
+   <h3>⑤ 修正後(N+1) を実行して、保存済みの結果(N)と比較</h3>
+   <p class="muted" style="margin:0 0 10px">修正前URLは不要です。① の捜索時に保存した N（修正前）の結果と比較します。UIで<b>追加した新規ケースは対象外</b>（Nの結果が無いため）。編集したケースは比較対象です。</p>
+   <label>修正後 URL（N+1）</label><input id="m-after" type="url" placeholder="https://n1.example.com/">
+   <div class="opts" style="margin-top:10px">
+    <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
+    <label style="display:inline;font-weight:400"><input type="checkbox" id="m-runHeaded"> 画面動作を表示（ローカル実行時のみ）</label>
+    <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video"> 録画（動画を保存・結果画面で再生）</label>
+   </div>
+   <div><button id="m-runBtn">N+1 を実行して比較</button></div>
+   <pre id="m-runlog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:12px;font-size:12px;white-space:pre-wrap;max-height:180px;overflow:auto">…</pre>
+   <div id="m-resultCard" class="hidden" style="margin-top:12px">
+    <div id="m-verdict"></div>
+    <div id="m-resultActions" style="margin:10px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+     <a id="m-reportLink" href="#" target="_blank" style="font-weight:600">📄 総合テスト報告書 ↗</a>
+     <a id="m-xlsxLink" href="#" style="font-weight:600">📊 テストケースExcel ⬇</a>
+     <a id="m-issuesLink" href="#" class="hidden" style="font-weight:600;color:#c62828">🐞 課題管理で確認</a>
+    </div>
+    <details id="m-dashDetails"><summary>詳細（ダッシュボード：ケース別・網羅・遷移図など）を開く</summary>
+     <div style="margin-top:8px"><a id="m-openLink" href="#" target="_blank" class="muted">新しいタブで開く ↗</a></div>
+     <iframe id="m-frame" src="about:blank"></iframe>
+    </details>
+   </div>
+  </div>
+
+ </div><!-- /view-manage -->
+
+ <!-- 課題管理（別ビュー）：ID＋タイトルの一覧→クリックで詳細＋テストケース双方向リンク -->
+ <div id="view-issues" class="hidden">
   <div class="card">
-   <h2>⑤ N vs N+1 比較ダッシュボード</h2>
-   <div id="cmpSummary" class="muted"></div>
-   <table style="margin-top:10px">
-    <thead><tr><th style="width:78px">ID</th><th>テストケース</th><th>観点</th><th style="width:96px">結果</th></tr></thead>
-    <tbody id="cmpRows"></tbody>
-   </table>
-   <p class="muted" style="margin-top:8px">※本ツールは仕様書が無い前提のため、差分は不具合と断定せず「要確認(DIFF)」として提示します（この比較では3件の回帰が検出されました）。</p>
+   <div class="issbar">
+    <h3 style="margin:0">🐞 課題管理（不具合一覧）</h3>
+    <span class="muted" id="m-issMeta" style="margin-left:6px"></span>
+    <label style="font-weight:400;font-size:13px;margin-left:auto"><input type="checkbox" id="m-issOpen"> 未完了のみ</label>
+    <input id="m-issSearch" placeholder="検索…" style="width:140px;padding:3px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px">
+    <button id="m-issReload" class="btn-mini btn-gray">再読込</button>
+   </div>
+   <div class="iss-split">
+    <div class="iss-listcol" id="m-issList"></div>
+    <div class="iss-detailcol" id="m-issDetail"><span class="muted">左の一覧から課題を選択してください。</span></div>
+   </div>
   </div>
-
-  <!-- 遷移比較 -->
-  <div class="card">
-   <h2>🗺 仕様の画面遷移図 × 1回目走査の比較 ── 遷移網羅 <span id="specOverall">100%</span></h2>
-   <div class="covbox" style="margin-bottom:6px"><b>画面(ノード)到達：<span id="nodeRate"></span></b><div id="nodeItems" style="margin-top:4px"></div></div>
-   <div class="covbox"><b>画面遷移(エッジ)再現：<span id="edgeRate"></span></b><div id="edgeItems" style="margin-top:4px"></div></div>
-   <p class="muted" style="margin-top:6px"><b style="color:var(--ok)">✓緑＝走査で再現</b> ／ <b style="color:var(--ng)">×赤＝未再現</b>。この比較では仕様の全画面・全遷移を走査が踏破しています。</p>
-  </div>
-
-  <!-- AIレビュー -->
-  <div class="card">
-   <h2>② AIレビュー（4観点 ＋ 合議）<span class="demo-badge">モック応答</span></h2>
-   <p class="muted" style="margin-bottom:10px">4名の架空AIレビュアーが生成テストを評価し、合議して総合評価と改善提案をまとめます（本デモは固定応答。実運用では Claude API を使用）。</p>
-   <div class="ai-grid" id="aiCards"></div>
-   <div class="synth" id="synth"></div>
-   <p class="muted" style="margin-top:10px">※本評価は実在人物ではなく AI（デモではモック）による参考評価であり、正式な品質認証・網羅保証を意味しません。</p>
-  </div>
-
- </div>
-
- <div class="foot">
-  Auto-test-tool デモ（モック）／ 対象アプリ: <a href="https://uedakazuki-plainliving.github.io/auto-test-site-demo/">auto-test-site-demo</a>
-  ── 実行・レビューの結果はこの normal/patched 比較用に用意した固定データです。
  </div>
 </div>
-
 <script>
-//===== 対象URL・仕様 =====
-var N_URL  = "https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/";
-var N1_URL = "https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/";
-var SPEC_MERMAID = [
- "graph TD",
- "  A[ToDo一覧] --> B[ToDo追加]",
- "  A --> C[完了トグル]",
- "  A --> D[ToDo削除]",
- "  A --> E[フィルタ:未完了]",
- "  A --> F[フィルタ:完了]",
- "  B --> G[入力バリデーション]"
-].join("\n");
-
-//===== 比較シナリオ（10件・うち3件が回帰=DIFF） =====
-var SCENARIOS = [
- {id:"SCN-001",name:"トップ表示：初期ToDo一覧が表示される",cat:["ToDo管理","一覧","表示"],tags:["正常系"],result:"PASS"},
- {id:"SCN-002",name:"新規ToDoを追加できる",cat:["ToDo管理","追加","登録"],tags:["正常系","CRUD"],result:"PASS"},
- {id:"SCN-003",name:"ToDoを完了にする（チェック）",cat:["ToDo管理","更新","状態変更"],tags:["正常系","状態遷移"],result:"PASS"},
- {id:"SCN-004",name:"ToDoを削除できる",cat:["ToDo管理","削除","CRUD"],tags:["正常系","CRUD"],result:"PASS"},
- {id:"SCN-005",name:"「すべて」フィルタで全件表示",cat:["ToDo管理","フィルタ","表示"],tags:["正常系"],result:"PASS"},
- {id:"SCN-006",name:"「完了」フィルタで完了のみ表示",cat:["ToDo管理","フィルタ","表示"],tags:["正常系"],result:"PASS"},
- {id:"SCN-007",name:"「未完了」フィルタで未完了のみ表示",cat:["ToDo管理","フィルタ","表示"],tags:["正常系","状態遷移"],result:"DIFF",kind:"diff-structure",
-   n:"未完了のToDoのみ表示（例：牛乳を買う／レポート提出）",
-   n1:"完了済みのToDoが表示される（例：部屋の掃除）＝判定が反転",
-   why:"不具合3：未完了フィルタの条件が反転（t.completed を返している）"},
- {id:"SCN-008",name:"記号を含むToDo「I'm done!」を追加",cat:["ToDo管理","追加","入力"],tags:["異常系","境界値"],result:"DIFF",kind:"diff-structure",
-   n:"入力どおり「I'm done!」が登録される",
-   n1:"「Im done!」＝アポストロフィ「'」が消える",
-   why:"不具合1：危険文字除去 replace(/['\"<>]/g,'') が正当な入力まで壊す"},
- {id:"SCN-009",name:"「A & B」を追加して一覧表示",cat:["ToDo管理","追加","表示"],tags:["異常系","境界値"],result:"DIFF",kind:"diff-visual",
-   n:"「A & B」と表示される",
-   n1:"「A &amp; B」＝実体参照がそのまま見える",
-   why:"不具合2：textContent へ二重エスケープ（escapeHtml の多重適用）"},
- {id:"SCN-010",name:"空入力の送信は拒否される",cat:["ToDo管理","追加","バリデーション"],tags:["異常系"],result:"PASS"}
-];
-
-//===== 遷移網羅（仕様 vs 走査。全ノード・全エッジを走査が踏破） =====
-var SPEC_NODES = ["ToDo一覧","ToDo追加","完了トグル","ToDo削除","フィルタ:未完了","フィルタ:完了","入力バリデーション"].map(function(n){return {name:n,covered:true};});
-var SPEC_EDGES = [
- ["ToDo一覧","ToDo追加"],["ToDo一覧","完了トグル"],["ToDo一覧","ToDo削除"],
- ["ToDo一覧","フィルタ:未完了"],["ToDo一覧","フィルタ:完了"],["ToDo追加","入力バリデーション"]
-].map(function(e){return {from:e[0],to:e[1],covered:true};});
-
-//===== AIレビュー（モック応答） =====
-var PERSONAS = [
- {icon:"🧭",label:"網羅観点レビュアー",score:78,verdict:"主要CRUD・フィルタ・入力異常系は押さえられている。",
-  strengths:["追加/完了/削除/フィルタの主要導線をカバー","記号入力・空入力の異常系を含む"],
-  issues:[{s:"中",p:"最大長・多数件（100件超）での一覧描画が未検証"},{s:"低",p:"完了→未完了へ戻す逆操作の状態遷移が薄い"}],
-  improvements:["長文/最大長ToDoの境界値ケースを追加","完了状態のトグル往復（完了→未完了）を追加"]},
- {icon:"⚠️",label:"リスク観点レビュアー",score:70,verdict:"XSS・入力サニタイズ周りは要注意。回帰の芽を捉えている。",
-  strengths:["特殊文字（&, ', <>）の表示・登録を検証","パッチで壊れやすいサニタイズ経路に触れている"],
-  issues:[{s:"高",p:"<script>等のXSSペイロード表示が明示ケースになっていない"},{s:"中",p:"localStorage 破損時のフォールバック挙動が未検証"}],
-  improvements:["XSSペイロード（<img onerror> 等）の表示安全性ケースを追加","保存データ不整合時の復旧挙動を検証"]},
- {icon:"🙂",label:"利用者観点レビュアー",score:80,verdict:"実利用の主要フローに沿っており自然。",
-  strengths:["“追加→完了→フィルタ確認”という実利用フローを再現","記号入りタスク名など現実的な入力を使用"],
-  issues:[{s:"低",p:"連続追加・並び順の期待が明文化されていない"}],
-  improvements:["複数件を連続追加した際の並び順・件数表示の期待値を明記"]},
- {icon:"😈",label:"敵対的レビュアー",score:62,verdict:"壊せる余地あり。境界・多重操作の詰めが甘い。",
-  strengths:["フィルタ反転・二重エスケープなど“壊れる箇所”に到達している"],
-  issues:[{s:"高",p:"同名ToDoの重複追加や絵文字/多言語文字の扱いが未検証"},{s:"中",p:"完了トグルの高速連打による状態不整合が未検証"}],
-  improvements:["重複・絵文字・長文の境界値を投入","トグル連打・追加連打の競合系ケースを追加"]}
-];
-var SYNTH = {
- score:70,
- verdict:"主要フローと回帰検知は十分。XSS/境界値の補強で確度が上がる。",
- consensus:"CRUD・フィルタ・入力異常系を押さえ、パッチ版の3回帰（フィルタ反転・記号除去・二重エスケープ）を検出できている。一方でXSSペイロードや最大長・多重操作の境界系が不足。",
- agreements:["主要CRUD/フィルタ導線はカバー","パッチで混入した回帰を検出できている"],
- disagreements:["XSS明示ケースの要否（リスク=高 / 利用者=低）"],
- actions:[
-  {p:"高",a:"XSSペイロード（<img onerror=...> / <script>）の表示安全性ケースを追加",r:"サニタイズ経路の回帰を確実に捕捉するため"},
-  {p:"中",a:"最大長・多数件・絵文字/多言語の境界値ケースを追加",r:"入力除去や描画の破綻を検知するため"},
-  {p:"中",a:"完了トグル往復・連続追加など多重操作の状態遷移を追加",r:"状態不整合の回帰を防ぐため"}
- ]
-};
-
-//===== 実行シミュレーション =====
-function $(id){return document.getElementById(id);}
-$("urlN").value=N_URL; $("urlN1").value=N1_URL; $("specMermaid").value=SPEC_MERMAID;
-
-var LOG_STEPS = [
- "[捜索] "+N_URL+" を走査中…（ルールベース）",
- "　└ リンク/フォーム/ボタンを検出：ToDo入力・追加ボタン・フィルタ3種・各項目のチェック/削除",
- "✔ テストケース 10 本を生成（正常系6・異常系4）",
- "[再実行] N（正常版）で 10 ケースを実行しベースライン取得…",
- "[再実行] N+1（パッチ版）で 10 ケースを実行…",
- "[比較] N vs N+1 の差分を判定中…",
- "　└ SCN-007 未完了フィルタ：一覧内容が相違 → DIFF",
- "　└ SCN-008 記号ToDo：登録テキストが相違（' が欠落）→ DIFF",
- "　└ SCN-009 A & B 表示：表示テキストが相違（&amp; が露出）→ DIFF",
- "[レビュー] 🧭⚠️🙂😈 4観点で並行レビュー → 合議中…",
- "✅ 完了：一致 7/10（70%）／ 要確認(DIFF) 3件 ／ 総合評価 70点"
-];
-
-$("runBtn").addEventListener("click",function(){
- var btn=$("runBtn"); btn.disabled=true;
- var lg=$("log"); lg.classList.remove("hidden"); lg.textContent="";
- $("results").classList.add("hidden");
- var i=0;
- (function tick(){
-  if(i<LOG_STEPS.length){ lg.textContent += (i?"\n":"")+LOG_STEPS[i]; lg.scrollTop=lg.scrollHeight; i++; setTimeout(tick, 380); }
-  else { render(); $("results").classList.remove("hidden"); btn.disabled=false; $("results").scrollIntoView({behavior:"smooth"}); }
- })();
-});
-
-function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-
-function render(){
- // 判定
- var pass=SCENARIOS.filter(function(s){return s.result==="PASS";}).length;
- var diff=SCENARIOS.length-pass;
- var rate=Math.round(pass/SCENARIOS.length*100);
- $("verdict").className="hero-v v-ng";
- $("verdict").innerHTML="⚠ 回帰あり ── 一致率 "+rate+"%（DIFF "+diff+"件）。パッチ版で3件の挙動差分を検出しました。修正が必要です。";
-
- // 比較サマリ・行
- $("cmpSummary").innerHTML="一致 <b style='color:var(--ok)'>"+pass+"</b> / "+SCENARIOS.length+
-   "（<b>"+rate+"%</b>）　要確認(DIFF) <b style='color:var(--ng)'>"+diff+"</b>　内訳: diff-structure 2・diff-visual 1";
- $("cmpRows").innerHTML=SCENARIOS.map(function(s){
-   var pill=s.result==="PASS"?'<span class="pill pass">PASS</span>':'<span class="pill diff">DIFF</span>';
-   var k=s.kind?'<span class="kbadge">'+s.kind+'</span>':'';
-   var det="";
-   if(s.result==="DIFF"){
-     det='<div class="diffbox"><div><b>N（正常版）：</b><span class="good">'+esc(s.n)+'</span></div>'+
-         '<div><b>N+1（パッチ版）：</b><span class="bad">'+esc(s.n1)+'</span></div>'+
-         '<div class="muted" style="margin-top:3px">原因: '+esc(s.why)+'</div></div>';
+ const $=(id)=>document.getElementById(id);
+ const qtoken=new URLSearchParams(location.search).get("token")||"";
+ const withTok=(u)=>qtoken?u+(u.includes("?")?"&":"?")+"token="+encodeURIComponent(qtoken):u;
+ // 捜索スライダーのラベル更新 & 推定
+ ['m-depth','m-breadth','m-exception','m-priority'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('input',function(){ $(id+'v').textContent=(+el.value).toFixed(2); mEstimate(); }); });
+ $('m-maxPages').addEventListener('input',function(){ $('m-maxPagesv').textContent=$('m-maxPages').value; mEstimate(); });
+ function fmtSec(s){ s=+s; var m=Math.floor(s/60), r=s%60; return m+'分'+(r<10?'0':'')+r+'秒'; }
+ $('m-maxRunSec').addEventListener('input',function(){ $('m-maxRunSecv').textContent=fmtSec($('m-maxRunSec').value); mEstimate(); });
+ $('m-llm').addEventListener('change',mEstimate);
+ // AIレビューの深度・目標のラベル更新
+ (function(){ var d=$('m-aiDepth'); if(d) d.addEventListener('input',function(){ $('m-aiDepthv').textContent=(+d.value).toFixed(2); });
+   var t=$('m-aiTarget'); if(t) t.addEventListener('input',function(){ $('m-aiTargetv').textContent=t.value+'点'; });
+   var r=$('m-aiRounds'); if(r) r.addEventListener('input',function(){ $('m-aiRoundsv').textContent=r.value+'回'; }); })();
+ function aiDepth(){ var d=$('m-aiDepth'); return d?+d.value:0.6; }
+ function mEstimate(){
+   var cases=+$('m-maxPages').value;
+   var llm=$('m-llm').checked;
+   var secPer=3+1.5; // 3走行+スクショ
+   var total=cases*secPer+(llm?cases*4:0);
+   var cap=+$('m-maxRunSec').value;
+   $('m-estCases').textContent=cases; $('m-estTime').textContent=Math.max(1,Math.round(total/60));
+   var base=llm?'（LLM誘導ON：往復ぶん加算）':'（ルールベース）';
+   $('m-estNote').textContent=base+(total>cap?' ／ ⏱ 上限'+fmtSec(cap)+'に達すると途中打ち切り（捜索は約'+fmtSec(Math.round(cap*0.65))+'まで）':' ／ 上限'+fmtSec(cap)+'内');
+ }
+ mEstimate(); loadSavedList(); loadIssues();
+ // ---- 仕様の画面遷移図（収集） ----
+ function collectSpec(){ return { specMode:$('m-specMode')?$('m-specMode').checked:false, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:'' }; }
+ var ISS_STATUS=['未対応','対応中','確認中','完了','対象外'], ISS_PRI=['高','中','低'], mSelIssue=null;
+ // ---- ビュー切替 ----
+ function showView(v){ $('view-manage').classList.toggle('hidden',v!=='manage'); $('view-issues').classList.toggle('hidden',v!=='issues');
+   $('nav-manage').classList.toggle('active',v==='manage'); $('nav-issues').classList.toggle('active',v==='issues');
+   $('m-stepper').style.display=(v==='manage')?'':'none'; }
+ // ---- 工程ステッパー（ジャンプ＋スクロール連動ハイライト） ----
+ var mStepEls=[].slice.call(document.querySelectorAll('#m-stepper .step'));
+ mStepEls.forEach(function(el){ el.addEventListener('click',function(){
+   if(el.classList.contains('is-locked')) return;
+   var t=$(el.getAttribute('data-target')); if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+ }); });
+ function unlockSteps(){ mStepEls.forEach(function(el){ el.classList.remove('is-locked'); }); }
+ function markStep(target,done){ mStepEls.forEach(function(el){ if(el.getAttribute('data-target')===target) el.classList.toggle('done',!!done); }); }
+ function refreshStepMarks(){ markStep('m-explore',!!mSuite); markStep('m-save',!!mSuiteId); markStep('m-runner',!!mCompared); }
+ function syncStepper(){
+   if($('view-manage').classList.contains('hidden')) return;
+   var pos=70, cur=mStepEls[0];
+   mStepEls.forEach(function(el){ var t=$(el.getAttribute('data-target'));
+     if(t && !el.classList.contains('is-locked') && t.getBoundingClientRect().top<=pos) cur=el; });
+   // ページ最下部では最後（⑤比較）を必ずハイライト（短い末尾セクションは上端まで来ないため）
+   if((window.innerHeight+window.scrollY)>=(document.body.scrollHeight-4)){
+     for(var i=mStepEls.length-1;i>=0;i--){ if(!mStepEls[i].classList.contains('is-locked')){ cur=mStepEls[i]; break; } }
    }
-   return '<tr><td>'+s.id+'</td><td>'+esc(s.name)+det+'</td><td>'+s.cat.join(' ＞ ')+'<br>'+
-          s.tags.map(function(t){return '<span class="chip">'+t+'</span>';}).join('')+'</td>'+
-          '<td>'+pill+k+'</td></tr>';
- }).join("");
+   mStepEls.forEach(function(el){ el.classList.toggle('active',el===cur); });
+ }
+ var mStepTick=false;
+ window.addEventListener('scroll',function(){ if(mStepTick) return; mStepTick=true;
+   requestAnimationFrame(function(){ syncStepper(); mStepTick=false; }); },{passive:true});
+ $('nav-manage').addEventListener('click',function(){ showView('manage'); });
+ $('nav-issues').addEventListener('click',function(){ showView('issues'); if(mSelIssue) renderIssueDetail(mSelIssue); });
+ function escHtml(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+ function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
+ function issuesForCase(scid){ return (window.__issues||[]).filter(function(i){return i.caseId===scid;}); }
+ function loadIssues(){
+   fetch(withTok('/api/issues')).then(function(r){return r.json();}).catch(function(){return null;}).then(function(r){
+     window.__issues=(r&&r.issues)||[]; renderIssueList(); updateNavCount(); if(mSuite) renderCases();
+   });
+ }
+ function updateNavCount(){ var openN=(window.__issues||[]).filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
+   var b=$('nav-issCount'); b.textContent=openN; b.classList.toggle('hidden',openN===0); }
+ function renderIssueList(){
+   var list=(window.__issues||[]); var openOnly=$('m-issOpen').checked; var q=($('m-issSearch').value||'').toLowerCase();
+   var shown=list.filter(function(i){ if(openOnly&&(i.status==='完了'||i.status==='対象外'))return false; if(q&&(i.title+' '+i.caseName+' '+i.diff).toLowerCase().indexOf(q)<0)return false; return true; });
+   var openN=list.filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
+   $('m-issMeta').textContent='全'+list.length+'件（未完了 '+openN+'件）';
+   var w=$('m-issList');
+   if(!shown.length){ w.innerHTML='<div class="muted" style="padding:12px">課題はありません（2回目でNGが出ると自動起票されます）。</div>'; return; }
+   var rows=shown.map(function(i){
+     return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+'" data-id="'+i.id+'"><td><span class="stchip sc-'+i.status+'">'+i.status+'</span></td><td><b>'+escHtml(i.title)+'</b><div class="muted">'+i.id.slice(-6)+' / '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+'</div></td></tr>';
+   }).join('');
+   w.innerHTML='<table class="iss"><thead><tr><th style="width:78px">状態</th><th>課題（クリックで詳細）</th></tr></thead><tbody>'+rows+'</tbody></table>';
+   w.querySelectorAll('tr.irow').forEach(function(tr){ tr.addEventListener('click',function(){ mSelIssue=tr.getAttribute('data-id'); renderIssueList(); renderIssueDetail(mSelIssue); }); });
+ }
+ function renderIssueDetail(id){
+   var i=(window.__issues||[]).find(function(x){return x.id===id;}); var d=$('m-issDetail');
+   if(!i){ d.innerHTML='<span class="muted">左の一覧から課題を選択してください。</span>'; return; }
+   function sel(f,opts){ return '<select data-f="'+f+'">'+opts.map(function(s){return '<option'+(s===i[f]?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'; }
+   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="stchip sc-'+i.status+'">'+i.status+'</span><b style="font-size:15px">'+escHtml(i.title)+'</b></div>'
+    +'<dl class="idl">'
+    +'<dt>課題ID</dt><dd>'+i.id+(i.external?' / 連携: '+escHtml(i.external.system)+' '+escHtml(i.external.key):'')+'</dd>'
+    +'<dt>対象テストケース</dt><dd><b>'+escHtml(i.caseId)+'</b> '+escHtml(i.caseName)+' <button id="m-issGoCase" class="btn-mini" style="background:#37507a">🧪 このテストケースを開く</button></dd>'
+    +'<dt>判定 / カテゴリ</dt><dd>'+escHtml(i.kindLabel)+' ／ '+escHtml((i.category||[]).join(' > '))+' ／ 対象: '+escHtml(i.target)+(i.occurrences>1?' ／ 再発 '+i.occurrences+'回':'')+'</dd>'
+    +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
+    +'<dt>ステータス / 優先度</dt><dd>'+sel('status',ISS_STATUS)+' '+sel('priority',ISS_PRI)+'</dd>'
+    +'<dt>担当</dt><dd><input data-f="assignee" value="'+escAttr(i.assignee||'')+'" placeholder="担当者" style="width:160px"></dd>'
+    +'<dt>メモ</dt><dd><textarea data-f="note" rows="3" style="width:100%;box-sizing:border-box">'+escHtml(i.note||'')+'</textarea></dd>'
+    +'<dt>証跡</dt><dd>'+(i.dashboardUrl?'<a href="'+i.dashboardUrl+'" target="_blank">ダッシュボード（該当実行）↗</a>':'—')+'</dd>'
+    +'</dl>';
+   d.querySelectorAll('[data-f]').forEach(function(el){
+     el.addEventListener('change',function(){ var patch={}; patch[el.getAttribute('data-f')]=el.value;
+       fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({id:i.id},patch))})
+        .then(function(r){return r.json();}).then(function(r){ if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue; renderIssueList(); updateNavCount(); if(mSuite)renderCases(); } });
+     });
+   });
+   var gc=$('m-issGoCase'); if(gc) gc.addEventListener('click',function(){ openCaseById(i.caseId); });
+ }
+ // 課題→テストケース（双方向）：該当ケースを開いて強調
+ function findCaseEl(scid){ var els=document.querySelectorAll('#m-cases details.caserow'); for(var k=0;k<els.length;k++){ if(els[k].getAttribute('data-scid')===scid) return els[k]; } return null; }
+ function hiCase(el){ el.open=true; el.scrollIntoView({block:'center'}); el.style.outline='2px solid #ef6c00'; setTimeout(function(){el.style.outline='';},2000); }
+ function openCaseById(scid){
+   showView('manage');
+   var el=findCaseEl(scid);
+   if(!el){ mSelFolder=null; renderCases(); setTimeout(function(){ var e2=findCaseEl(scid); if(e2){ hiCase(e2); } else { alert('該当テストケース('+scid+')が現在のスイートに見つかりません。'); } },500); return; }
+   hiCase(el);
+ }
+ $('m-issReload').addEventListener('click',loadIssues);
+ $('m-issOpen').addEventListener('change',renderIssueList);
+ $('m-issSearch').addEventListener('input',renderIssueList);
 
- // 遷移比較
- var nc=SPEC_NODES.filter(function(n){return n.covered;}).length, ec=SPEC_EDGES.filter(function(e){return e.covered;}).length;
- $("nodeRate").textContent=nc+"/"+SPEC_NODES.length+"（"+Math.round(nc/SPEC_NODES.length*100)+"%）";
- $("edgeRate").textContent=ec+"/"+SPEC_EDGES.length+"（"+Math.round(ec/SPEC_EDGES.length*100)+"%）";
- $("nodeItems").innerHTML=SPEC_NODES.map(function(n){return '<span class="mbadge '+(n.covered?'hit':'')+'">'+(n.covered?'✓':'×')+' '+esc(n.name)+'</span>';}).join("");
- $("edgeItems").innerHTML=SPEC_EDGES.map(function(e){return '<span class="mbadge '+(e.covered?'hit':'')+'">'+(e.covered?'✓':'×')+' '+esc(e.from)+' → '+esc(e.to)+'</span>';}).join("");
- var ov=Math.round((nc+ec)/(SPEC_NODES.length+SPEC_EDGES.length)*100);
- $("specOverall").textContent=ov+"%"; $("hSpec").textContent=ov+"%";
+ var mSuite=null, mSuiteId=null, mtimer=null, mCompared=false;
+ var KINDS=['goto','click','fill','submit','assert'];
 
- // AIレビュー
- $("aiCards").innerHTML=PERSONAS.map(function(p){
-   var col=p.score>=80?'var(--ok)':p.score>=60?'var(--warn)':'var(--ng)';
-   return '<div class="ai-card"><h4>'+p.icon+' '+esc(p.label)+'<span class="ai-sc" style="color:'+col+'">'+p.score+'</span></h4>'+
-     '<div class="muted">'+esc(p.verdict)+'</div>'+
-     '<div style="font-size:12px;margin-top:6px"><b>指摘</b><ul>'+p.issues.map(function(x){var c=x.s==="高"?"h":x.s==="中"?"m":"l";return '<li><span class="sev '+c+'">'+x.s+'</span>'+esc(x.p)+'</li>';}).join("")+'</ul></div>'+
-     '<div style="font-size:12px"><b>改善提案</b><ul>'+p.improvements.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul></div></div>';
- }).join("");
- var scol=SYNTH.score>=80?'var(--ok)':SYNTH.score>=60?'var(--warn)':'var(--ng)';
- var pcol={"高":"var(--ng)","中":"var(--warn)","低":"#607d8b"};
- $("synth").innerHTML='<div><span class="big" style="color:'+scol+'">合議 総合評価 '+SYNTH.score+'</span> ／ '+esc(SYNTH.verdict)+'</div>'+
-   '<div class="muted" style="margin:6px 0">'+esc(SYNTH.consensus)+'</div>'+
-   '<div style="font-size:13px"><b>全員一致</b>：'+SYNTH.agreements.map(esc).join(' ／ ')+'</div>'+
-   '<div style="font-size:13px;margin-bottom:6px"><b>意見の相違</b>：'+SYNTH.disagreements.map(esc).join(' ／ ')+'</div>'+
-   '<b style="font-size:13px">優先度つき改善アクション</b>'+
-   SYNTH.actions.map(function(a){return '<div class="pri"><span class="p" style="background:'+pcol[a.p]+'">'+a.p+'</span><div><b>'+esc(a.a)+'</b><div class="muted">'+esc(a.r)+'</div></div></div>';}).join("");
-}
-</script>
-</body>
-</html>
+ async function loadSavedList(){
+   var r=await fetch(withTok('/api/suites')).then(function(r){return r.json();}).catch(function(){return null;});
+   if(!r) return; var sel=$('m-savedSel'); sel.innerHTML='<option value="">保存済みスイートを読み込む…</option>';
+   (r.suites||[]).forEach(function(s){ var o=document.createElement('option'); o.value=s.id; o.textContent=s.name+' ('+s.count+'件 / '+s.startUrl+')'; sel.appendChild(o); });
+ }
+ function toast(msg,kind){
+   var t=$('m-toast'); if(!t){ t=document.createElement('div'); t.id='m-toast'; document.body.appendChild(t); }
+   t.className='toast '+(kind||'ok')+' show'; t.textContent=msg;
+   t.onclick=function(){ t.className='toast'; };
+   clearTimeout(t._h); t._h=setTimeout(function(){ t.className='toast'; },9000);
+ }
+ function poll(id,lg,onDone,btn){
+   clearInterval(mtimer);
+   mtimer=setInterval(async function(){
+     var s=await fetch(withTok('/api/status?id='+id)).then(function(r){return r.json();}).catch(function(){return null;});
+     if(!s)return;
+     var lines=(s.progress||[]); lg.textContent=lines.join('\n')+(s.status==='running'?'\n… 処理中':''); lg.scrollTop=lg.scrollHeight;
+     if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false;
+       if(s.status==='error'){lg.textContent+='\n[失敗] '+s.error;return;} onDone(s); }
+   },1000);
+ }
+ $('m-exploreBtn').addEventListener('click',async function(){
+   var u=$('m-url').value.trim();
+   if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
+   var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,headed:$('m-headed').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value};
+   Object.assign(body,collectSpec());
+   $('m-exploreBtn').disabled=true; var lg=$('m-log'); lg.classList.remove('hidden'); lg.textContent='捜索を開始しています…';
+   var r=await fetch(withTok('/api/explore'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
+   if(r.error){lg.textContent='エラー: '+r.error;$('m-exploreBtn').disabled=false;return;}
+   poll(r.runId,lg,function(s){ mSuite=s.suite; mSuiteId=null; mCompared=false; $('m-name').value=''; renderCases();
+     var n=(s.suite&&s.suite.scenarios?s.suite.scenarios.length:0);
+     toast('✅ 1回目（捜索）完了：テストケース '+n+' 件を生成しました。内容を確認してください。','ok');
+   },$('m-exploreBtn'));
+ });
+ $('m-loadBtn').addEventListener('click',async function(){
+   var id=$('m-savedSel').value; if(!id){alert('スイートを選択してください');return;}
+   var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(id))).then(function(r){return r.json();}).catch(function(){return null;});
+   if(!rec||!rec.suite){alert('読み込みに失敗しました');return;}
+   mSuite=rec.suite; mSuiteId=rec.id; mCompared=false; $('m-name').value=rec.name||''; renderCases();
+ });
+ var mSelFolder=null; // 選択中フォルダ（パス配列）。null/[]=すべて
+ var mExpanded=new Set(), mTreeRoot=null, mTreeItems=null; // 展開中のフォルダ（既定は折り畳み）
+ var mItems=[];      // 直近描画の [{sc,ci,meta,path}]
+ var mSelCases=new Set(); // 複数選択中のケース ci
+ function effFolder(sc,meta){ if(sc&&sc.folder&&sc.folder.length) return sc.folder.slice(); if(meta&&meta.category&&meta.category.length) return meta.category.slice(0,3); return ['未分類']; }
+ function seedFolder(root,path){ var node=root; path.forEach(function(seg){ node.children[seg]=node.children[seg]||{name:seg,path:node.path.concat(seg),children:{},count:0}; node=node.children[seg]; }); }
+ function folderStarts(folder,sel){ if(!sel||!sel.length) return true; for(var i=0;i<sel.length;i++){ if(folder[i]!==sel[i]) return false; } return true; }
+ function sameFolder(a,b){ a=a||[]; b=b||[]; return a.length===b.length && a.every(function(x,i){return x===b[i];}); }
+
+ function renderCases(){
+   $('m-editor').classList.remove('hidden'); $('m-save').classList.remove('hidden'); $('m-runner').classList.remove('hidden'); $('m-review').classList.remove('hidden');
+   unlockSteps(); refreshStepMarks(); syncStepper();
+   var scs=(mSuite.scenarios||[]);
+   $('m-meta').textContent='開始URL: '+(mSuite.startUrl||'')+' ／ '+scs.length+'件（フォルダにドラッグ＆ドロップで移動できます）';
+   $('m-tree').innerHTML='読み込み中…'; $('m-cases').innerHTML='';
+   fetch(withTok('/api/spec'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})})
+     .then(function(r){return r.json();}).catch(function(){return null;})
+     .then(function(sp){
+       renderSuf(sp&&sp.sufficiency);
+       var per=(sp&&sp.perCase)||[];
+       // 各ケースの実効フォルダを算出
+       var items=scs.map(function(sc,ci){ return { sc:sc, ci:ci, meta:per[ci]||null, path:effFolder(sc,per[ci]) }; });
+       mItems=items;
+       // 未使用選択の掃除
+       mSelCases.forEach(function(ci){ if(ci>=scs.length) mSelCases.delete(ci); });
+       // フォルダツリー構築（count=配下ケース数）
+       var root={ name:'すべて', path:[], children:{}, count:items.length };
+       (mSuite.folders||[]).forEach(function(p){ seedFolder(root,p); }); // 明示フォルダ（空でも表示）
+       items.forEach(function(it){ var node=root; it.path.forEach(function(seg){ node.children[seg]=node.children[seg]||{name:seg,path:node.path.concat(seg),children:{},count:0}; node=node.children[seg]; node.count++; }); });
+       renderTree(root, items);
+       renderList(items);
+       updateSelInfo();
+     });
+   refreshReview();
+ }
+ function makeDrop(row, path){
+   row.addEventListener('dragover',function(e){ e.preventDefault(); row.classList.add('dnd'); });
+   row.addEventListener('dragleave',function(){ row.classList.remove('dnd'); });
+   row.addEventListener('drop',function(e){ e.preventDefault(); row.classList.remove('dnd');
+     var cis=(e.dataTransfer.getData('text/plain')||'').split(',').map(function(x){return parseInt(x,10);}).filter(function(x){return !isNaN(x);});
+     var moved=0;
+     cis.forEach(function(ci){ if(mSuite.scenarios[ci]){ mSuite.scenarios[ci].folder=path.slice(); moved++; } });
+     if(moved){ mSelCases.clear(); mSelFolder=path.slice(); renderCases(); }
+   });
+ }
+ // ---- フォルダ操作（新規/名前変更/削除） ----
+ function addFolder(parentPath){
+   var name=prompt('新しいフォルダ名', '新しいフォルダ'); if(!name) return;
+   var path=(parentPath||[]).concat(name);
+   mSuite.folders=(mSuite.folders||[]); if(!mSuite.folders.some(function(p){return p.join('\u0001')===path.join('\u0001');})) mSuite.folders.push(path);
+   mSelFolder=path.slice(); renderCases();
+ }
+ function renameFolder(path){
+   var cur=path[path.length-1];
+   var name=prompt('フォルダ名を変更', cur); if(!name||name===cur) return;
+   var np=path.slice(0,-1).concat(name);
+   // 配下ケースの実効フォルダを明示化してリネーム
+   mItems.forEach(function(it){ if(folderStarts(it.path,path)){ it.sc.folder=np.concat(it.path.slice(path.length)); } });
+   // 明示フォルダも更新
+   mSuite.folders=(mSuite.folders||[]).map(function(p){ return folderStarts(p,path)? np.concat(p.slice(path.length)) : p; });
+   if(folderStarts(mSelFolder||[],path)) mSelFolder=np.concat((mSelFolder||[]).slice(path.length));
+   renderCases();
+ }
+ function deleteFolder(path){
+   var n=mItems.filter(function(it){return folderStarts(it.path,path);}).length;
+   if(!confirm('フォルダ「'+path.join(' ＞ ')+'」を削除しますか？\n中の '+n+' 件は親フォルダへ移動します（ケース自体は消えません）。')) return;
+   var parent=path.slice(0,-1);
+   mItems.forEach(function(it){ if(folderStarts(it.path,path)){ it.sc.folder=parent.slice(); } });
+   mSuite.folders=(mSuite.folders||[]).filter(function(p){ return !folderStarts(p,path); });
+   if(folderStarts(mSelFolder||[],path)) mSelFolder=parent.slice();
+   renderCases();
+ }
+ function showCtx(x,y,path){
+   var m=$('m-ctx'); m.innerHTML='';
+   function item(label,fn){ var b=document.createElement('button'); b.textContent=label; b.onclick=function(){ hideCtx(); fn(); }; m.appendChild(b); }
+   item('📁 新規サブフォルダ', function(){ addFolder(path); });
+   if(path.length){ item('✏ 名前を変更', function(){ renameFolder(path); }); var s=document.createElement('div'); s.className='sep'; m.appendChild(s); item('🗑 フォルダを削除', function(){ deleteFolder(path); }); }
+   m.style.left=Math.min(x,window.innerWidth-180)+'px'; m.style.top=y+'px'; m.classList.remove('hidden');
+ }
+ function hideCtx(){ $('m-ctx').classList.add('hidden'); }
+ document.addEventListener('click',hideCtx);
+ $('m-newFolder').addEventListener('click',function(){ addFolder(mSelFolder||[]); });
+ $('m-treeExpand').addEventListener('click',function(){ if(mTreeRoot){ allFolderKeys(mTreeRoot,[]).forEach(function(k){mExpanded.add(k);}); renderTree(mTreeRoot,mTreeItems); } });
+ $('m-treeCollapse').addEventListener('click',function(){ mExpanded.clear(); if(mTreeRoot) renderTree(mTreeRoot,mTreeItems); });
+ function updateSelInfo(){ $('m-selInfo').textContent = mSelCases.size? ('選択中 '+mSelCases.size+' 件（ドラッグでまとめて移動）') : ''; }
+ function allFolderKeys(node, acc){ Object.keys(node.children).forEach(function(k){ var ch=node.children[k]; if(Object.keys(ch.children).length){ acc.push(ch.path.join('')); allFolderKeys(ch,acc); } }); return acc; }
+ function renderTree(root, items){
+   mTreeRoot=root; mTreeItems=items;
+   var tree=$('m-tree'); tree.innerHTML='';
+   // ルート「すべて」（ドロップで自動分類へ戻す）
+   var rrow=document.createElement('div'); rrow.className='frow'+((!mSelFolder||!mSelFolder.length)?' sel':'');
+   rrow.innerHTML='<span class="ftw"></span>🗂 すべて <span class="fcount">('+root.count+')</span>';
+   rrow.onclick=function(){ mSelFolder=null; renderCases(); };
+   rrow.oncontextmenu=function(e){ e.preventDefault(); e.stopPropagation(); showCtx(e.clientX,e.clientY,[]); };
+   makeDrop(rrow, []); // すべてにドロップ＝明示フォルダ解除（自動分類）
+   tree.appendChild(rrow);
+   function walk(node, container){
+     Object.keys(node.children).sort().forEach(function(key){
+       var ch=node.children[key], hasKids=Object.keys(ch.children).length>0;
+       var pk=ch.path.join(''), expanded=mExpanded.has(pk);
+       var wrap=document.createElement('div'); wrap.className='fnode';
+       var row=document.createElement('div'); row.className='frow'+(sameFolder(mSelFolder,ch.path)?' sel':'');
+       var tw=hasKids?(expanded?'▾':'▸'):'';
+       row.innerHTML='<span class="ftw'+(hasKids?' ftog':'')+'">'+tw+'</span>'+(hasKids?(expanded?'📂':'📁'):'📁')+' <span>'+escapeHtml(ch.name)+'</span><span class="fcount">('+ch.count+')</span>';
+       if(hasKids){ row.querySelector('.ftog').onclick=function(e){ e.stopPropagation(); if(expanded)mExpanded.delete(pk); else mExpanded.add(pk); renderTree(root,items); }; }
+       row.onclick=function(e){ e.stopPropagation(); if(hasKids)mExpanded.add(pk); mSelFolder=ch.path.slice(); renderCases(); };
+       row.oncontextmenu=function(e){ e.preventDefault(); e.stopPropagation(); mSelFolder=ch.path.slice(); showCtx(e.clientX,e.clientY,ch.path); };
+       makeDrop(row, ch.path);
+       wrap.appendChild(row);
+       if(hasKids && expanded){ var kids=document.createElement('div'); kids.className='fchildren'; walk(ch,kids); wrap.appendChild(kids); }
+       container.appendChild(wrap);
+     });
+   }
+   walk(root, tree);
+ }
+ function escapeHtml(s){ return esc(s); }
+ function renderList(items){
+   var wrap=$('m-cases'); wrap.innerHTML='';
+   $('m-path').textContent='📁 '+((mSelFolder&&mSelFolder.length)?mSelFolder.join(' ＞ '):'すべて');
+   var shown=items.filter(function(it){ return folderStarts(it.path, mSelFolder); });
+   if(!shown.length){ wrap.innerHTML='<div class="muted">このフォルダにケースはありません</div>'; return; }
+   shown.forEach(function(it){
+     var el=caseEl(it.sc, it.ci, it.meta);
+     el.setAttribute('draggable','true');
+     if(mSelCases.has(it.ci)) el.classList.add('selected');
+     // Ctrl/Cmd+クリックで複数選択（通常クリックは従来どおり展開）
+     var sm=el.querySelector('summary.csum');
+     if(sm) sm.addEventListener('click',function(e){ if(e.ctrlKey||e.metaKey){ e.preventDefault(); e.stopPropagation();
+       if(mSelCases.has(it.ci)) mSelCases.delete(it.ci); else mSelCases.add(it.ci);
+       el.classList.toggle('selected'); updateSelInfo(); } });
+     el.addEventListener('dragstart',function(e){
+       // 選択済みを1つでもドラッグ→選択全部を移動。未選択をドラッグ→それ単体。
+       var list = (mSelCases.has(it.ci) && mSelCases.size>1) ? Array.from(mSelCases) : [it.ci];
+       e.dataTransfer.setData('text/plain', list.join(',')); e.dataTransfer.effectAllowed='move'; el.classList.add('dragging');
+     });
+     el.addEventListener('dragend',function(){ el.classList.remove('dragging'); });
+     wrap.appendChild(el);
+   });
+ }
+ var reviewTimer=null;
+ function refreshReview(){ // 編集のたび呼ばれるのでデバウンス
+   if(!mSuite) return; clearTimeout(reviewTimer);
+   reviewTimer=setTimeout(async function(){
+     var html=await fetch(withTok('/api/review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(r){return r.text();}).catch(function(){return null;});
+     if(html!=null) $('m-reviewFrame').srcdoc=html;
+   },350);
+ }
+ $('m-reviewBtn').addEventListener('click',refreshReview);
+ $('m-aiReviewBtn').addEventListener('click',function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var btn=$('m-aiReviewBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='AIレビューを開始しています…（4観点＋合議）'; $('m-aiResult').innerHTML='';
+   fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,depth:aiDepth()})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
+      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } },btn);
+    });
+ });
+ $('m-applyRecBtn').addEventListener('click',function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var btn=$('m-applyRecBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='信頼度の推奨アクションを反映中…';
+   fetch(withTok('/api/apply-recs'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
+      poll(r.runId,lg,function(s){ btn.disabled=false;
+        if(s.suite){ mSuite=s.suite; renderCases();
+          var d=(s.summary&&s.summary.details)||[]; toast('🛠 推奨アクションを反映しました（'+d.join(' ／ ')+'）','ok'); }
+      },btn);
+    });
+ });
+ var mAiReview=null;
+ $('m-regenBtn').addEventListener('click',function(){
+   if(!mSuite||!mAiReview){alert('先にAIレビューを実施してください');return;}
+   var btn=$('m-regenBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='改善提案のテストケースを追加中…（既存は保持）';
+   fetch(withTok('/api/regenerate'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,aiReview:mAiReview,depth:aiDepth()})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
+      poll(r.runId,lg,function(s){ btn.disabled=false;
+        if(s.suite){ mSuite=s.suite; renderCases(); var n=(s.summary&&s.summary.added)||0; toast('✨ 改善提案から '+n+' 件のテストケースを追加しました（下の③で確認・編集できます）','ok'); }
+      },btn);
+    });
+ });
+ // 🎯 目標評価まで自律ループ（レビュー↔改善の反復）
+ $('m-autoBtn').addEventListener('click',function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var target=+$('m-aiTarget').value, rounds=+$('m-aiRounds').value, depth=aiDepth();
+   if(!confirm('目標 '+target+'点まで、レビュー↔改善を最大 '+rounds+' ラウンド自動反復します。\n各ラウンドで複数回のClaude API呼び出し（従量課金）が発生します。実行しますか？')) return;
+   var btn=$('m-autoBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='自律改善を開始しています…'; $('m-autoResult').innerHTML='';
+   fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,target:target,maxRounds:rounds,depth:depth})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
+      poll(r.runId,lg,function(s){ btn.disabled=false;
+        if(s.suite){ mSuite=s.suite; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } renderCases();
+          var sm=s.summary||{}; var rws=(sm.rounds||[]).map(function(x){return '<tr><td>R'+x.round+'</td><td style="text-align:right">'+x.before+'→'+x.after+'</td><td style="text-align:right">+'+x.added+'</td></tr>';}).join('');
+          $('m-autoResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:'+(sm.reachedTarget?'#2e7d32':'#ef6c00')+';font-size:16px">'+esc2(sm.note||'')+'</b>'+(rws?'<table style="margin-top:6px;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:2px 8px">ラウンド</th><th style="padding:2px 8px">評価</th><th style="padding:2px 8px">追加</th></tr></thead><tbody>'+rws+'</tbody></table>':'')+'</div>';
+          toast((sm.reachedTarget?'🎯 目標到達：':'🔁 改善完了：')+esc2(sm.note||''), sm.reachedTarget?'ok':'ok');
+        }
+      },btn);
+    });
+ });
+ function esc2(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
+ function renderAiReview(r){
+   var sevColor={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
+   var el=$('m-aiResult');
+   var sy=r.synthesis||{};
+   var cards=(r.personas||[]).map(function(p){
+     var issues=(p.issues||[]).map(function(i){return '<li><span class="ai-sev" style="background:'+(sevColor[i.severity]||'#888')+'">'+esc2(i.severity)+'</span>'+esc2(i.point)+'</li>';}).join('');
+     var str=(p.strengths||[]).map(function(x){return '<li>'+esc2(x)+'</li>';}).join('');
+     var imp=(p.improvements||[]).map(function(x){return '<li>'+esc2(x)+'</li>';}).join('');
+     var col=p.score>=80?'#2e7d32':p.score>=60?'#ef6c00':'#c62828';
+     return '<div class="ai-card"><h4>'+esc2(p.icon)+' '+esc2(p.label)+'<span class="ai-sc" style="color:'+col+'">'+p.score+'</span></h4>'
+       +'<div class="muted">'+esc2(p.verdict)+'</div>'
+       +(str?'<div><b style="font-size:12px">良い点</b><ul>'+str+'</ul></div>':'')
+       +(issues?'<div><b style="font-size:12px">指摘</b><ul>'+issues+'</ul></div>':'')
+       +(imp?'<div><b style="font-size:12px">改善提案</b><ul>'+imp+'</ul></div>':'')+'</div>';
+   }).join('');
+   var acts=(sy.priorityActions||[]).map(function(a){return '<div class="ai-act"><span class="ai-sev" style="background:'+(sevColor[a.priority]||'#888')+'">'+esc2(a.priority)+'</span><b>'+esc2(a.action)+'</b><div class="muted">'+esc2(a.rationale)+'</div></div>';}).join('');
+   var scol=sy.overallScore>=80?'#2e7d32':sy.overallScore>=60?'#ef6c00':'#c62828';
+   el.innerHTML='<div class="ai-synth"><div><span class="ai-big" style="color:'+scol+'">合議 総合評価 '+(sy.overallScore||0)+'</span></div>'
+     +'<div style="margin:4px 0">'+esc2(sy.verdict||'')+'</div><div class="muted">'+esc2(sy.consensus||'')+'</div>'
+     +((sy.agreements||[]).length?'<div style="margin-top:6px"><b style="font-size:12px">一致点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.agreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
+     +((sy.disagreements||[]).length?'<div><b style="font-size:12px">相違点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.disagreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
+     +(acts?'<div style="margin-top:6px"><b style="font-size:12px">優先改善アクション</b>'+acts+'</div>':'')
+     +'</div><div class="ai-grid">'+cards+'</div><div class="ai-disc">'+esc2(r.disclaimer||'')+'</div>';
+ }
+ function renderSuf(suf){
+   var el=$('m-suf'); if(!el) return;
+   if(!suf){ el.innerHTML=''; var ca0=$('m-covActions'); if(ca0)ca0.innerHTML=''; return; }
+   // 網羅性スコア・判定はレビュー本文(iframe)のヒーローに一本化（数値の重複を避ける）。
+   // ここでは未カバー時のみ「どこで対処するか」の導線だけを薄く出す。
+   var color=suf.score>=100?'#2e7d32':(suf.score>=67?'#ef6c00':'#c62828');
+   if((suf.missing||[]).length){
+     var h='<div class="sufbar" style="padding:8px 12px"><span style="color:'+color+';font-weight:700">未カバー観点：'+suf.missing.join('・')+'</span> <span class="muted">下のレビューで詳細を確認し、末尾の「追加アクション」で追加できます。</span>';
+     if((suf.excluded||[]).length) h+='<div class="muted">対象外（分母から除外）：'+suf.excluded.join('・')+'</div>';
+     h+='</div>';
+     el.innerHTML=h;
+   } else {
+     el.innerHTML=(suf.excluded||[]).length?'<div class="sufbar" style="padding:8px 12px"><span class="muted">対象外（分母から除外）：'+suf.excluded.join('・')+'</span></div>':'';
+   }
+   // 末尾アクション欄：不足観点の自動生成ボタン＋対象外トグル
+   var ca=$('m-covActions'); if(!ca) return;
+   if(!(suf.missing||[]).length && !(suf.excluded||[]).length){ ca.innerHTML='<span class="muted">✓ テスト観点は充足しています（追加不要）。</span>'; return; }
+   var a='';
+   if((suf.missing||[]).length){
+     a+='<button id="m-augBtn" class="btn-sm" style="background:#2e7d32">＋ 不足観点のテストケースを追加（自動生成）</button>';
+     a+='<div class="muted" style="margin-top:8px"><b>または</b> 該当機能が無い観点は「対象外」に（＝網羅の分母から除外・テストは増えません）：'+suf.missing.map(function(m){return '<label class="excl"><input type="checkbox" data-vp="'+m+'"> '+m+'を対象外</label>';}).join(' ')+'</div>';
+   } else { a+='<span class="muted">✓ 観点は充足。'; }
+   if((suf.excluded||[]).length) a+='<div class="muted">対象外：'+suf.excluded.join('・')+'</div>';
+   ca.innerHTML=a;
+   var ab=$('m-augBtn'); if(ab) ab.onclick=augmentMissing;
+   Array.prototype.forEach.call(ca.querySelectorAll('input[data-vp]'),function(cb){
+     cb.checked=((mSuite&&mSuite.excludedViewpoints)||[]).indexOf(cb.getAttribute('data-vp'))>=0;
+     cb.onchange=function(){
+       var vp=cb.getAttribute('data-vp'); var ex=(mSuite.excludedViewpoints||[]).slice();
+       if(cb.checked){ if(ex.indexOf(vp)<0) ex.push(vp); } else { ex=ex.filter(function(x){return x!==vp;}); }
+       mSuite.excludedViewpoints=ex; renderCases();
+     };
+   });
+ }
+ function augmentMissing(){
+   var ab=$('m-augBtn'); if(ab){ ab.disabled=true; ab.textContent='生成中…'; }
+   fetch(withTok('/api/augment'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})})
+    .then(function(r){return r.json();}).catch(function(){return null;})
+    .then(function(r){
+      if(!r||!r.suite){alert('生成に失敗しました');if(ab){ab.disabled=false;ab.textContent='不足観点のテストケースを自動生成';}return;}
+      mSuite=r.suite;
+      var msg=(r.added||[]).length?(r.added.length+'件の不足観点ケースを生成しました（下の③の一覧に「自動生成」で追加）。'):'既存操作から生成できるケースはありませんでした。';
+      if((r.notDerivable||[]).length) msg+='\n派生できない観点（「対象外」を推奨）：'+r.notDerivable.join('・');
+      renderCases();
+      setTimeout(function(){ alert(msg); },60);
+    });
+ }
+ function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+ // 1回目カードの「このテストが何をするか」パネル（N観測=baselineから。2回目と同じ項目のうち出せるものだけ）
+ function caseInfo(sc,meta){
+   var b=sc.baseline||null; var rows=[];
+   function dl(t,v){ rows.push('<dt>'+t+'</dt><dd>'+v+'</dd>'); }
+   dl('テストケースID', esc(sc.id));
+   dl('カテゴリ階層', ((meta&&meta.category)||['未分類']).filter(Boolean).map(esc).join(' ＞ '));
+   dl('タグ', ((meta&&meta.tags)||[]).map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join('')||'—');
+   dl('目的', 'この操作を再実行し、修正後(N+1)が修正前(N)と同一挙動かを確認する');
+   dl('前提条件', '開始URLへ到達（認証状態は捜索時のまま）'+(b?'／N(修正前)の観測あり':'／自動生成：Nの観測はまだ無い'));
+   var steps=(sc.actions||[]).map(function(a){return '<li>'+esc(a.label||a.kind)+(a.selector?' <span class="muted">['+esc(a.selector)+']</span>':'')+'</li>';}).join('');
+   dl('操作手順', '<ol class="steps">'+(steps||'<li>開始ページを表示</li>')+'</ol>');
+   var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' = <code>'+esc(a.value||'(空)')+'</code>';}).join(' ／ ')||'—';
+   dl('入力値', inputs);
+   if(b){
+     dl('期待結果（基準N）', '下記のN観測（表示・通信）を基準とし、2回目で一致を確認'+(b.url?'（到達URL: '+esc(b.url)+(b.http&&b.http.status!=null?' / HTTP '+b.http.status:'')+'）':''));
+     var api=b.api||[];
+     if(api.length){
+       var ar=api.map(function(c){var w=/POST|PUT|DELETE|PATCH/i.test(c.method);return '<tr><td>'+esc(c.op||'—')+'</td><td>'+esc(c.method)+' <span class="apath">'+esc(c.path)+'</span></td><td>'+(w?'<b style="color:#c2185b">データ更新</b>':'参照')+'</td><td>'+(c.status==null?'-':c.status)+'</td></tr>';}).join('');
+       dl('画面操作 ↔ API ↔ データ更新','<table class="ci-api"><thead><tr><th>画面操作</th><th>発生API</th><th>種別</th><th>status</th></tr></thead><tbody>'+ar+'</tbody></table>');
+       var up=api.filter(function(c){return /POST|PUT|DELETE|PATCH/i.test(c.method);}).map(function(c){return esc(c.method)+' '+esc(c.path)+' ('+(c.status==null?'-':c.status)+')';});
+       dl('データ更新結果', up.length?up.join('<br>'):'更新系API観測なし');
+     } else { dl('API観測結果','APIなし'); }
+     dl('コンソールログ（N観測）', (b.consoleErrors&&b.consoleErrors.length)?b.consoleErrors.map(esc).join('<br>'):'なし');
+     dl('処理時間（N観測）', (b.loadMs!=null?b.loadMs+'ms':'—'));
+     if(b.shot) dl('証跡（N観測スクショ）','<img class="ci-shot" src="data:image/png;base64,'+b.shot+'" alt="N観測">');
+   } else {
+     dl('状態','自動生成ケース（ベースライン未取得）── 2回目で実行すると表示・通信が観測されます');
+   }
+   var wrap=document.createElement('div'); wrap.className='cinfo';
+   wrap.innerHTML='<div class="cihd">このテストの内容（1回目=N観測。差分/判定は2回目で確定）</div><dl>'+rows.join('')+'</dl>';
+   return wrap;
+ }
+ function caseEl(sc,ci,meta){
+   // 折り畳みカード：既定は「TC番号＋名前＋観点タグ」だけ。展開で「内容表示」、
+   // さらに入れ子ドリルダウンで「ロケータ/手順の編集」。
+   var d=document.createElement('details'); d.className='caserow'; d.setAttribute('data-scid', sc.id||'');
+   var sm=document.createElement('summary'); sm.className='csum';
+   var tc=document.createElement('b'); tc.textContent='TC-'+String(ci+1).padStart(2,'0'); sm.appendChild(tc);
+   var ob=document.createElement('span'); ob.className='obadge o-'+(sc.origin||'捜索'); ob.textContent=(sc.origin||'捜索'); sm.appendChild(ob);
+   var iss=issuesForCase(sc.id); if(iss.length){ var openN=iss.filter(function(x){return x.status!=='完了'&&x.status!=='対象外';}).length; var ib=document.createElement('span'); ib.className='issbadge'; ib.textContent='🐞'+iss.length; ib.title='このケースの課題 '+iss.length+'件（未完了'+openN+'）。クリックで課題管理へ'; ib.onclick=function(e){ e.preventDefault(); e.stopPropagation(); mSelIssue=iss[0].id; showView('issues'); renderIssueList(); renderIssueDetail(mSelIssue); }; sm.appendChild(ib); }
+   var nmspan=document.createElement('span'); nmspan.className='cname'; nmspan.textContent=' '+(sc.name||'(無題)'); sm.appendChild(nmspan);
+   if(meta&&meta.tags&&meta.tags.length){ var ch=document.createElement('span'); ch.className='chips'; ch.innerHTML=' '+meta.tags.map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join(''); sm.appendChild(ch); }
+   var hint=document.createElement('span'); hint.className='muted cedit'; hint.textContent='クリックで内容表示'; sm.appendChild(hint);
+   d.appendChild(sm);
+   var body=document.createElement('div'); body.className='cbody';
+   // ① 内容表示（2回目と同じ項目のうち出せるもの）
+   body.appendChild(caseInfo(sc,meta));
+   // ② さらにドリルダウン：ロケータ/手順の編集
+   var ed=document.createElement('details'); ed.className='editsec';
+   var esm=document.createElement('summary'); esm.textContent='ロケータ／手順を編集'; ed.appendChild(esm);
+   var head=document.createElement('div'); head.className='cn';
+   var nml=document.createElement('label'); nml.textContent='名前'; nml.className='clbl'; head.appendChild(nml);
+   var nm=document.createElement('input'); nm.className='nm'; nm.value=sc.name||''; nm.oninput=function(){sc.name=nm.value; nmspan.textContent=' '+(nm.value||'(無題)');}; head.appendChild(nm);
+   var delb=document.createElement('button'); delb.className='btn-mini btn-del'; delb.textContent='ケース削除'; delb.onclick=function(){ mSuite.scenarios.splice(ci,1); renderCases(); }; head.appendChild(delb);
+   ed.appendChild(head);
+   var tbl=document.createElement('table'); tbl.className='steps-tbl';
+   tbl.innerHTML='<thead><tr><th style="width:78px">操作</th><th>セレクタ（ロケータ）</th><th>値 / URL</th><th style="width:34px"></th></tr></thead>';
+   var tb=document.createElement('tbody');
+   (sc.actions||[]).forEach(function(a,ai){ tb.appendChild(stepRow(sc,ai)); });
+   tbl.appendChild(tb); ed.appendChild(tbl);
+   var addb=document.createElement('button'); addb.className='btn-mini'; addb.textContent='＋手順を追加'; addb.style.marginTop='6px';
+   addb.onclick=function(){ sc.actions.push({kind:'click',selector:'',value:'',label:''}); renderCases(); };
+   ed.appendChild(addb);
+   body.appendChild(ed);
+   d.appendChild(body);
+   return d;
+ }
+ function stepRow(sc,ai){
+   var a=sc.actions[ai]; var tr=document.createElement('tr');
+   var td1=document.createElement('td'); var sel=document.createElement('select');
+   KINDS.forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=k; if(k===a.kind)o.selected=true; sel.appendChild(o); });
+   sel.onchange=function(){a.kind=sel.value;}; td1.appendChild(sel); tr.appendChild(td1);
+   var td2=document.createElement('td'); var si=document.createElement('input'); si.value=a.selector||''; si.oninput=function(){a.selector=si.value;}; td2.appendChild(si); tr.appendChild(td2);
+   var td3=document.createElement('td'); var vi=document.createElement('input'); vi.value=a.value||''; vi.oninput=function(){a.value=vi.value;}; td3.appendChild(vi); tr.appendChild(td3);
+   var td4=document.createElement('td'); var db=document.createElement('button'); db.className='btn-mini btn-del'; db.textContent='×'; db.onclick=function(){ sc.actions.splice(ai,1); renderCases(); }; td4.appendChild(db); tr.appendChild(td4);
+   return tr;
+ }
+ $('m-addCase').addEventListener('click',function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   mSuite.scenarios.push({id:'SCN-NEW'+(mSuite.scenarios.length+1),name:'新規テストケース',depth:0,actions:[{kind:'goto',value:mSuite.startUrl||'',label:'開始'}],origin:'手動追加'});
+   renderCases();
+ });
+ $('m-xlsx').addEventListener('click',async function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var r=await fetch(withTok('/api/export-xlsx'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).catch(function(){return null;});
+   if(!r||!r.ok){alert('Excel出力に失敗しました');return;}
+   var blob=await r.blob(); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='testcases.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+ });
+ $('m-saveBtn').addEventListener('click',async function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var body={name:$('m-name').value.trim()||'無題スイート',suite:mSuite}; if(mSuiteId)body.id=mSuiteId;
+   var r=await fetch(withTok('/api/suites'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
+   if(r.error){$('m-saveMsg').textContent='保存失敗: '+r.error;return;}
+   mSuiteId=r.id; refreshStepMarks(); $('m-saveMsg').textContent='保存しました（'+r.name+' / '+r.count+'件）'; loadSavedList();
+ });
+ $('m-runBtn').addEventListener('click',async function(){
+   if(!mSuite){alert('スイートがありません');return;}
+   var after=$('m-after').value.trim();
+   if(!/^https?:\/\//.test(after)){alert('修正後(N+1)の http(s):// URLを入力してください');return;}
+   var body={suite:mSuite,after:after,shots:$('m-shots').checked,headed:$('m-runHeaded').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
+   $('m-runBtn').disabled=true; var lg=$('m-runlog'); lg.classList.remove('hidden'); lg.textContent='N+1を実行して比較を開始…'; $('m-resultCard').classList.add('hidden');
+   var r=await fetch(withTok('/api/run-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
+   if(r.error){lg.textContent='エラー: '+r.error;$('m-runBtn').disabled=false;return;}
+   poll(r.runId,lg,function(s){ var su=s.summary; var bk=su.byKind||{}; var skip=bk.skipped||0;
+     // 明確に異なる(構造/通信/API/表示)と 差異の疑い(非機能/到達不能) に集約
+     var clear=(bk['diff-structure']||0)+(bk['diff-network']||0)+(bk['diff-api']||0)+(bk['diff-visual']||0);
+     var suspect=(bk['diff-nonfunctional']||0)+(bk['missing']||0);
+     var problem=(su.diff||0)>0;
+     // まず「問題ある/なし」を大きく表示
+     var vh;
+     if(!problem){ vh='<div class="verdict big v-ok"><div class="vico">✓</div><div><div class="vtxt">問題なし</div><div class="vsub">テスト前後で相違ありません（比較 '+su.total+' ケース／回帰なし）</div></div></div>'; }
+     else { vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">問題あり ── 要確認 '+su.diff+' 件</div><div class="vsub">明確に異なる '+clear+' 件 ／ 差異の疑い '+suspect+' 件'+(skip?(' ／ 対象外 '+skip):'')+'。詳細は下記または課題管理で確認。</div></div></div>'; }
+     $('m-verdict').innerHTML=vh;
+     var durl=withTok('runs/'+r.runId+'/dashboard.html'); $('m-openLink').href=durl; $('m-frame').setAttribute('data-src',durl); $('m-frame').src=durl;
+     $('m-dashDetails').open=true; // テスト実施終了後はダッシュボードを開いた状態にする
+     $('m-reportLink').href=withTok('runs/'+r.runId+'/report.html'); $('m-xlsxLink').href=withTok('runs/'+r.runId+'/testcases.xlsx');
+     var il=$('m-issuesLink'); il.classList.toggle('hidden',!problem); il.onclick=function(e){ e.preventDefault(); showView('issues'); loadIssues(); };
+     $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues();
+     toast(problem?('⚠ 問題あり：要確認 '+su.diff+' 件（明確に異なる '+clear+'／疑い '+suspect+'）'):'✅ 問題なし：テスト前後で相違なし', problem?'ng':'ok');
+   },$('m-runBtn'));
+ });
+ // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
+ $('m-dashDetails').addEventListener('toggle',function(){ var f=$('m-frame'); if($('m-dashDetails').open && f.getAttribute('data-src') && f.src.indexOf('dashboard')<0){ f.src=f.getAttribute('data-src'); } });
+</script></body></html>
