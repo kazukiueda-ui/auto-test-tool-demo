@@ -160,6 +160,16 @@
   '完了: OK 7/10（70%）／ NG 3'
  ];
  var AIP=['🧭⚠️🙂😈 4観点で並行レビュー中…','🧩 4観点で合議し、総合評価をまとめ中…','✅ 完了'];
+ var IMP=[
+  '🔁 自律改善を開始（目標 85点／最大 3ラウンド）',
+  '　→ 初回 総合評価 70点（AI評価 70 × 網羅度 70）',
+  '─ ラウンド 1：改善を適用 ─  ＋不足観点/XSS/境界値ケース 4件',
+  '🔎 再レビュー中…（前回指摘の解消を評価）',
+  '　→ ラウンド 1 完了：70→82点（AI評価 84／網羅度 80／+4件）',
+  '─ ラウンド 2：改善を適用 ─  ＋トグル往復/連続追加ケース 2件',
+  '　→ ラウンド 2 完了：82→90点（AI評価 90／網羅度 90／+2件）',
+  '✅ 目標 85点に到達（70→90点、6件追加）'
+ ];
  window.fetch=function(input,init){
    var url = typeof input==='string'?input:((input&&input.url)||'');
    var method=(init&&init.method||'GET').toUpperCase();
@@ -167,20 +177,26 @@
    var has=function(s){ return path.indexOf(s)>=0; };
    if(has('/api/explore')) return J({runId:'demo-explore'});
    if(has('/api/ai-review')) return J({runId:'demo-ai'});
-   if(has('/api/auto-improve')) return J({runId:'demo-ai'});
-   if(has('/api/apply-recs')) return J({runId:'demo-ai'});
-   if(has('/api/regenerate')) return J({runId:'demo-ai'});
+   if(has('/api/auto-improve')) return J({runId:'demo-improve'});
+   if(has('/api/apply-recs')) return J({runId:'demo-apply'});
+   if(has('/api/regenerate')) return J({runId:'demo-regen'});
    if(has('/api/run-baseline')||has('/api/run-suite')||path.match(/\/api\/run$/)) return J({runId:'demo-cmp'});
    if(has('/api/status')){
      var id=(url.split('id=')[1]||'').split('&')[0];
      if(id==='demo-explore') return load('data/suite.json').then(function(t){ return J({status:'done',progress:EXP,suite:JSON.parse(t)}); });
      if(id==='demo-ai') return load('data/aireview.json').then(function(t){ return J({status:'done',progress:AIP,aiReview:JSON.parse(t)}); });
+     if(id==='demo-improve') return Promise.all([load('data/improved-suite.json'),load('data/improved-aireview.json')]).then(function(a){
+        return J({status:'done',progress:IMP,suite:JSON.parse(a[0]),aiReview:JSON.parse(a[1]),
+          summary:{note:'🎯 目標 85点に到達（70→90点、6件追加）',reachedTarget:true,startScore:70,finalScore:90,added:6,
+            rounds:[{round:1,before:70,after:82,added:4},{round:2,before:82,after:90,added:2}]}}); });
+     if(id==='demo-apply') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['🛠 信頼度の推奨アクションを反映中…','✅ 完了'],suite:JSON.parse(t),summary:{details:['不足観点ケースを追加','弱ロケータを安定要素へ変更']}}); });
+     if(id==='demo-regen') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['💡 改善提案からケース生成中…','✅ 完了'],suite:JSON.parse(t),summary:{added:6}}); });
      if(id==='demo-cmp') return load('data/summary.json').then(function(t){ return J({status:'done',progress:CMP,summary:JSON.parse(t).summary}); });
      return J({status:'done',progress:[]});
    }
    if(has('/api/review')) return load('data/review.html').then(function(t){ return H(t); });
    if(has('/api/spec')) return load('data/spec.json').then(function(t){ return J(JSON.parse(t)); });
-   if(has('/api/issues')) return J({issues:[]});
+   if(has('/api/issues')) return load('data/issues.json').then(function(t){ return J(JSON.parse(t)); });
    if(has('/api/suites')&&method==='GET') return J({suites:[]});
    if(has('/api/suites')&&method==='POST') return J({id:'demo',name:'ToDo管理 デモ',count:10,updatedAt:''});
    if(has('/api/suite')&&method==='GET') return load('data/suite.json').then(function(t){ return J({id:'demo',name:'ToDo管理 デモ',suite:JSON.parse(t)}); });

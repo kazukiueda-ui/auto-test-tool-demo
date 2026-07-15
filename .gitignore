@@ -1,3 +1,3 @@
 .playwright-mcp/
-*.png
+data/_issues_store.json
 .DS_Store
