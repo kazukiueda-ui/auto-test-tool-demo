@@ -87,9 +87,13 @@
  .verdict.big.v-ok{background:#eafaf0;border-left:10px solid #2e7d32;color:#1b5e20}
  .verdict.big.v-ng{background:#fff5e6;border-left:10px solid #ef6c00;color:#8a4b00}
  #m-dashDetails>summary{cursor:pointer;font-weight:600;color:#37507a;font-size:13px}
- .nav{display:flex;gap:6px;margin-bottom:12px}
- .navbtn{background:#e7ecf3;color:#37507a;border:0;border-radius:8px 8px 0 0;padding:8px 18px;font-size:14px;font-weight:700;cursor:pointer;margin:0}
- .navbtn.active{background:#1f2d4d;color:#fff}
+ /* トップは「画面」切替（テスト管理／課題管理）。タブが下の画面パネルに繋がる立体表現 */
+ .nav{display:flex;gap:4px;margin:2px 0 0;padding:0 6px;position:relative;z-index:2}
+ .navbtn{background:#dbe3ef;color:#3a4d73;border:1px solid #c3cee0;border-bottom:0;border-radius:11px 11px 0 0;padding:11px 26px;font-size:15px;font-weight:800;cursor:pointer;margin:0;position:relative;top:2px;box-shadow:0 -2px 5px rgba(20,30,60,.05)}
+ .navbtn:hover{background:#e7edf6}
+ .navbtn.active{background:#1f2d4d;color:#fff;border-color:#1f2d4d;box-shadow:0 -4px 12px rgba(31,45,77,.30)}
+ /* 画面パネル（この中に作業タブが一階層下でぶら下がる） */
+ .screen{background:#f3f6fb;border:2px solid #1f2d4d;border-radius:12px;padding:16px 16px 16px;position:relative;z-index:1;box-shadow:0 8px 22px rgba(20,30,60,.12)}
  .navcount{background:#c62828;color:#fff;border-radius:10px;font-size:11px;padding:0 7px;margin-left:4px}
  .issbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
  .iss-split{display:flex;gap:12px}@media(max-width:760px){.iss-split{flex-direction:column}}
@@ -146,13 +150,12 @@
  .ctrlbar .cb-cap{font-weight:700;color:#cdd9f0}
  .cb-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
  .cb-badge.ok{background:#2e7d32;color:#fff}.cb-badge.warn{background:#ef6c00;color:#fff}.cb-badge.local{background:#00695c;color:#fff}
- /* 設計/実行 サブタブ */
- /* テスト管理の中に「設計/実行」がぶら下がることを示すネスト表現 */
- .subnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 6px 18px;padding:6px 0 6px 12px;border-left:3px solid #c3d0e6}
- .subnav-lead{color:#7a8398;font-size:12px;font-weight:700;margin-right:2px}
- .subtab{background:#dbe2ec;color:#33415c;border:0;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;margin:0}
- .subtab.active{background:#1f3864;color:#fff}
- @media(max-width:640px){.subnav{margin-left:6px}.subnav-lead{width:100%}}
+ /* 画面の中の作業タブ（設計/実行・一覧/集計/設定）＝一階層下。明るい第2バンドのセグメント表現 */
+ .subnav{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 14px;padding:5px 6px;background:#e4ebf5;border:1px solid #d0dae8;border-radius:10px}
+ .subtab{background:transparent;color:#45557a;border:0;border-radius:7px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;margin:0}
+ .subtab:hover{background:#d6e0ef}
+ .subtab.active{background:#fff;color:#1f3864;box-shadow:0 1px 4px rgba(30,50,90,.20)}
+ @media(max-width:640px){.subnav{display:flex}}
  /* トークン/コストの下辺グラフ */
  #m-tokenbar{position:sticky;bottom:0;z-index:1400;background:#0f1620;color:#cfe3ff;border-top:2px solid #24344f;padding:6px 14px 8px;font-size:12px}
  #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
@@ -293,11 +296,12 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item">📁 <select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
  <span class="cb-item"><button id="cb-mode" class="cb-toggle on" type="button">🟢 API利用モード</button></span>
- <span class="cb-item">🤖 <select id="cb-model" title="使用モデル"><option value="auto">🎯 最適なモデルを自動選択（段階別）</option></select></span>
+ <span class="cb-item"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">🎯 最適なモデルを自動選択（段階別）</option></select></span>
  <span class="cb-item">🏢 <b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
  <span class="cb-item"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
  <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
@@ -308,10 +312,9 @@
   <button id="nav-manage" class="navbtn active" type="button">🧪 テスト管理</button>
   <button id="nav-issues" class="navbtn" type="button">🐞 課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
  </div>
- <div id="view-manage">
+ <div id="view-manage" class="screen">
   <!-- テスト管理の「中」に 設計 と 実行 がぶら下がる（親子関係を明示） -->
   <div class="subnav">
-   <span class="subnav-lead">┗ テスト管理の中の作業 ▸</span>
    <button id="sub-design" class="subtab active" type="button">🎨 テスト設計（作成）</button>
    <button id="sub-exec" class="subtab" type="button">🗂 テスト実行（比較・定期実行の管理）</button>
   </div>
@@ -462,7 +465,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
       <input type="range" id="m-aiDepth" min="0" max="1" step="0.05" value="0.6">
       <div class="muted">深いほど各観点の指摘・生成ケース数の上限が増え（最大30指摘/40ケース）、修正箇所を残らず洗い出します（トークン＝課金も増加）。</div>
      </div>
-     <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">🤖 AIレビューを実施</button>
+     <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">AIレビューを実施</button>
      <span class="muted">※実施は任意。AI（架空のレビュアー）による評価で、Claude APIを使用します（要APIキー・従量課金）。</span>
      <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
      <div id="m-aiResult"></div>
@@ -572,11 +575,16 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
 
  </div><!-- /view-manage -->
 
- <!-- 課題管理（別ビュー）：ID＋タイトルの一覧→クリックで詳細＋テストケース双方向リンク -->
- <div id="view-issues" class="hidden">
-  <div class="card">
+ <!-- 課題管理（別ビュー）：一覧・詳細／集計・分析／カスタム項目設定 -->
+ <div id="view-issues" class="screen hidden">
+  <div class="subnav">
+   <button id="iss-tab-list" class="subtab active" type="button">📋 一覧・詳細</button>
+   <button id="iss-tab-stats" class="subtab" type="button">📊 集計・分析</button>
+   <button id="iss-tab-fields" class="subtab" type="button">⚙ カスタム項目の設定</button>
+  </div>
+  <div id="iss-view-list" class="card">
    <div class="issbar">
-    <h3 style="margin:0">🐞 課題管理（不具合一覧）</h3>
+    <h3 style="margin:0">🐞 課題一覧</h3>
     <span class="muted" id="m-issMeta" style="margin-left:6px"></span>
     <label style="font-weight:400;font-size:13px;margin-left:auto"><input type="checkbox" id="m-issOpen"> 未完了のみ</label>
     <input id="m-issSearch" placeholder="検索…" style="width:140px;padding:3px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px">
@@ -586,6 +594,17 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
     <div class="iss-listcol" id="m-issList"></div>
     <div class="iss-detailcol" id="m-issDetail"><span class="muted">左の一覧から課題を選択してください。</span></div>
    </div>
+  </div>
+  <div id="iss-view-stats" class="card hidden">
+   <h3 style="margin:0 0 8px">📊 課題の集計・分析</h3>
+   <div id="iss-stats"><span class="muted">課題が起票されると集計が表示されます。</span></div>
+  </div>
+  <div id="iss-view-fields" class="card hidden">
+   <h3 style="margin:0 0 4px">⚙ カスタム項目の設定（このプロジェクト共通）</h3>
+   <p class="muted" style="margin:0 0 10px">ここで定義した項目（名前＋型）は、<b>このプロジェクトの全課題で共通</b>に使えます（JIRA風）。型はテキスト/複数行/選択/数値/日付から選べます。</p>
+   <div id="iss-fields-editor"></div>
+   <button id="iss-fields-add" class="btn-sm btn-gray" style="margin-top:6px">＋ 項目を追加</button>
+   <div style="margin-top:10px"><button id="iss-fields-save" style="margin:0">💾 項目定義を保存</button> <span id="iss-fields-msg" class="muted"></span></div>
   </div>
  </div>
 </div>
@@ -664,6 +683,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
    if(typeof s.specMode==='boolean'&&$('m-specMode')) $('m-specMode').checked=s.specMode;
    if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
+   window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
  function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
@@ -676,7 +696,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
    var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate();
      var lab=cbmodel.options[cbmodel.selectedIndex]?cbmodel.options[cbmodel.selectedIndex].text:cbmodel.value;
-     if(typeof toast==='function') toast('🤖 次回の実行から「'+lab+'」を使用します（実行中の処理には影響しません）','ok');
+     if(typeof toast==='function') toast('次回の実行から「'+lab+'」を使用します（実行中の処理には影響しません）','ok');
    });
    // 業務ドメイン：選択は「決定→反映」ボタンで確定。プロンプトは上書きなので確認ダイアログを出す。
    var cbda=$('cb-domain-apply'); if(cbda) cbda.addEventListener('click',function(){
@@ -838,6 +858,64 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    requestAnimationFrame(function(){ syncStepper(); mStepTick=false; }); },{passive:true});
  $('nav-manage').addEventListener('click',function(){ showView('manage'); });
  $('nav-issues').addEventListener('click',function(){ showView('issues'); if(mSelIssue) renderIssueDetail(mSelIssue); });
+ // ==== 課題管理サブタブ（一覧/集計/項目設定）====
+ function showIssTab(t){
+   $('iss-view-list').classList.toggle('hidden',t!=='list');
+   $('iss-view-stats').classList.toggle('hidden',t!=='stats');
+   $('iss-view-fields').classList.toggle('hidden',t!=='fields');
+   $('iss-tab-list').classList.toggle('active',t==='list');
+   $('iss-tab-stats').classList.toggle('active',t==='stats');
+   $('iss-tab-fields').classList.toggle('active',t==='fields');
+   if(t==='stats') renderIssueStats();
+   if(t==='fields') renderIssueFields();
+ }
+ (function(){ var a=$('iss-tab-list'),b=$('iss-tab-stats'),c=$('iss-tab-fields');
+   if(a)a.addEventListener('click',function(){showIssTab('list');});
+   if(b)b.addEventListener('click',function(){showIssTab('stats');});
+   if(c)c.addEventListener('click',function(){showIssTab('fields');}); })();
+ // ==== 集計・分析（ステータス/観点別＋時系列 発見数/修正数）====
+ function issBar(title,obj,colorFn){ var ks=Object.keys(obj); var max=Math.max.apply(null,ks.map(function(k){return obj[k];}).concat([1]));
+   var rows=ks.map(function(k){ var v=obj[k],w=Math.round(v/max*100); return '<div style="display:flex;align-items:center;gap:8px;margin:2px 0;font-size:13px"><span style="width:120px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(k)+'</span><span style="flex:1;background:#eef1f6;border-radius:4px;overflow:hidden;height:16px"><i style="display:block;height:100%;width:'+w+'%;background:'+(colorFn?colorFn(k):'#4a6cf7')+'"></i></span><b style="width:34px">'+v+'</b></div>'; }).join('');
+   return '<div class="sufbar" style="margin:6px 0"><div style="font-weight:700;margin-bottom:4px">'+title+'</div>'+rows+'</div>'; }
+ function renderIssueStats(){ var el=$('iss-stats'); if(!el)return; var list=(window.__issues||[]);
+   if(!list.length){ el.innerHTML='<span class="muted">課題が起票されると集計が表示されます。</span>'; return; }
+   var ST=['未対応','対応中','確認中','完了','対象外']; var byStatus={}; ST.forEach(function(s){byStatus[s]=0;});
+   var byCat={}, byTier={};
+   list.forEach(function(i){ byStatus[i.status]=(byStatus[i.status]||0)+1; var c=(i.category&&i.category[0])||'未分類'; byCat[c]=(byCat[c]||0)+1; var tr=i.kindLabel||i.tier||'-'; byTier[tr]=(byTier[tr]||0)+1; });
+   var scColor={'未対応':'#c62828','対応中':'#1565c0','確認中':'#6a1b9a','完了':'#2e7d32','対象外':'#90a4ae'};
+   function dayOf(iso){ try{ return String(iso).slice(0,10); }catch(e){ return ''; } }
+   var days={}, found={}, fixed={};
+   list.forEach(function(i){ var d=dayOf(i.createdAt); if(d){days[d]=1; found[d]=(found[d]||0)+1;} if(i.status==='完了'){ var d2=dayOf(i.updatedAt); if(d2){days[d2]=1; fixed[d2]=(fixed[d2]||0)+1;} } });
+   var dayList=Object.keys(days).sort();
+   var maxD=Math.max.apply(null,dayList.map(function(d){return Math.max(found[d]||0,fixed[d]||0);}).concat([1]));
+   var tsRows=dayList.map(function(d){ var f=found[d]||0,x=fixed[d]||0;
+     return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:1px 0"><span style="width:80px">'+d+'</span><span style="flex:1;display:flex;gap:2px;align-items:center"><i title="発見'+f+'" style="background:#c62828;height:14px;width:'+Math.round(f/maxD*50)+'%;min-width:'+(f?2:0)+'px;border-radius:2px"></i><i title="修正'+x+'" style="background:#2e7d32;height:14px;width:'+Math.round(x/maxD*50)+'%;min-width:'+(x?2:0)+'px;border-radius:2px"></i></span><b style="width:96px;font-size:11px;color:#666">発見'+f+' / 修正'+x+'</b></div>'; }).join('');
+   var openN=list.filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
+   el.innerHTML='<div class="muted" style="margin-bottom:8px">全 '+list.length+' 件（未完了 '+openN+' ／ 完了 '+(byStatus['完了']||0)+'）</div>'
+     +issBar('ステータス別',byStatus,function(k){return scColor[k]||'#4a6cf7';})
+     +issBar('業務領域別',byCat)
+     +issBar('判定(観点)別',byTier)
+     +'<div class="sufbar" style="margin:6px 0"><div style="font-weight:700;margin-bottom:4px">時系列（<span style="color:#c62828">■発見数</span> ／ <span style="color:#2e7d32">■修正数(完了)</span>）</div>'+(tsRows||'<span class="muted">データなし</span>')+'</div>';
+ }
+ // ==== カスタム項目の定義（プロジェクト共通）====
+ var ISS_FTYPES=[['text','テキスト'],['textarea','複数行テキスト'],['select','選択(ドロップダウン)'],['number','数値'],['date','日付']];
+ function issFieldRow(f){ f=f||{id:'',name:'',type:'text',options:[]};
+   var typeOpts=ISS_FTYPES.map(function(t){return '<option value="'+t[0]+'"'+(t[0]===f.type?' selected':'')+'>'+t[1]+'</option>';}).join('');
+   return '<div class="fdef-row" data-id="'+escAttr(f.id||'')+'" style="display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap">'
+     +'<input class="fd-name" value="'+escAttr(f.name||'')+'" placeholder="項目名" style="width:150px;padding:4px 6px;border:1px solid #d5dbe3;border-radius:4px">'
+     +'<select class="fd-type" style="padding:4px;border:1px solid #d5dbe3;border-radius:4px">'+typeOpts+'</select>'
+     +'<input class="fd-opts" value="'+escAttr((f.options||[]).join(','))+'" placeholder="選択肢(カンマ区切り)" style="flex:1;min-width:160px;padding:4px 6px;border:1px solid #d5dbe3;border-radius:4px">'
+     +'<button type="button" class="btn-mini btn-del fd-del">×</button></div>'; }
+ function wireFdDel(){ document.querySelectorAll('#iss-fields-editor .fd-del').forEach(function(b){ b.onclick=function(){ var r=b.closest('.fdef-row'); if(r)r.parentNode.removeChild(r); }; });
+   document.querySelectorAll('#iss-fields-editor .fdef-row').forEach(function(row){ var t=row.querySelector('.fd-type'),o=row.querySelector('.fd-opts'); function upd(){ o.style.display=(t.value==='select')?'':'none'; } upd(); t.onchange=upd; }); }
+ function renderIssueFields(){ var box=$('iss-fields-editor'); if(!box)return; var fs=(window.__issueFields||[]);
+   box.innerHTML=fs.length?fs.map(issFieldRow).join(''):'<span class="muted">項目がありません。「＋ 項目を追加」で作成してください。</span>'; wireFdDel(); }
+ (function(){ var add=$('iss-fields-add'); if(add) add.addEventListener('click',function(){ var box=$('iss-fields-editor'); if(box.querySelector('.muted'))box.innerHTML=''; box.insertAdjacentHTML('beforeend',issFieldRow(null)); wireFdDel(); });
+   var sv=$('iss-fields-save'); if(sv) sv.addEventListener('click',function(){
+     var defs=[]; document.querySelectorAll('#iss-fields-editor .fdef-row').forEach(function(row){ var name=row.querySelector('.fd-name').value.trim(); if(!name)return; var type=row.querySelector('.fd-type').value; var id=row.getAttribute('data-id')||('f'+Math.random().toString(36).slice(2,8));
+       var opts=type==='select'?row.querySelector('.fd-opts').value.split(',').map(function(x){return x.trim();}).filter(Boolean):undefined; defs.push({id:id,name:name,type:type,options:opts}); });
+     $('iss-fields-msg').textContent='保存中…';
+     fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{issueFields:defs}})}).then(function(r){return r.json();}).then(function(){ window.__issueFields=defs; $('iss-fields-msg').textContent='保存しました'; renderIssueFields(); if(typeof toast==='function')toast('カスタム項目の定義を保存しました','ok'); if(mSelIssue)renderIssueDetail(mSelIssue); }).catch(function(){ $('iss-fields-msg').textContent='失敗しました'; }); }); })();
  function escHtml(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
  function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
  function issuesForCase(scid){ return (window.__issues||[]).filter(function(i){return i.caseId===scid;}); }
@@ -872,33 +950,38 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(!shots&&!vid&&!logs&&!meta) return '<span class="muted">証跡なし</span>';
    return '<div style="border:1px solid #e3e8f0;border-radius:8px;padding:8px;background:#fbfcfe">'+meta+shots+vid+logs+'</div>';
  }
- function issCustomRow(c){ c=c||{name:'',value:''}; return '<div class="cf-row" style="display:flex;gap:6px;margin:3px 0"><input class="cf-name" value="'+escAttr(c.name)+'" placeholder="項目名" style="width:150px;padding:4px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px"><input class="cf-val" value="'+escAttr(c.value)+'" placeholder="値" style="flex:1;padding:4px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px"><button type="button" class="btn-mini btn-del cf-del">×</button></div>'; }
+ function issFieldInput(f,val){ val=(val==null?'':val); var fid=escAttr(f.id), id='issfv-'+f.id;
+   if(f.type==='textarea') return '<textarea id="'+id+'" data-fid="'+fid+'" rows="2" style="width:100%;box-sizing:border-box">'+escHtml(val)+'</textarea>';
+   if(f.type==='select'){ var opts='<option value=""></option>'+((f.options||[]).map(function(o){return '<option'+(o===val?' selected':'')+'>'+escHtml(o)+'</option>';}).join('')); return '<select id="'+id+'" data-fid="'+fid+'">'+opts+'</select>'; }
+   var t=(f.type==='number'?'number':(f.type==='date'?'date':'text'));
+   return '<input id="'+id+'" data-fid="'+fid+'" type="'+t+'" value="'+escAttr(val)+'"'+(t==='text'?' style="width:100%;box-sizing:border-box"':'')+'>'; }
  function renderIssueDetail(id){
    var i=(window.__issues||[]).find(function(x){return x.id===id;}); var d=$('m-issDetail');
    if(!i){ d.innerHTML='<span class="muted">左の一覧から課題を選択してください。</span>'; return; }
    function sel(f,opts){ return '<select id="issf-'+f+'">'+opts.map(function(s){return '<option'+(s===i[f]?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'; }
+   var cv=i.customValues||{}; var fdefs=(window.__issueFields||[]);
+   var customSection=fdefs.length
+     ? fdefs.map(function(f){ return '<dt>'+escHtml(f.name)+'</dt><dd>'+issFieldInput(f,cv[f.id])+'</dd>'; }).join('')
+     : '<dt>カスタム項目</dt><dd><span class="muted">未定義です。「⚙ カスタム項目の設定」タブで、このプロジェクト共通の項目（名前・型）を追加できます。</span></dd>';
    d.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="stchip sc-'+i.status+'" id="issf-chip">'+i.status+'</span><b style="font-size:15px">'+escHtml(i.title)+'</b></div>'
     +'<dl class="idl">'
     +'<dt>課題ID</dt><dd>'+i.id+(i.external?' / 連携: '+escHtml(i.external.system)+' '+escHtml(i.external.key):'')+'</dd>'
     +'<dt>対象テストケース</dt><dd><b>'+escHtml(i.caseId)+'</b> '+escHtml(i.caseName)+' <button id="m-issGoCase" class="btn-mini" style="background:#37507a">🧪 このテストケースを開く</button></dd>'
     +'<dt>判定 / カテゴリ</dt><dd>'+escHtml(i.kindLabel)+' ／ '+escHtml((i.category||[]).join(' > '))+' ／ 対象: '+escHtml(i.target)+(i.occurrences>1?' ／ 再発 '+i.occurrences+'回':'')+'</dd>'
     +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
-    +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence)+(i.dashboardUrl?'<div style="margin-top:4px"><a href="'+withTok(i.dashboardUrl)+'" target="_blank">📊 ダッシュボード（該当実行の全体）↗</a></div>':'')+'</dd>'
+    +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence)+'</dd>'
     +'<dt>ステータス / 優先度</dt><dd>'+sel('status',ISS_STATUS)+' '+sel('priority',ISS_PRI)+'</dd>'
     +'<dt>担当</dt><dd><input id="issf-assignee" value="'+escAttr(i.assignee||'')+'" placeholder="担当者" style="width:160px"></dd>'
     +'<dt>原因</dt><dd><textarea id="issf-cause" rows="2" style="width:100%;box-sizing:border-box" placeholder="不具合の原因（例: 記号除去でアポストロフィが消える等）">'+escHtml(i.cause||'')+'</textarea></dd>'
     +'<dt>修正内容</dt><dd><textarea id="issf-fix" rows="2" style="width:100%;box-sizing:border-box" placeholder="修正の内容（例: normalizeInput から記号除去を撤去）">'+escHtml(i.fix||'')+'</textarea></dd>'
     +'<dt>メモ</dt><dd><textarea id="issf-note" rows="2" style="width:100%;box-sizing:border-box">'+escHtml(i.note||'')+'</textarea></dd>'
-    +'<dt>カスタム項目<br><span class="muted" style="font-weight:400">JIRA風・任意追加</span></dt><dd><div id="issf-custom">'+((i.custom||[]).map(issCustomRow).join(''))+'</div><button type="button" id="issf-addcf" class="btn-mini btn-gray" style="margin-top:4px">＋ 項目を追加</button></dd>'
+    +customSection
     +'</dl>'
     +'<div style="margin-top:6px"><button type="button" id="issf-save" style="margin:0">💾 更新（確定）</button> <span id="issf-msg" class="muted"></span></div>';
    var gc=$('m-issGoCase'); if(gc) gc.addEventListener('click',function(){ openCaseById(i.caseId); });
-   var addcf=$('issf-addcf'); if(addcf) addcf.addEventListener('click',function(){ var box=$('issf-custom'); box.insertAdjacentHTML('beforeend',issCustomRow({name:'',value:''})); wireCfDel(); });
-   function wireCfDel(){ d.querySelectorAll('.cf-del').forEach(function(b){ b.onclick=function(){ var row=b.closest('.cf-row'); if(row)row.parentNode.removeChild(row); }; }); }
-   wireCfDel();
    $('issf-save').addEventListener('click',function(){
-     var custom=[]; d.querySelectorAll('#issf-custom .cf-row').forEach(function(row){ var n=row.querySelector('.cf-name').value.trim(); var v=row.querySelector('.cf-val').value; if(n) custom.push({name:n,value:v}); });
-     var patch={ id:i.id, status:$('issf-status').value, priority:$('issf-priority').value, assignee:$('issf-assignee').value, cause:$('issf-cause').value, fix:$('issf-fix').value, note:$('issf-note').value, custom:custom };
+     var customValues={}; d.querySelectorAll('[data-fid]').forEach(function(el){ customValues[el.getAttribute('data-fid')]=el.value; });
+     var patch={ id:i.id, status:$('issf-status').value, priority:$('issf-priority').value, assignee:$('issf-assignee').value, cause:$('issf-cause').value, fix:$('issf-fix').value, note:$('issf-note').value, customValues:customValues };
      var btn=$('issf-save'); btn.disabled=true; $('issf-msg').textContent='更新中…';
      fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})
       .then(function(r){return r.json();}).then(function(r){ btn.disabled=false;
