@@ -4,9 +4,9 @@
 <style>
  body{font-family:'Segoe UI','Meiryo',sans-serif;margin:0;background:#eef1f5;color:#1e2430}
  header{background:#1f3864;color:#fff;padding:14px 22px}header h1{margin:0;font-size:19px}
- .wrap{max-width:1000px;margin:18px auto;padding:0 14px}
+ .wrap{max-width:1600px;margin:18px auto;padding:0 18px}
  .card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 5px rgba(0,0,0,.08);margin-bottom:16px;scroll-margin-top:56px}
- .stepper{position:sticky;top:138px;z-index:3;display:flex;gap:6px;background:#eef1f5;padding:9px 8px 8px;margin:0 0 10px;flex-wrap:wrap;border-bottom:1px solid #dde3ec;border-radius:8px}
+ .stepper{position:relative;z-index:1;display:flex;gap:6px;background:#eef1f5;padding:9px 8px 8px;margin:0 0 10px;flex-wrap:wrap;border-bottom:1px solid #dde3ec;border-radius:8px}
  .stepper .step{display:inline-flex;align-items:center;gap:5px;background:#fff;color:#37507a;border:1px solid #d3dcea;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
  .stepper .step:hover{background:#e7eefc}
  .stepper .step.active{background:#1f3864;color:#fff;border-color:#1f3864}
@@ -105,6 +105,12 @@
  .sidebar .nav{flex-direction:column;align-items:stretch;gap:7px;padding:0;margin:0}
  .sidebar .navbtn{border-radius:10px;border:1px solid #c3cee0;border-bottom:1px solid #c3cee0;text-align:left;top:0;box-shadow:none;padding:12px 14px;font-size:14px}
  .sidebar .navbtn.active{background:#1f2d4d;color:#fff;border-color:#1f2d4d;box-shadow:0 3px 10px rgba(31,45,77,.28)}
+ /* サイドバー内のサブタブ（設計/実行/履歴 など）＝一階層下のネスト表現 */
+ .sidebar .subnav{flex-direction:column;align-items:stretch;gap:4px;margin:2px 0 4px 12px;padding:4px 0 4px 10px;border-left:3px solid #c3d0e6}
+ .sidebar .subtab{border-radius:8px;text-align:left;padding:8px 12px;font-size:13px;background:#e7ecf3;color:#37507a;top:0}
+ .sidebar .subtab:hover{background:#dbe3ef}
+ .sidebar .subtab.active{background:#37507a;color:#fff;box-shadow:none}
+ .subnav.hidden{display:none}
  .navbtn-admin{background:#f4dede;color:#7a1f1f;border-color:#e2b6b6}
  .sidebar .navbtn-admin.active{background:#7a1f1f;color:#fff;border-color:#7a1f1f}
  .content{flex:1;min-width:0}
@@ -183,7 +189,7 @@
  .cb-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
  .cb-badge.ok{background:#2e7d32;color:#fff}.cb-badge.warn{background:#ef6c00;color:#fff}.cb-badge.local{background:#00695c;color:#fff}
  /* 画面の中の並列タブ（設計｜実行・一覧｜集計｜設定）＝一階層下。フォルダタブが下のワークスペースに繋がる */
- .subnav{display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin:0;padding:6px 4px 0;position:sticky;top:88px;z-index:4;background:#f3f6fb}
+ .subnav{display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin:2px 0 0;padding:0 4px;position:relative;z-index:2}
  .subtab{background:#dde5f0;color:#45557a;border:1px solid #cdd8e8;border-bottom:0;border-radius:9px 9px 0 0;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer;margin:0;position:relative;top:1px}
  .subtab:hover{background:#e9eff8}
  .subtab.active{background:#fff;color:#1f3864;border-color:#b7c6de;box-shadow:0 -2px 6px rgba(30,50,90,.08)}
@@ -366,6 +372,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -381,19 +388,24 @@
  <aside class="sidebar">
   <div class="nav">
    <button id="nav-manage" class="navbtn active" type="button">テスト管理</button>
+   <div id="subnav-manage" class="subnav">
+    <button id="sub-design" class="subtab active" type="button">テスト設計</button>
+    <button id="sub-exec" class="subtab" type="button">テスト実行</button>
+    <button id="sub-history" class="subtab" type="button">実行履歴</button>
+   </div>
    <button id="nav-issues" class="navbtn" type="button">課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
+   <div id="subnav-issues" class="subnav hidden">
+    <button id="iss-tab-list" class="subtab active" type="button">一覧・詳細</button>
+    <button id="iss-tab-stats" class="subtab" type="button">集計・分析</button>
+    <button id="iss-tab-fields" class="subtab" type="button">カスタム項目の設定</button>
+   </div>
    <button id="nav-settings" class="navbtn" type="button">設定</button>
    <button id="nav-admin" class="navbtn navbtn-admin" type="button">管理者</button>
   </div>
  </aside>
  <div class="content">
  <div id="view-manage" class="screen">
-  <!-- テスト管理の「中」に 設計 / 実行 / 実行履歴 が“並列”でぶら下がる（タブ切替＝区分け） -->
-  <div class="subnav">
-   <button id="sub-design" class="subtab active" type="button">テスト設計</button>
-   <button id="sub-exec" class="subtab" type="button">テスト実行</button>
-   <button id="sub-history" class="subtab" type="button">実行履歴</button>
-  </div>
+  <!-- サブタブ（設計/実行/実行履歴）は左サイドバーへ移動 -->
   <div class="workspace">
   <!-- 工程ステッパー（クリックで各工程へジャンプ・現在地をハイライト） -->
   <div class="stepper" id="m-stepper">
@@ -604,11 +616,7 @@ graph TD
 
  <!-- 課題管理（別ビュー）：一覧・詳細／集計・分析／カスタム項目設定 -->
  <div id="view-issues" class="screen hidden">
-  <div class="subnav">
-   <button id="iss-tab-list" class="subtab active" type="button">一覧・詳細</button>
-   <button id="iss-tab-stats" class="subtab" type="button">集計・分析</button>
-   <button id="iss-tab-fields" class="subtab" type="button">カスタム項目の設定</button>
-  </div>
+  <!-- サブタブ（一覧/集計/設定）は左サイドバーへ移動 -->
   <div class="workspace">
   <div id="iss-view-list" class="card">
    <div class="issbar">
@@ -674,13 +682,6 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  <!-- 管理者（暫定・後で別場所へ移す）：業務ドメイン別プロンプト・有識者ノウハウ（通常利用者には見せない） -->
  <div id="view-admin" class="screen hidden">
   <div style="font-weight:700;color:#7a1f1f;margin:2px 0 10px">管理者設定 <span class="muted" style="font-weight:400;font-size:12px">── 通常の利用者には見せない項目（暫定的にここに集約。将来は別画面へ）</span></div>
-  <div class="card" id="adm-domain-card">
-   <h3>業務ドメイン別プロンプト</h3>
-   <p class="muted" style="margin:0 0 8px">業務（金融・人事・会計・販売管理・在庫・生産など）ごとに重視すべきテスト観点は異なります。上部バーの<b>業務ドメイン</b>を選び「決定→反映」すると下欄に既定観点が入ります（編集可）。この内容は探索とAIレビューに注入され、テストケースへ反映されます。</p>
-   <details id="m-domainDetails" open><summary style="cursor:pointer;font-weight:600;color:#37507a;font-size:13px">プロンプトを編集</summary>
-    <textarea id="m-domainPrompt" rows="6" style="width:100%;box-sizing:border-box;margin-top:6px" placeholder="上部の業務ドメインを選ぶと既定の重点観点が入ります（自由に編集できます）"></textarea>
-   </details>
-  </div>
   <div class="card" id="adm-knowhow-card">
    <h3>有識者ノウハウ（プロンプト編集）</h3>
    <p class="muted" style="margin:0 0 8px">LLM誘導捜索の system に注入します。捜索の“勘所”をプロンプトとして編集できます。空欄にすると既定ノウハウが使われます。</p>
@@ -746,6 +747,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
 「システム全体を完全に網羅」「すべてのAPIを確認」「不具合が存在しないことを保証」「業務仕様どおりを保証」「セキュリティ上問題がないことを保証」とは表現しない。
 保証は「指定URL・指定認証状態・テストデータ・実行環境・捜索条件のもとで、到達・観測できた対象を定義基準で確認し、再実行可能なテストと証跡を生成した」範囲に限定。</textarea>
   </div>
+  <div class="card" id="adm-domain-card">
+   <h3>業務ドメイン別プロンプト</h3>
+   <p class="muted" style="margin:0 0 8px">業務ごとに重点観点プロンプトを用意します（<b>業務の数だけ入力欄</b>）。ヘッダで選んだ業務のプロンプトが探索・AIレビューに注入されます。<b>「＋ 業務を追加」</b>で新しい業務を追加でき、<b>ヘッダの業務ドメイン選択にも反映</b>されます。</p>
+   <div id="adm-domain-list"></div>
+   <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="adm-domain-add" class="btn-sm btn-gray" type="button">＋ 業務を追加</button><button id="adm-domain-save" class="btn-sm" type="button">業務別プロンプトを保存</button><span id="adm-domain-msg" class="muted"></span></div>
+  </div>
  </div>
 
  </div><!-- /content -->
@@ -785,7 +792,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // ==== 制御バー（プロジェクト/モード/モデル/業務ドメイン）＋トークングラフ ====
  var ATT_ENV={llmAvailable:false,localLlm:false,models:[],domains:[],defaultModel:'claude-sonnet-4-6',jpyPerUsd:150};
  var apiMode=true; // API利用モード（false=APIオフ＝ルールベース）
- function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', reviewMode:$('m-reviewMode')?$('m-reviewMode').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:'', llm:apiMode }; }
+ function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', reviewMode:$('m-reviewMode')?$('m-reviewMode').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:currentDomainPrompt(), llm:apiMode }; }
  function applyModeUi(){
    var b=$('cb-mode'); if(!b) return;
    b.textContent=apiMode?'API利用モード':'APIオフ（ルールベース）';
@@ -805,12 +812,25 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function loadEnv(){ return fetch(withTok('/api/env')).then(function(r){return r.json();}).then(function(e){
    ATT_ENV=e||ATT_ENV;
    var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">最適なモデルを自動選択（段階別）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
-   var dom=$('cb-domain'); if(dom){ dom.innerHTML=(ATT_ENV.domains||[]).map(function(d){return '<option value="'+d.key+'">'+escHtml(d.label)+'</option>';}).join(''); }
+   renderDomainSelect();
    if(!ATT_ENV.llmAvailable){ apiMode=false; } // キー無ければ強制オフ
    applyModeUi(); updateBadge();
  }).catch(function(){}); }
- function domainPromptFor(key){ var d=(ATT_ENV.domains||[]).find(function(x){return x.key===key;}); return d?d.defaultPrompt:''; }
- function domainLabelFor(key){ var d=(ATT_ENV.domains||[]).find(function(x){return x.key===key;}); return d?d.label:(key||''); }
+ // 業務ドメイン：組込み(ATT_ENV.domains)＋利用者追加(__customDomains)。プロンプトは業務別に保持(__domainPrompts)。
+ window.__domainPrompts={}; window.__customDomains=[];
+ function allDomains(){ return (ATT_ENV.domains||[]).concat(window.__customDomains||[]); }
+ function domainPromptFor(key){ var d=allDomains().find(function(x){return x.key===key;}); return d?(d.defaultPrompt||''):''; }
+ function domainLabelFor(key){ var d=allDomains().find(function(x){return x.key===key;}); return d?d.label:(key||''); }
+ function currentDomainPrompt(){ var key=$('cb-domain')?$('cb-domain').value:'none'; if(key==='none')return ''; var m=window.__domainPrompts||{}; return (m[key]!=null&&m[key]!=='')?m[key]:domainPromptFor(key); }
+ function renderDomainSelect(){ var dom=$('cb-domain'); if(!dom)return; var cur=dom.value; dom.innerHTML=allDomains().map(function(d){return '<option value="'+d.key+'">'+escHtml(d.label)+'</option>';}).join(''); if(cur&&allDomains().some(function(d){return d.key===cur;}))dom.value=cur; }
+ function renderDomainPrompts(){ var box=$('adm-domain-list'); if(!box)return; var m=window.__domainPrompts||{};
+   box.innerHTML=allDomains().filter(function(d){return d.key!=='none';}).map(function(d){ var v=(m[d.key]!=null)?m[d.key]:(d.defaultPrompt||'');
+     return '<div style="margin:8px 0;border-top:1px solid #eef1f6;padding-top:6px"><div style="font-weight:700;font-size:13px;color:#2a4b7c">'+escHtml(d.label)+' <span class="muted" style="font-weight:400;font-size:11px">('+escHtml(d.key)+')</span></div><textarea class="dp-box" data-key="'+escAttr(d.key)+'" rows="3" style="width:100%;box-sizing:border-box;font-size:13px;margin-top:3px" placeholder="この業務で重視するテスト観点を記述">'+escHtml(v)+'</textarea></div>'; }).join(''); }
+ (function(){ var add=$('adm-domain-add'); if(add) add.addEventListener('click',function(){ var name=prompt('追加する業務名（例：物流管理）'); if(!name)return; name=name.trim(); if(!name)return;
+     var base=name.toLowerCase().replace(/[^\w\u3040-\u30ff\u4e00-\u9faf-]/g,'').slice(0,16)||'biz'; var key='custom-'+base+'-'+((window.__customDomains||[]).length+1);
+     window.__customDomains=(window.__customDomains||[]).concat([{key:key,label:name,defaultPrompt:''}]); renderDomainSelect(); renderDomainPrompts(); if($('cb-domain'))$('cb-domain').value=key; if(typeof toast==='function')toast('業務「'+name+'」を追加しました（ヘッダの業務ドメインにも反映）','ok'); });
+   var sv=$('adm-domain-save'); if(sv) sv.addEventListener('click',function(){ var m={}; document.querySelectorAll('#adm-domain-list .dp-box').forEach(function(t){ var k=t.getAttribute('data-key'); if(t.value.trim())m[k]=t.value; }); window.__domainPrompts=m;
+     fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{domainPrompts:m,customDomains:window.__customDomains}})}).then(function(r){return r.json();}).then(function(){ $('adm-domain-msg').textContent='保存しました（'+Object.keys(m).length+'業務）'; if(typeof toast==='function')toast('業務別プロンプトを保存しました','ok'); }).catch(function(){ $('adm-domain-msg').textContent='保存に失敗しました'; }); }); })();
  function loadProjects(){ return fetch(withTok('/api/projects')).then(function(r){return r.json();}).then(function(r){
    var sel=$('cb-project'); if(!sel) return; var list=(r&&r.projects)||[];
    if(!curProject && r&&r.current) curProject=r.current;
@@ -819,8 +839,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function loadProjectSettings(){ if(!curProject) return Promise.resolve(); return fetch(withTok('/api/project?id='+encodeURIComponent(curProject))).then(function(r){return r.json();}).then(function(p){
    var s=(p&&p.settings)||{};
    if(s.model&&$('cb-model')) $('cb-model').value=s.model;
-   if(s.domain&&$('cb-domain')) $('cb-domain').value=s.domain;
-   if($('m-domainPrompt')) $('m-domainPrompt').value=s.domainPrompt||($('cb-domain')?domainPromptFor($('cb-domain').value):'');
+   window.__customDomains=Array.isArray(s.customDomains)?s.customDomains:[]; window.__domainPrompts=(s.domainPrompts&&typeof s.domainPrompts==='object')?s.domainPrompts:{};
+   renderDomainSelect(); renderDomainPrompts();
+   if(s.domain&&$('cb-domain')&&allDomains().some(function(d){return d.key===s.domain;})) $('cb-domain').value=s.domain;
    if(typeof s.llmMode==='boolean'){ apiMode=s.llmMode&&ATT_ENV.llmAvailable; }
    if(s.knowhow&&$('m-knowhow')) $('m-knowhow').value=s.knowhow;
    if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
@@ -832,7 +853,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
@@ -844,16 +865,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var lab=cbmodel.options[cbmodel.selectedIndex]?cbmodel.options[cbmodel.selectedIndex].text:cbmodel.value;
      if(typeof toast==='function') toast('次回の実行から「'+lab+'」を使用します（実行中の処理には影響しません）','ok');
    });
-   // 業務ドメイン：選択は「決定→反映」ボタンで確定。プロンプトは上書きなので確認ダイアログを出す。
+   // 業務ドメイン：選択を「決定→反映」で確定。業務別プロンプト（管理者で編集）が探索/AIレビューに注入される。
    var cbda=$('cb-domain-apply'); if(cbda) cbda.addEventListener('click',function(){
-     var key=$('cb-domain')?$('cb-domain').value:'none'; var dp=$('m-domainPrompt'); if(!dp) return;
-     var next=domainPromptFor(key), label=domainLabelFor(key), cur=(dp.value||'').trim();
-     if(cur && cur!==next.trim()){
-       if(!confirm('業務別プロンプトを「'+label+'」の重点観点で上書きします。\n現在の編集内容は失われます。よろしいですか？')) return;
-     }
-     dp.value=next;
-     var det=$('m-domainDetails'); if(det && !det.open) det.open=true;
-     if(typeof toast==='function') toast(key==='none'?'業務指定を解除しました（プロンプトを空にしました）':'業務ドメイン「'+label+'」の重点観点をプロンプトへ反映しました','ok');
+     var key=$('cb-domain')?$('cb-domain').value:'none'; var label=domainLabelFor(key);
+     if(typeof toast==='function') toast(key==='none'?'業務指定を解除しました':'業務ドメイン「'+label+'」を反映しました（管理者の業務別プロンプトが注入されます）','ok');
    });
    var cbs=$('cb-save'); if(cbs) cbs.addEventListener('click',saveProjectSettings);
  }
@@ -1034,6 +1049,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // ---- ビュー切替 ----
  function showView(v){ $('view-manage').classList.toggle('hidden',v!=='manage'); $('view-issues').classList.toggle('hidden',v!=='issues'); if($('view-settings')) $('view-settings').classList.toggle('hidden',v!=='settings'); if($('view-admin')) $('view-admin').classList.toggle('hidden',v!=='admin');
    $('nav-manage').classList.toggle('active',v==='manage'); $('nav-issues').classList.toggle('active',v==='issues'); if($('nav-settings')) $('nav-settings').classList.toggle('active',v==='settings'); if($('nav-admin')) $('nav-admin').classList.toggle('active',v==='admin');
+   // 左サイドバーのサブタブ群は、アクティブなトップ画面のものだけ表示（ネスト表現）
+   if($('subnav-manage')) $('subnav-manage').classList.toggle('hidden',v!=='manage'); if($('subnav-issues')) $('subnav-issues').classList.toggle('hidden',v!=='issues');
    $('m-stepper').style.display=(v==='manage'&&curPhase!=='history')?'':'none'; }
  // ---- 工程ステッパー（ジャンプ＋スクロール連動ハイライト） ----
  var mStepEls=[].slice.call(document.querySelectorAll('#m-stepper .step'));
