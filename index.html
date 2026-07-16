@@ -300,6 +300,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -1287,7 +1288,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      var str=(p.strengths||[]).map(function(x){return '<li>'+esc2(x)+'</li>';}).join('');
      var imp=(p.improvements||[]).map(function(x){return '<li>'+esc2(x)+'</li>';}).join('');
      var col=p.score>=80?'#2e7d32':p.score>=60?'#ef6c00':'#c62828';
-     return '<div class="ai-card"><h4>'+esc2(p.icon)+' '+esc2(p.label)+'<span class="ai-sc" style="color:'+col+'">'+p.score+'</span></h4>'
+     return '<div class="ai-card"><h4>'+(p.icon?esc2(p.icon)+' ':'')+esc2(p.label)+'<span class="ai-sc" style="color:'+col+'">'+p.score+'</span></h4>'
        +'<div class="muted">'+esc2(p.verdict)+'</div>'
        +(str?'<div><b style="font-size:12px">良い点</b><ul>'+str+'</ul></div>':'')
        +(issues?'<div><b style="font-size:12px">指摘</b><ul>'+issues+'</ul></div>':'')
