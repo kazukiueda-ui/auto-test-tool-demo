@@ -353,6 +353,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -1649,7 +1650,12 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var body={name:$('m-name').value.trim()||'無題スイート',suite:mSuite}; if(mSuiteId)body.id=mSuiteId;
    var r=await fetch(withTok('/api/suites'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){$('m-saveMsg').textContent='保存失敗: '+r.error;return;}
-   mSuiteId=r.id; markClean(); refreshStepMarks(); $('m-saveMsg').textContent='保存しました（'+r.name+' / '+r.count+'件）'; loadSavedList();
+   mSuiteId=r.id; markClean(); refreshStepMarks(); loadSavedList();
+   // 保存できたことを分かりやすく表示（緑の✓）＋トースト
+   $('m-saveMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 保存しました</span> <span class="muted">「'+esc(r.name)+'」（'+r.count+'件）— テスト実行タブで選んで実行できます</span>';
+   if(typeof toast==='function') toast('スイート「'+r.name+'」を保存しました（'+r.count+'件）','ok');
+   // 続けて実行するか確認。OKならテスト実行タブへ（保存したスイートが自動選択される）
+   if(confirm('「'+r.name+'」を保存しました（'+r.count+'件）。\n続けてテスト実行しますか？')){ var e=$('sub-exec'); if(e) e.click(); }
  });
  // 追加ケースの1回目(N)ベースライン取得（比較対象化）
  $('m-captureBtn').addEventListener('click',function(){
