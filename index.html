@@ -280,6 +280,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item">📁 <select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -648,7 +649,10 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var cbp=$('cb-project'); if(cbp) cbp.addEventListener('change',function(){ curProject=cbp.value; localStorage.setItem('att_project',curProject); loadProjectSettings().then(function(){ loadSavedList(); loadSchedules&&loadSchedules(); renderTokenBar(); }); });
    var cbn=$('cb-newProj'); if(cbn) cbn.addEventListener('click',function(){ var name=prompt('新規プロジェクト名'); if(!name) return; fetch(withTok('/api/projects'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}).then(function(r){return r.json();}).then(function(p){ curProject=p.id; localStorage.setItem('att_project',curProject); loadProjects().then(loadProjectSettings).then(function(){ loadSavedList(); }); }); });
    var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
-   var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate(); });
+   var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate();
+     var lab=cbmodel.options[cbmodel.selectedIndex]?cbmodel.options[cbmodel.selectedIndex].text:cbmodel.value;
+     if(typeof toast==='function') toast('🤖 次回の実行から「'+lab+'」を使用します（実行中の処理には影響しません）','ok');
+   });
    // 業務ドメイン：選択は「決定→反映」ボタンで確定。プロンプトは上書きなので確認ダイアログを出す。
    var cbda=$('cb-domain-apply'); if(cbda) cbda.addEventListener('click',function(){
      var key=$('cb-domain')?$('cb-domain').value:'none'; var dp=$('m-domainPrompt'); if(!dp) return;
