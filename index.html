@@ -155,8 +155,12 @@
  #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
  #m-tokenbar .tb-big{font-size:16px;font-weight:800;color:#8fe3a0}
  #m-tokenbar .tb-yen{font-size:16px;font-weight:800;color:#ffd479}
- #m-tokenbar svg{display:block;width:100%;height:90px}
+ #m-tokenbar .tb-graphs{display:flex;gap:14px}
+ #m-tokenbar .tb-g{flex:1;min-width:0}
+ #m-tokenbar .tb-gcap{font-size:11px;color:#9fb6d8;margin:2px 0 1px}
+ #m-tokenbar svg{display:block;width:100%;height:80px}
  #m-tokenbar .tb-axis{display:flex;justify-content:space-between;font-size:10px;color:#7f93b3;margin-top:1px}
+ @media(max-width:760px){#m-tokenbar .tb-graphs{flex-direction:column}}
  #m-tokenbar .tb-axis span{white-space:nowrap}
  #m-tokenbar .tb-toggle{cursor:pointer;color:#9fb6d8;font-size:11px}
  .sched-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border:1px solid #e2e7ee;border-radius:8px;padding:10px;margin:8px 0;background:#fafbfc}
@@ -276,6 +280,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
@@ -587,8 +592,18 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    <span class="tb-toggle" id="tb-toggle" style="margin:0">▼ 隠す</span>
   </span>
  </div>
- <svg id="tb-svg" viewBox="0 0 1000 90" preserveAspectRatio="none" style="height:90px"><polygon id="tb-area" fill="rgba(143,227,160,.15)" points=""></polygon><polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline></svg>
- <div class="tb-axis" id="tb-axis"></div>
+ <div class="tb-graphs">
+  <div class="tb-g">
+   <div class="tb-gcap">💠 トークン量（累計）</div>
+   <svg id="tb-svg" viewBox="0 0 1000 80" preserveAspectRatio="none"><polygon id="tb-area" fill="rgba(143,227,160,.15)" points=""></polygon><polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline></svg>
+   <div class="tb-axis" id="tb-axis"></div>
+  </div>
+  <div class="tb-g">
+   <div class="tb-gcap">💰 概算コスト ¥（累計・モデル別単価を反映して積み上がる）</div>
+   <svg id="tb-svg2" viewBox="0 0 1000 80" preserveAspectRatio="none"><polygon id="tb-area2" fill="rgba(255,212,121,.15)" points=""></polygon><polyline id="tb-line2" fill="none" stroke="#ffd479" stroke-width="2" points=""></polyline></svg>
+   <div class="tb-axis" id="tb-axis2"></div>
+  </div>
+ </div>
 </div>
 <script>
  const $=(id)=>document.getElementById(id);
@@ -688,24 +703,29 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      while(startIdx<n0-2 && new Date(all[startIdx].ts).getTime()<start) startIdx++;
    }
    var pts=all.slice(startIdx);
+   var jpy=s.jpyPerUsd||150;
    // 窓の起点直前の累積をベースラインにして、その期間の増分を描く
-   var base=(startIdx>0)?all[startIdx-1].cumTokens:0;
+   var baseTok=(startIdx>0)?all[startIdx-1].cumTokens:0;
+   var baseYen=((startIdx>0)?all[startIdx-1].cumUsd:0)*jpy;
    var lbl=$('tb-rangeLbl'); if(lbl){ if(pct>=100||pts.length<2||startIdx===0){ lbl.textContent='全期間'; } else { lbl.textContent='直近'+fmtDur(new Date(pts[pts.length-1].ts).getTime()-new Date(pts[0].ts).getTime()); } }
-   var maxT=Math.max.apply(null,pts.map(function(p){return p.cumTokens;}).concat([base+1]));
-   var range=Math.max(1,maxT-base);
-   var W=1000,H=90,n=pts.length;
-   var svg=$('tb-svg'); if(svg){ svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.style.height=H+'px'; }
-   function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-(((p.cumTokens-base)/range)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
+   // 2グラフ描画（①トークン量 ②概算コスト¥＝モデル別単価を反映した cumUsd を円換算）
+   drawSeries(pts, baseTok, function(p){return p.cumTokens;}, 'tb-line','tb-area','tb-axis');
+   drawSeries(pts, baseYen, function(p){return p.cumUsd*jpy;}, 'tb-line2','tb-area2','tb-axis2');
+ }
+ function drawSeries(pts, base, getV, lineId, areaId, axisId){
+   var W=1000,H=80,n=pts.length;
+   var maxV=Math.max.apply(null,pts.map(function(p){return getV(p);}).concat([base+1]));
+   var range=Math.max(1e-9,maxV-base);
+   function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-(((getV(p)-base)/range)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
    var line=pts.map(xy).join(' ');
-   $('tb-line').setAttribute('points',line);
-   $('tb-area').setAttribute('points','0,'+H+' '+line+' '+W+','+H);
-   // 横軸＝日時ラベル（表示期間の先頭〜末尾を最大5点）
-   var ax=$('tb-axis'); if(ax){ var labs=[],k=Math.min(5,n); for(var i=0;i<k;i++){ var idx=(k<=1)?0:Math.round(i*(n-1)/(k-1)); labs.push('<span>'+fmtTs(pts[idx].ts)+'</span>'); } ax.innerHTML=labs.join(''); }
+   var ln=document.getElementById(lineId); if(ln) ln.setAttribute('points',line);
+   var ar=document.getElementById(areaId); if(ar) ar.setAttribute('points','0,'+H+' '+line+' '+W+','+H);
+   var ax=document.getElementById(axisId); if(ax){ var labs=[],k=Math.min(5,n); for(var i=0;i<k;i++){ var idx=(k<=1)?0:Math.round(i*(n-1)/(k-1)); labs.push('<span>'+fmtTs(pts[idx].ts)+'</span>'); } ax.innerHTML=labs.join(''); }
  }
  function fmtDur(ms){ if(ms<=0)return '—'; var m=Math.round(ms/60000); if(m<60)return m+'分'; var h=Math.round(m/6)/10; if(h<48)return h+'時間'; return (Math.round(h/24*10)/10)+'日'; }
  function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){ window.__tbData=s; drawTokenBar(s); }).catch(function(){}); }
  (function(){ var r=$('tb-range'); if(r) r.addEventListener('input',function(){ if(window.__tbData) drawTokenBar(window.__tbData); }); })();
- (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var svg=$('tb-svg'); var hidden=svg.style.display==='none'; svg.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
+ (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var g=document.querySelector('#m-tokenbar .tb-graphs'); if(!g)return; var hidden=g.style.display==='none'; g.style.display=hidden?'flex':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
  // ==== 設計/実行 サブタブ ====
  var curPhase='design';
  function applyPhase(ph){ curPhase=ph;
