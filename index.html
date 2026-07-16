@@ -147,9 +147,12 @@
  .cb-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
  .cb-badge.ok{background:#2e7d32;color:#fff}.cb-badge.warn{background:#ef6c00;color:#fff}.cb-badge.local{background:#00695c;color:#fff}
  /* 設計/実行 サブタブ */
- .subtabs{display:flex;gap:8px;margin:12px 0 4px}
- .subtab{background:#dbe2ec;color:#33415c;border:0;border-radius:8px;padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;margin:0}
+ /* テスト管理の中に「設計/実行」がぶら下がることを示すネスト表現 */
+ .subnav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 6px 18px;padding:6px 0 6px 12px;border-left:3px solid #c3d0e6}
+ .subnav-lead{color:#7a8398;font-size:12px;font-weight:700;margin-right:2px}
+ .subtab{background:#dbe2ec;color:#33415c;border:0;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;margin:0}
  .subtab.active{background:#1f3864;color:#fff}
+ @media(max-width:640px){.subnav{margin-left:6px}.subnav-lead{width:100%}}
  /* トークン/コストの下辺グラフ */
  #m-tokenbar{position:sticky;bottom:0;z-index:1400;background:#0f1620;color:#cfe3ff;border-top:2px solid #24344f;padding:6px 14px 8px;font-size:12px}
  #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
@@ -289,6 +292,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item">📁 <select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -299,15 +303,17 @@
  <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
 </div>
 <div class="wrap">
+ <!-- トップは2つの「画面」：テスト管理 と 課題管理（別画面） -->
  <div class="nav">
   <button id="nav-manage" class="navbtn active" type="button">🧪 テスト管理</button>
   <button id="nav-issues" class="navbtn" type="button">🐞 課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
  </div>
  <div id="view-manage">
-  <!-- 設計/実行 サブタブ（作成だけ・実行だけの運用に対応） -->
-  <div class="subtabs">
+  <!-- テスト管理の「中」に 設計 と 実行 がぶら下がる（親子関係を明示） -->
+  <div class="subnav">
+   <span class="subnav-lead">┗ テスト管理の中の作業 ▸</span>
    <button id="sub-design" class="subtab active" type="button">🎨 テスト設計（作成）</button>
-   <button id="sub-exec" class="subtab" type="button">▶ テスト実行</button>
+   <button id="sub-exec" class="subtab" type="button">🗂 テスト実行（比較・定期実行の管理）</button>
   </div>
   <!-- 工程ステッパー（クリックで各工程へジャンプ・現在地をハイライト） -->
   <div class="stepper" id="m-stepper">
