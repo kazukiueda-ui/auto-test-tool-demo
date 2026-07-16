@@ -143,6 +143,7 @@
  .ctrlbar button{margin:0;padding:5px 12px;font-size:13px;border-radius:6px}
  .cb-mini{background:#37507a}
  .cb-toggle{font-weight:700}.cb-toggle.on{background:#2e7d32}.cb-toggle.off{background:#78848f}
+ .ctrlbar .cb-cap{font-weight:700;color:#cdd9f0}
  .cb-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
  .cb-badge.ok{background:#2e7d32;color:#fff}.cb-badge.warn{background:#ef6c00;color:#fff}.cb-badge.local{background:#00695c;color:#fff}
  /* 設計/実行 サブタブ */
@@ -154,8 +155,10 @@
  #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
  #m-tokenbar .tb-big{font-size:16px;font-weight:800;color:#8fe3a0}
  #m-tokenbar .tb-yen{font-size:16px;font-weight:800;color:#ffd479}
- #m-tokenbar svg{display:block;width:100%;height:70px}
- #m-tokenbar .tb-toggle{margin-left:auto;cursor:pointer;color:#9fb6d8;font-size:11px}
+ #m-tokenbar svg{display:block;width:100%;height:90px}
+ #m-tokenbar .tb-axis{display:flex;justify-content:space-between;font-size:10px;color:#7f93b3;margin-top:1px}
+ #m-tokenbar .tb-axis span{white-space:nowrap}
+ #m-tokenbar .tb-toggle{cursor:pointer;color:#9fb6d8;font-size:11px}
  .sched-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border:1px solid #e2e7ee;border-radius:8px;padding:10px;margin:8px 0;background:#fafbfc}
  .sched-list{margin-top:10px}
  .sched-item{border:1px solid #e2e7ee;border-radius:8px;padding:8px 10px;margin:6px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
@@ -235,6 +238,7 @@
    if(has('/api/schedule/run-now')) return J({runId:'demo-cmp'});
    if(has('/api/schedule')) return J({ok:true,deleted:true});
    if(has('/api/ci/')) return J({runId:'demo-cmp',status:'done'});
+   if(has('/api/cancel')) return J({ok:true,status:'done'});
    if(has('/api/explore')) return J({runId:'demo-explore'});
    if(has('/api/ai-review')) return J({runId:'demo-ai'});
    if(has('/api/auto-improve')) return J({runId:'demo-improve'});
@@ -256,7 +260,7 @@
    }
    if(has('/api/review')) return load('data/review.html').then(function(t){ return H(t); });
    if(has('/api/spec')) return load('data/spec.json').then(function(t){ return J(JSON.parse(t)); });
-   if(has('/api/issues')) return load('data/issues.json').then(function(t){ return J(JSON.parse(t)); });
+   if(has('/api/issues')) return load('data/issues.json').then(function(t){ return J(JSON.parse(t.split('"/runs/').join('"runs/'))); });
    if(has('/api/suites')&&method==='GET') return J({suites:[]});
    if(has('/api/suites')&&method==='POST') return J({id:'demo',name:'ToDo管理 デモ',count:10,updatedAt:''});
    if(has('/api/suite')&&method==='GET') return load('data/suite.json').then(function(t){ return J({id:'demo',name:'ToDo管理 デモ',suite:JSON.parse(t)}); });
@@ -274,12 +278,13 @@
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item">📁 <select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
  <span class="cb-item"><button id="cb-mode" class="cb-toggle on" type="button">🟢 API利用モード</button></span>
  <span class="cb-item">🤖 <select id="cb-model" title="使用モデル"><option value="auto">自動（おまかせ）</option></select></span>
- <span class="cb-item">🏢 <select id="cb-domain" title="業務ドメイン"><option value="none">（業務指定なし）</option></select></span>
+ <span class="cb-item">🏢 <b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
  <span class="cb-item"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
  <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
 </div>
@@ -573,10 +578,15 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  <div class="tb-head">
   <span>💠 トークン累計 <b class="tb-big" id="tb-tokens">0</b></span>
   <span>概算コスト <b class="tb-yen" id="tb-yen">¥0</b> <span id="tb-usd" class="muted" style="color:#9fb6d8">($0)</span></span>
+  <span class="muted" id="tb-models" style="color:#9fb6d8"></span>
   <span class="muted" id="tb-breakdown" style="color:#9fb6d8"></span>
-  <span class="tb-toggle" id="tb-toggle">▼ 隠す</span>
+  <span style="margin-left:auto;display:inline-flex;align-items:center;gap:10px;color:#9fb6d8">
+   <span>高さ <input type="range" id="tb-height" min="60" max="360" step="10" value="90" style="width:110px;vertical-align:middle"></span>
+   <span class="tb-toggle" id="tb-toggle" style="margin:0">▼ 隠す</span>
+  </span>
  </div>
- <svg id="tb-svg" viewBox="0 0 1000 70" preserveAspectRatio="none"><polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline><polygon id="tb-area" fill="rgba(143,227,160,.15)" points=""></polygon></svg>
+ <svg id="tb-svg" viewBox="0 0 1000 90" preserveAspectRatio="none" style="height:90px"><polygon id="tb-area" fill="rgba(143,227,160,.15)" points=""></polygon><polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline></svg>
+ <div class="tb-axis" id="tb-axis"></div>
 </div>
 <script>
  const $=(id)=>document.getElementById(id);
@@ -611,6 +621,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    applyModeUi(); updateBadge();
  }).catch(function(){}); }
  function domainPromptFor(key){ var d=(ATT_ENV.domains||[]).find(function(x){return x.key===key;}); return d?d.defaultPrompt:''; }
+ function domainLabelFor(key){ var d=(ATT_ENV.domains||[]).find(function(x){return x.key===key;}); return d?d.label:(key||''); }
  function loadProjects(){ return fetch(withTok('/api/projects')).then(function(r){return r.json();}).then(function(r){
    var sel=$('cb-project'); if(!sel) return; var list=(r&&r.projects)||[];
    if(!curProject && r&&r.current) curProject=r.current;
@@ -637,26 +648,43 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var cbn=$('cb-newProj'); if(cbn) cbn.addEventListener('click',function(){ var name=prompt('新規プロジェクト名'); if(!name) return; fetch(withTok('/api/projects'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}).then(function(r){return r.json();}).then(function(p){ curProject=p.id; localStorage.setItem('att_project',curProject); loadProjects().then(loadProjectSettings).then(function(){ loadSavedList(); }); }); });
    var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
    var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate(); });
-   var cbd=$('cb-domain'); if(cbd) cbd.addEventListener('change',function(){ var dp=$('m-domainPrompt'); if(dp && !dp.value.trim()) dp.value=domainPromptFor(cbd.value); });
+   // 業務ドメイン：選択は「決定→反映」ボタンで確定。プロンプトは上書きなので確認ダイアログを出す。
+   var cbda=$('cb-domain-apply'); if(cbda) cbda.addEventListener('click',function(){
+     var key=$('cb-domain')?$('cb-domain').value:'none'; var dp=$('m-domainPrompt'); if(!dp) return;
+     var next=domainPromptFor(key), label=domainLabelFor(key), cur=(dp.value||'').trim();
+     if(cur && cur!==next.trim()){
+       if(!confirm('業務別プロンプトを「'+label+'」の重点観点で上書きします。\n現在の編集内容は失われます。よろしいですか？')) return;
+     }
+     dp.value=next;
+     var det=$('m-domainDetails'); if(det && !det.open) det.open=true;
+     if(typeof toast==='function') toast(key==='none'?'業務指定を解除しました（プロンプトを空にしました）':'業務ドメイン「'+label+'」の重点観点をプロンプトへ反映しました','ok');
+   });
    var cbs=$('cb-save'); if(cbs) cbs.addEventListener('click',saveProjectSettings);
  }
  // ==== トークン下辺グラフ ====
  function fmtInt(n){ return (n||0).toLocaleString('ja-JP'); }
- function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){
+ function fmtTs(iso){ try{ var d=new Date(iso); var p=function(n){return (n<10?'0':'')+n;}; return p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
+ function drawTokenBar(s){
    var bar=$('m-tokenbar'); if(!bar) return;
    if(!s||!s.count){ bar.classList.add('hidden'); return; }
    bar.classList.remove('hidden');
    $('tb-tokens').textContent=fmtInt(s.totalTokens);
    $('tb-yen').textContent='¥'+fmtInt(Math.round(s.totalJpy));
    $('tb-usd').textContent='($'+(s.totalUsd||0).toFixed(3)+' ／ '+fmtInt(Math.round(s.jpyPerUsd))+'円/$)';
-   var bp=s.byPhase||{}; $('tb-breakdown').textContent=Object.keys(bp).map(function(k){return k+':'+fmtInt(bp[k].tokens);}).join(' / ');
+   var bm=s.byModel||{}; $('tb-models').textContent='モデル別 '+Object.keys(bm).map(function(k){ return k.replace('claude-','')+' ¥'+fmtInt(Math.round((bm[k].usd||0)*(s.jpyPerUsd||150))); }).join(' / ');
+   var bp=s.byPhase||{}; $('tb-breakdown').textContent='工程別 '+Object.keys(bp).map(function(k){return k+' '+fmtInt(bp[k].tokens);}).join(' / ');
    var pts=s.series||[]; var maxT=Math.max.apply(null,pts.map(function(p){return p.cumTokens;}).concat([1]));
-   var W=1000,H=70,n=pts.length;
+   var h=+($('tb-height')?$('tb-height').value:90)||90; var W=1000,H=h,n=pts.length;
+   var svg=$('tb-svg'); if(svg){ svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.style.height=H+'px'; }
    function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-((p.cumTokens/maxT)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
    var line=pts.map(xy).join(' ');
    $('tb-line').setAttribute('points',line);
    $('tb-area').setAttribute('points','0,'+H+' '+line+' '+W+','+H);
- }).catch(function(){}); }
+   // 横軸＝日時ラベル（先頭〜末尾を最大5点）
+   var ax=$('tb-axis'); if(ax){ var labs=[],k=Math.min(5,n); for(var i=0;i<k;i++){ var idx=(k<=1)?0:Math.round(i*(n-1)/(k-1)); labs.push('<span>'+fmtTs(pts[idx].ts)+'</span>'); } ax.innerHTML=labs.join(''); }
+ }
+ function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){ window.__tbData=s; drawTokenBar(s); }).catch(function(){}); }
+ (function(){ var h=$('tb-height'); if(h) h.addEventListener('input',function(){ if(window.__tbData) drawTokenBar(window.__tbData); }); })();
  (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var svg=$('tb-svg'); var hidden=svg.style.display==='none'; svg.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
  // ==== 設計/実行 サブタブ ====
  var curPhase='design';
@@ -781,28 +809,53 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    w.innerHTML='<table class="iss"><thead><tr><th style="width:78px">状態</th><th>課題（クリックで詳細）</th></tr></thead><tbody>'+rows+'</tbody></table>';
    w.querySelectorAll('tr.irow').forEach(function(tr){ tr.addEventListener('click',function(){ mSelIssue=tr.getAttribute('data-id'); renderIssueList(); renderIssueDetail(mSelIssue); }); });
  }
+ function issLogSec(title,arr){ return (arr&&arr.length)?'<details style="margin:4px 0"><summary>'+title+'（'+arr.length+'）</summary><pre style="background:#0f1620;color:#cfe3ff;padding:8px;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:220px;overflow:auto">'+arr.map(escHtml).join('\n')+'</pre></details>':''; }
+ function issShot(cap,u){ return u?'<figure style="margin:0"><figcaption class="muted" style="font-size:11px">'+cap+'</figcaption><img src="'+withTok(u)+'" style="max-width:100%;border:1px solid #ddd;border-radius:6px;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')"></figure>':''; }
+ function issEvidenceHtml(ev){
+   ev=ev||{};
+   var shots=(ev.nShot||ev.n1Shot||ev.diffShot)?'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">'+issShot('修正前(N)',ev.nShot)+issShot('修正後(N+1)',ev.n1Shot)+issShot('差分(赤=変化箇所)',ev.diffShot)+'</div>':'';
+   var vid=ev.video?'<div style="margin-top:6px"><video controls preload="metadata" style="max-width:100%;max-height:320px;border-radius:6px;border:1px solid #ddd" src="'+withTok(ev.video)+'"></video></div>':'';
+   var meta=(ev.visualRatio!=null||ev.screen)?'<div class="muted" style="font-size:12px;margin-bottom:4px">'+(ev.visualRatio!=null?'画素差 <b>'+(ev.visualRatio*100).toFixed(2)+'%</b> ／ ':'')+(ev.screen?'画面: '+escHtml(ev.screen)+' ':'')+(ev.loadMsN!=null||ev.loadMsN1!=null?' ／ 表示 N='+(ev.loadMsN||'-')+'ms / N+1='+(ev.loadMsN1||'-')+'ms':'')+'</div>':'';
+   var logs=issLogSec('🖥 実行ログ(コンソール)',ev.console)+issLogSec('🔌 API通信(N+1)',ev.api)+issLogSec('⚠ API差分',ev.apiDiffs)+issLogSec('🧭 操作手順(再現)',ev.trace)+issLogSec('⌨ 入力値',ev.inputs);
+   if(!shots&&!vid&&!logs&&!meta) return '<span class="muted">証跡なし</span>';
+   return '<div style="border:1px solid #e3e8f0;border-radius:8px;padding:8px;background:#fbfcfe">'+meta+shots+vid+logs+'</div>';
+ }
+ function issCustomRow(c){ c=c||{name:'',value:''}; return '<div class="cf-row" style="display:flex;gap:6px;margin:3px 0"><input class="cf-name" value="'+escAttr(c.name)+'" placeholder="項目名" style="width:150px;padding:4px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px"><input class="cf-val" value="'+escAttr(c.value)+'" placeholder="値" style="flex:1;padding:4px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px"><button type="button" class="btn-mini btn-del cf-del">×</button></div>'; }
  function renderIssueDetail(id){
    var i=(window.__issues||[]).find(function(x){return x.id===id;}); var d=$('m-issDetail');
    if(!i){ d.innerHTML='<span class="muted">左の一覧から課題を選択してください。</span>'; return; }
-   function sel(f,opts){ return '<select data-f="'+f+'">'+opts.map(function(s){return '<option'+(s===i[f]?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'; }
-   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="stchip sc-'+i.status+'">'+i.status+'</span><b style="font-size:15px">'+escHtml(i.title)+'</b></div>'
+   function sel(f,opts){ return '<select id="issf-'+f+'">'+opts.map(function(s){return '<option'+(s===i[f]?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'; }
+   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="stchip sc-'+i.status+'" id="issf-chip">'+i.status+'</span><b style="font-size:15px">'+escHtml(i.title)+'</b></div>'
     +'<dl class="idl">'
     +'<dt>課題ID</dt><dd>'+i.id+(i.external?' / 連携: '+escHtml(i.external.system)+' '+escHtml(i.external.key):'')+'</dd>'
     +'<dt>対象テストケース</dt><dd><b>'+escHtml(i.caseId)+'</b> '+escHtml(i.caseName)+' <button id="m-issGoCase" class="btn-mini" style="background:#37507a">🧪 このテストケースを開く</button></dd>'
     +'<dt>判定 / カテゴリ</dt><dd>'+escHtml(i.kindLabel)+' ／ '+escHtml((i.category||[]).join(' > '))+' ／ 対象: '+escHtml(i.target)+(i.occurrences>1?' ／ 再発 '+i.occurrences+'回':'')+'</dd>'
     +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
+    +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence)+(i.dashboardUrl?'<div style="margin-top:4px"><a href="'+withTok(i.dashboardUrl)+'" target="_blank">📊 ダッシュボード（該当実行の全体）↗</a></div>':'')+'</dd>'
     +'<dt>ステータス / 優先度</dt><dd>'+sel('status',ISS_STATUS)+' '+sel('priority',ISS_PRI)+'</dd>'
-    +'<dt>担当</dt><dd><input data-f="assignee" value="'+escAttr(i.assignee||'')+'" placeholder="担当者" style="width:160px"></dd>'
-    +'<dt>メモ</dt><dd><textarea data-f="note" rows="3" style="width:100%;box-sizing:border-box">'+escHtml(i.note||'')+'</textarea></dd>'
-    +'<dt>証跡</dt><dd>'+(i.dashboardUrl?'<a href="'+i.dashboardUrl+'" target="_blank">ダッシュボード（該当実行）↗</a>':'—')+'</dd>'
-    +'</dl>';
-   d.querySelectorAll('[data-f]').forEach(function(el){
-     el.addEventListener('change',function(){ var patch={}; patch[el.getAttribute('data-f')]=el.value;
-       fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({id:i.id},patch))})
-        .then(function(r){return r.json();}).then(function(r){ if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue; renderIssueList(); updateNavCount(); if(mSuite)renderCases(); } });
-     });
-   });
+    +'<dt>担当</dt><dd><input id="issf-assignee" value="'+escAttr(i.assignee||'')+'" placeholder="担当者" style="width:160px"></dd>'
+    +'<dt>原因</dt><dd><textarea id="issf-cause" rows="2" style="width:100%;box-sizing:border-box" placeholder="不具合の原因（例: 記号除去でアポストロフィが消える等）">'+escHtml(i.cause||'')+'</textarea></dd>'
+    +'<dt>修正内容</dt><dd><textarea id="issf-fix" rows="2" style="width:100%;box-sizing:border-box" placeholder="修正の内容（例: normalizeInput から記号除去を撤去）">'+escHtml(i.fix||'')+'</textarea></dd>'
+    +'<dt>メモ</dt><dd><textarea id="issf-note" rows="2" style="width:100%;box-sizing:border-box">'+escHtml(i.note||'')+'</textarea></dd>'
+    +'<dt>カスタム項目<br><span class="muted" style="font-weight:400">JIRA風・任意追加</span></dt><dd><div id="issf-custom">'+((i.custom||[]).map(issCustomRow).join(''))+'</div><button type="button" id="issf-addcf" class="btn-mini btn-gray" style="margin-top:4px">＋ 項目を追加</button></dd>'
+    +'</dl>'
+    +'<div style="margin-top:6px"><button type="button" id="issf-save" style="margin:0">💾 更新（確定）</button> <span id="issf-msg" class="muted"></span></div>';
    var gc=$('m-issGoCase'); if(gc) gc.addEventListener('click',function(){ openCaseById(i.caseId); });
+   var addcf=$('issf-addcf'); if(addcf) addcf.addEventListener('click',function(){ var box=$('issf-custom'); box.insertAdjacentHTML('beforeend',issCustomRow({name:'',value:''})); wireCfDel(); });
+   function wireCfDel(){ d.querySelectorAll('.cf-del').forEach(function(b){ b.onclick=function(){ var row=b.closest('.cf-row'); if(row)row.parentNode.removeChild(row); }; }); }
+   wireCfDel();
+   $('issf-save').addEventListener('click',function(){
+     var custom=[]; d.querySelectorAll('#issf-custom .cf-row').forEach(function(row){ var n=row.querySelector('.cf-name').value.trim(); var v=row.querySelector('.cf-val').value; if(n) custom.push({name:n,value:v}); });
+     var patch={ id:i.id, status:$('issf-status').value, priority:$('issf-priority').value, assignee:$('issf-assignee').value, cause:$('issf-cause').value, fix:$('issf-fix').value, note:$('issf-note').value, custom:custom };
+     var btn=$('issf-save'); btn.disabled=true; $('issf-msg').textContent='更新中…';
+     fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})
+      .then(function(r){return r.json();}).then(function(r){ btn.disabled=false;
+        if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue;
+          renderIssueList(); updateNavCount(); if(mSuite)renderCases(); renderIssueDetail(i.id); // 詳細も再描画（状態チップを更新）
+          if(typeof toast==='function') toast('課題を更新しました（'+r.issue.status+'）','ok');
+        } else { $('issf-msg').textContent='更新に失敗しました'; }
+      }).catch(function(){ btn.disabled=false; $('issf-msg').textContent='通信エラー'; });
+   });
  }
  // 課題→テストケース（双方向）：該当ケースを開いて強調
  function findCaseEl(scid){ var els=document.querySelectorAll('#m-cases details.caserow'); for(var k=0;k<els.length;k++){ if(els[k].getAttribute('data-scid')===scid) return els[k]; } return null; }
@@ -836,12 +889,21 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  }
  function poll(id,lg,onDone,btn){
    clearInterval(mtimer);
+   window.__curRun=id;
+   // 途中停止ボタンをログの直前に差し込む（実行中のみ表示）
+   var stopBtn=null;
+   if(lg&&lg.parentNode){ stopBtn=document.createElement('button'); stopBtn.className='btn-sm btn-del'; stopBtn.type='button'; stopBtn.textContent='⏹ 途中停止';
+     stopBtn.style.cssText='margin:0 0 6px;display:block'; stopBtn.onclick=function(){ stopBtn.disabled=true; stopBtn.textContent='停止要求中…'; fetch(withTok('/api/cancel?id='+id),{method:'POST'}).catch(function(){}); };
+     lg.parentNode.insertBefore(stopBtn,lg); }
+   function removeStop(){ if(stopBtn&&stopBtn.parentNode) stopBtn.parentNode.removeChild(stopBtn); stopBtn=null; }
    mtimer=setInterval(async function(){
      var s=await fetch(withTok('/api/status?id='+id)).then(function(r){return r.json();}).catch(function(){return null;});
      if(!s)return;
      var lines=(s.progress||[]); lg.textContent=lines.join('\n')+(s.status==='running'?'\n… 処理中':''); lg.scrollTop=lg.scrollHeight;
-     if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false; try{renderTokenBar();}catch(e){}
-       if(s.status==='error'){lg.textContent+='\n[失敗] '+s.error;return;} onDone(s); }
+     if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false; removeStop(); try{renderTokenBar();}catch(e){}
+       if(s.status==='error'){lg.textContent+='\n[失敗] '+s.error;return;}
+       if(s.status==='stopped'){ if(typeof toast==='function') toast('⏹ 停止しました（ここまでの結果を反映します）','ok'); }
+       onDone(s); }
    },1000);
  }
  $('m-exploreBtn').addEventListener('click',async function(){
