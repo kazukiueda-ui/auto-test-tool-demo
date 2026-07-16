@@ -335,6 +335,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -565,6 +566,12 @@ graph TD
    <div id="m-ctx" class="ctxmenu hidden"></div>
    <button id="m-addCase" class="btn-sm" style="background:#2e7d32">＋ 空のテストケースを追加</button>
    <button id="m-xlsx" class="btn-sm btn-gray">テストケースをExcel出力</button>
+   <div style="margin-top:10px;border-top:1px dashed #cfd6e0;padding-top:8px">
+    <div class="muted" style="margin-bottom:4px">レビューや改善で<b>1回目に追加したケース</b>は、まだ「1回目(N)の結果」が無いため、テスト実行(⑤)の比較では対象外になります。下のボタンで<b>開始URL(1回目)に対して実行し、Nを取得＝比較対象</b>にできます。</div>
+    <button id="m-captureBtn" class="btn-sm" style="background:#00695c">追加ケースの1回目(N)を実行して比較対象にする</button>
+    <span id="m-captureMsg" class="muted"></span>
+    <pre id="m-captureLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:160px;overflow:auto"></pre>
+   </div>
   </div>
 
   <!-- ④ 名前を付けて保存（③編集とは別カードに分離し、ステッパー5工程と1対1対応） -->
@@ -932,7 +939,9 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  }
  mEstimate(); loadSavedList(); loadIssues();
  // ---- 仕様の画面遷移図（収集） ----
- function collectSpec(){ return { specMode:$('m-specMode')?$('m-specMode').checked:false, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:'' }; }
+ // Mermaidは半角スペースのみ有効。NBSP・全角スペースを半角へ、ゼロ幅は除去してSyntaxエラーを防ぐ。
+ function normMermaid(s){ return (s||"").replace(/[   -   　]/g," ").replace(/[​-‍﻿]/g,""); }
+ function collectSpec(){ var mm=$('m-specMermaid')?normMermaid($('m-specMermaid').value):''; if($('m-specMermaid')&&$('m-specMermaid').value!==mm)$('m-specMermaid').value=mm; return { specMode:$('m-specMode')?$('m-specMode').checked:false, specMermaid:mm }; }
  var ISS_STATUS=['未対応','対応中','確認中','完了','対象外'], ISS_PRI=['高','中','低'], mSelIssue=null;
  // ---- ビュー切替 ----
  function showView(v){ $('view-manage').classList.toggle('hidden',v!=='manage'); $('view-issues').classList.toggle('hidden',v!=='issues');
@@ -1565,6 +1574,15 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(r.error){$('m-saveMsg').textContent='保存失敗: '+r.error;return;}
    mSuiteId=r.id; refreshStepMarks(); $('m-saveMsg').textContent='保存しました（'+r.name+' / '+r.count+'件）'; loadSavedList();
  });
+ // 追加ケースの1回目(N)ベースライン取得（比較対象化）
+ $('m-captureBtn').addEventListener('click',function(){
+   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var btn=$('m-captureBtn'); btn.disabled=true; var lg=$('m-captureLog'); lg.classList.remove('hidden'); lg.textContent='1回目(N)を実行中…'; $('m-captureMsg').textContent='';
+   fetch(withTok('/api/capture-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,onlyMissing:true},mSuiteId?{suiteId:mSuiteId,name:($('m-name').value||'').trim()||undefined}:{}))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
+      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.suite){ mSuite=s.suite; renderCases(); var n=(s.summary&&s.summary.captured)||0; $('m-captureMsg').textContent='取得しました（'+n+'件を比較対象に）'; toast('追加ケースの1回目(N)を取得しました（'+n+'件が比較対象に）','ok'); } },btn);
+    });
+ });
  $('m-runBtn').addEventListener('click',async function(){
    if(!mSuiteId){alert('実行するスイートを選択してください（先に「テスト設計」で作成→④で保存し、上の一覧から選びます）');return;}
    if(!mSuite){alert('スイートがありません');return;}
@@ -1622,33 +1640,39 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var rows=mDrafts.map(function(d,idx){
      var pris=['高','中','低'].map(function(p){return '<option'+(p===d.priority?' selected':'')+'>'+p+'</option>';}).join('');
      return '<div class="draft-row" data-i="'+idx+'" style="border-top:1px solid #f0d5d5;padding:8px 0">'
-       +'<label style="font-weight:700;display:flex;align-items:center;gap:6px"><input type="checkbox" class="dft-on" checked> 起票する</label>'
-       +'<div style="margin:4px 0"><input class="dft-title" value="'+escAttr(d.title||'')+'" style="width:100%;padding:5px 8px;border:1px solid #e0c0c0;border-radius:5px;font-weight:700"></div>'
-       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:#666"><span>対象: <b>'+escHtml(d.caseId||'')+'</b> '+escHtml(d.caseName||'')+'</span><span>優先度 <select class="dft-pri">'+pris+'</select></span>'+(d.suite&&(d.suite.name||d.suite.id)?'<span>スイート: '+escHtml(d.suite.name||d.suite.id)+'</span>':'')+'</div>'
+       +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0">'
+       +'<input class="dft-title" value="'+escAttr(d.title||'')+'" style="width:100%;padding:5px 8px;border:1px solid #e0c0c0;border-radius:5px;font-weight:700">'
+       +'</div><button class="btn-sm dft-file" data-i="'+idx+'" style="background:#c62828;white-space:nowrap;margin:0">起票</button></div>'
+       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:#666;margin-top:4px"><span>対象: <b>'+escHtml(d.caseId||'')+'</b> '+escHtml(d.caseName||'')+'</span><span>優先度 <select class="dft-pri">'+pris+'</select></span>'+(d.suite&&(d.suite.name||d.suite.id)?'<span>スイート: '+escHtml(d.suite.name||d.suite.id)+'</span>':'')+'<span class="dft-state muted"></span></div>'
        +'<div style="margin:4px 0"><div class="muted" style="font-size:11px">具体的な相違点</div><textarea class="dft-diff" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;border:1px solid #e0c0c0;border-radius:5px">'+escHtml(d.diff||'')+'</textarea></div>'
        +'<div style="margin:4px 0"><div class="muted" style="font-size:11px">原因（任意・分かっていれば）</div><textarea class="dft-cause" rows="1" style="width:100%;box-sizing:border-box;font-size:12px;border:1px solid #e0c0c0;border-radius:5px" placeholder="例: 記号除去でアポストロフィが消える等">'+escHtml(d.cause||'')+'</textarea></div>'
        +'</div>';
    }).join('');
-   box.innerHTML='<div style="font-weight:700;color:#c62828;margin-bottom:4px">起票内容の確認（'+mDrafts.length+'件）</div>'
-     +'<div class="muted" style="font-size:12px;margin-bottom:6px">必要に応じて編集し、チェックを付けたものを課題管理へ登録します。登録後も課題管理で編集できます。</div>'
-     +rows
-     +'<div style="margin-top:10px;display:flex;gap:10px"><button id="m-draftSubmit" class="btn-sm" style="background:#c62828">課題管理に登録</button><button id="m-draftCancel" class="btn-sm btn-gray">キャンセル</button></div>';
+   box.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><b style="color:#c62828">起票内容の確認（'+mDrafts.length+'件）</b>'
+     +'<button id="m-draftBulk" class="btn-sm" style="background:#8a1f5c;margin:0">一括登録（全'+mDrafts.length+'件をそのまま起票）</button>'
+     +'<button id="m-draftCancel" class="btn-sm btn-gray" style="margin:0">閉じる</button></div>'
+     +'<div class="muted" style="font-size:12px;margin-bottom:6px">各ケースの「起票」で1件ずつ登録できます。まとめて登録するなら「一括登録」。登録後も課題管理で編集できます。</div>'
+     +rows;
    $('m-draftCancel').onclick=function(){ box.classList.add('hidden'); box.innerHTML=''; };
-   $('m-draftSubmit').onclick=submitDrafts;
+   $('m-draftBulk').onclick=function(){ registerDrafts(mDrafts.map(function(_,i){return i;}), $('m-draftBulk')); };
+   box.querySelectorAll('.dft-file').forEach(function(b){ b.onclick=function(){ registerDrafts([+b.getAttribute('data-i')], b); }; });
  }
- async function submitDrafts(){ var box=$('m-issueDraft');
-   var picked=[];
-   box.querySelectorAll('.draft-row').forEach(function(row){ if(!row.querySelector('.dft-on').checked) return; var i=+row.getAttribute('data-i'); var d=Object.assign({},mDrafts[i]);
-     d.title=row.querySelector('.dft-title').value; d.priority=row.querySelector('.dft-pri').value; d.diff=row.querySelector('.dft-diff').value; d.cause=row.querySelector('.dft-cause').value; picked.push(d); });
-   if(!picked.length){ alert('登録する課題にチェックを付けてください'); return; }
-   var btn=$('m-draftSubmit'); btn.disabled=true; btn.textContent='登録中…';
+ // 指定インデックスのドラフト（編集値を反映）を登録。個別/一括で共用。
+ async function registerDrafts(idxs, btn){ var box=$('m-issueDraft');
+   var picked=idxs.map(function(i){ var row=box.querySelector('.draft-row[data-i="'+i+'"]'); if(!row) return null; var d=Object.assign({},mDrafts[i]);
+     d.title=row.querySelector('.dft-title').value; d.priority=row.querySelector('.dft-pri').value; d.diff=row.querySelector('.dft-diff').value; d.cause=row.querySelector('.dft-cause').value; return d; }).filter(Boolean);
+   if(!picked.length) return;
+   var oldT=btn?btn.textContent:''; if(btn){ btn.disabled=true; btn.textContent='登録中…'; }
    var r=await fetch(withTok('/api/issue-add'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({drafts:picked})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
-   if(!r||r.error){ btn.disabled=false; btn.textContent='課題管理に登録'; alert('登録失敗: '+((r&&r.error)||'不明')); return; }
-   box.classList.add('hidden'); box.innerHTML='';
-   $('m-fileIssueBtn').classList.add('hidden');
+   if(!r||r.error){ if(btn){ btn.disabled=false; btn.textContent=oldT; } alert('登録失敗: '+((r&&r.error)||'不明')); return; }
+   // 登録済みの行を無効化
+   idxs.forEach(function(i){ var row=box.querySelector('.draft-row[data-i="'+i+'"]'); if(row){ var fb=row.querySelector('.dft-file'); if(fb){ fb.disabled=true; fb.textContent='登録済'; fb.style.background='#90a4ae'; } var st=row.querySelector('.dft-state'); if(st){ st.textContent='✓ 登録済み'; st.style.color='#2e7d32'; } } });
    toast('課題管理に登録しました（新規 '+(r.created||0)+' 件／更新 '+(r.updated||0)+' 件）','ok');
-   loadIssues(); updateNavCount();
-   showView('issues'); loadIssues();
+   updateNavCount();
+   // 全件登録済みなら閉じて課題管理へ
+   var remain=box.querySelectorAll('.dft-file:not(:disabled)').length;
+   if(remain===0){ box.classList.add('hidden'); box.innerHTML=''; $('m-fileIssueBtn').classList.add('hidden'); showView('issues'); loadIssues(); }
+   else { loadIssues(); if(btn){ btn.disabled=false; btn.textContent=oldT; } }
  }
  // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
  $('m-dashDetails').addEventListener('toggle',function(){ var f=$('m-frame'); if($('m-dashDetails').open && f.getAttribute('data-src') && f.src.indexOf('dashboard')<0){ f.src=f.getAttribute('data-src'); } });
