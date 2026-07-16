@@ -189,7 +189,7 @@
  var EXP=[
   '[捜索] https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/ を走査中…（ルールベース）',
   '　└ 入力欄/追加ボタン/フィルタ3種/各項目のチェック・削除 を検出',
-  '✔ テストケース 10 本を生成（正常系6・異常系4）',
+  'テストケース 10 本を生成（正常系6・異常系4）',
   '　└ ノウハウ適用: KH-01(典型UI優先) / KH-03(例外値投入) / KH-05(状態遷移)',
   '完了：スイートを生成しました。②で妥当性を確認できます。'
  ];
@@ -202,35 +202,35 @@
   '　└ SCN-009 A & B 表示：表示テキストが相違（&amp; が露出）→ DIFF',
   '完了: OK 7/10（70%）／ NG 3'
  ];
- var AIP=['🧭⚠️🙂😈 4観点で並行レビュー中…','🧩 4観点で合議し、総合評価をまとめ中…','✅ 完了'];
+ var AIP=['4観点で並行レビュー中…','4観点で合議し、総合評価をまとめ中…','完了'];
  var IMP=[
-  '🔁 自律改善を開始（目標 85点／最大 3ラウンド／深度 60%）',
-  '🔎 初回レビュー中…',
-  '🧭⚠️🙂😈 4観点で並行レビュー中…',
-  '　└ 🧭 網羅観点レビュアー 完了（78点）',
-  '　└ ⚠️ リスク観点レビュアー 完了（70点）',
-  '　└ 🙂 利用者観点レビュアー 完了（80点）',
-  '　└ 😈 敵対的レビュアー 完了（62点）',
-  '🧩 4観点で合議し、総合評価をまとめ中…',
+  '自律改善を開始（目標 85点／最大 3ラウンド／深度 60%）',
+  '初回レビュー中…',
+  '4観点で並行レビュー中…',
+  '　└ 網羅観点レビュアー 完了（78点）',
+  '　└ リスク観点レビュアー 完了（70点）',
+  '　└ 利用者観点レビュアー 完了（80点）',
+  '　└ 敵対的レビュアー 完了（62点）',
+  '4観点で合議し、総合評価をまとめ中…',
   '　→ 初回 総合評価 70点（AI評価 70 × 網羅度 70）',
   '─ ラウンド 1/3：改善を適用 ─',
   '　＋不足観点ケース 2件（異常系・境界値）',
-  '💡 改善提案 8件を 2バッチに分割してケース生成中…',
+  '改善提案 8件を 2バッチに分割してケース生成中…',
   '　バッチ 1/2：XSS表示安全性・最大長 2件',
   '　バッチ 2/2：絵文字・重複追加 0件（既存と重複を除外）',
   '　＋AI改善ケース 2件',
-  '🔎 再レビュー中…（前回指摘の解消を評価）',
-  '🧭⚠️🙂😈 4観点で並行レビュー中…',
-  '　└ 🧭 網羅観点 84 ／ ⚠️ リスク 82 ／ 🙂 利用者 84 ／ 😈 敵対的 78',
+  '再レビュー中…（前回指摘の解消を評価）',
+  '4観点で並行レビュー中…',
+  '　└ 網羅観点 84 ／ リスク 82 ／ 利用者 84 ／ 敵対的 78',
   '　→ ラウンド 1 完了：70→82点（AI評価 84／網羅度 80／+4件）',
   '─ ラウンド 2/3：改善を適用 ─',
-  '💡 改善提案 4件を 1バッチに分割してケース生成中…',
+  '改善提案 4件を 1バッチに分割してケース生成中…',
   '　バッチ 1/1：トグル往復・連続追加 2件',
   '　＋AI改善ケース 2件',
-  '🔎 再レビュー中…（前回指摘の解消を評価）',
+  '再レビュー中…（前回指摘の解消を評価）',
   '　→ ラウンド 2 完了：82→90点（AI評価 90／網羅度 90／+2件）',
-  '🎯 目標 85点に到達したため終了',
-  '✅ 目標 85点に到達（70→90点、6件追加）'
+  '目標 85点に到達したため終了',
+  '目標 85点に到達（70→90点、6件追加）'
  ];
  window.fetch=function(input,init){
    var url = typeof input==='string'?input:((input&&input.url)||'');
@@ -265,10 +265,10 @@
      if(id==='demo-ai') return load('data/aireview.json').then(function(t){ return J({status:'done',progress:AIP,aiReview:JSON.parse(t)}); });
      if(id==='demo-improve') return Promise.all([load('data/improved-suite.json'),load('data/improved-aireview.json')]).then(function(a){
         return J({status:'done',progress:IMP,suite:JSON.parse(a[0]),aiReview:JSON.parse(a[1]),
-          summary:{note:'🎯 目標 85点に到達（70→90点、6件追加）',reachedTarget:true,startScore:70,finalScore:90,added:6,
+          summary:{note:'目標 85点に到達（70→90点、6件追加）',reachedTarget:true,startScore:70,finalScore:90,added:6,
             rounds:[{round:1,before:70,after:82,added:4},{round:2,before:82,after:90,added:2}]}}); });
-     if(id==='demo-apply') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['🛠 信頼度の推奨アクションを反映中…','✅ 完了'],suite:JSON.parse(t),summary:{details:['不足観点ケースを追加','弱ロケータを安定要素へ変更']}}); });
-     if(id==='demo-regen') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['💡 改善提案からケース生成中…','✅ 完了'],suite:JSON.parse(t),summary:{added:6}}); });
+     if(id==='demo-apply') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['信頼度の推奨アクションを反映中…','完了'],suite:JSON.parse(t),summary:{details:['不足観点ケースを追加','弱ロケータを安定要素へ変更']}}); });
+     if(id==='demo-regen') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['改善提案からケース生成中…','完了'],suite:JSON.parse(t),summary:{added:6}}); });
      if(id==='demo-cmp') return load('data/summary.json').then(function(t){ return J({status:'done',progress:CMP,summary:JSON.parse(t).summary}); });
      return J({status:'done',progress:[]});
    }
