@@ -329,6 +329,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -531,10 +532,10 @@ graph TD
      <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
      <div id="m-aiResult"></div>
      <div id="m-autoResult" style="margin-top:8px"></div>
-     <!-- レビュー結果を見て手動で部分適用したい上級者向け（自動改善を使わない場合の受け皿） -->
+     <!-- レビューの改善提案を1回だけ一括追加（自動改善のような反復はしない） -->
      <details id="m-regenWrap" class="editsec hidden" style="margin-top:12px">
-      <summary>レビュー結果を見て、手動で改善提案ケースだけ追加する（上級者向け）</summary>
-      <div class="muted" style="margin:6px 0">既存テストは保持したまま、改善提案のテストケースだけを追加します（自動改善＝ラウンド1以上を使えばこの操作は不要です）。</div>
+      <summary>レビューの改善提案からテストケースを追加（1回だけ・再レビューなし）</summary>
+      <div class="muted" style="margin:6px 0">レビューが挙げた改善提案を、既存テストを保持したまま<b>一括で1回だけ</b>追加します（追加後の再レビューはしません）。※目標点まで「レビュー→改善→再レビュー」を自動で繰り返したい場合は、上の<b>改善ラウンド数を1以上</b>にしてください。</div>
       <button id="m-regenBtn" class="btn-sm" style="background:#2e7d32">改善提案のテストケースを追加</button>
      </div>
     </div>
