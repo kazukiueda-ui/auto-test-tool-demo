@@ -136,6 +136,30 @@
  .steps-tbl input,.steps-tbl select{width:100%;box-sizing:border-box;border:1px solid #d5dbe3;border-radius:4px;padding:3px 4px;font-size:12px;margin:0}
  .btn-sm{padding:5px 12px;font-size:13px;margin:6px 0 0}
  .btn-del{background:#c62828}.btn-gray{background:#607d8b}.btn-mini{background:#90a4ae;padding:2px 8px;font-size:12px;margin:0}
+ /* 制御バー（プロジェクト/モード/モデル/業務ドメイン/バッジ） */
+ .ctrlbar{position:sticky;top:0;z-index:1600;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#16233f;color:#e8eefc;padding:8px 18px;font-size:13px;border-bottom:2px solid #0d1730}
+ .ctrlbar .cb-item{display:inline-flex;align-items:center;gap:5px}
+ .ctrlbar select{padding:5px 8px;border-radius:6px;border:1px solid #3b527d;background:#20304f;color:#e8eefc;font-size:13px}
+ .ctrlbar button{margin:0;padding:5px 12px;font-size:13px;border-radius:6px}
+ .cb-mini{background:#37507a}
+ .cb-toggle{font-weight:700}.cb-toggle.on{background:#2e7d32}.cb-toggle.off{background:#78848f}
+ .cb-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
+ .cb-badge.ok{background:#2e7d32;color:#fff}.cb-badge.warn{background:#ef6c00;color:#fff}.cb-badge.local{background:#00695c;color:#fff}
+ /* 設計/実行 サブタブ */
+ .subtabs{display:flex;gap:8px;margin:12px 0 4px}
+ .subtab{background:#dbe2ec;color:#33415c;border:0;border-radius:8px;padding:9px 20px;font-size:14px;font-weight:700;cursor:pointer;margin:0}
+ .subtab.active{background:#1f3864;color:#fff}
+ /* トークン/コストの下辺グラフ */
+ #m-tokenbar{position:sticky;bottom:0;z-index:1400;background:#0f1620;color:#cfe3ff;border-top:2px solid #24344f;padding:6px 14px 8px;font-size:12px}
+ #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
+ #m-tokenbar .tb-big{font-size:16px;font-weight:800;color:#8fe3a0}
+ #m-tokenbar .tb-yen{font-size:16px;font-weight:800;color:#ffd479}
+ #m-tokenbar svg{display:block;width:100%;height:70px}
+ #m-tokenbar .tb-toggle{margin-left:auto;cursor:pointer;color:#9fb6d8;font-size:11px}
+ .sched-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border:1px solid #e2e7ee;border-radius:8px;padding:10px;margin:8px 0;background:#fafbfc}
+ .sched-list{margin-top:10px}
+ .sched-item{border:1px solid #e2e7ee;border-radius:8px;padding:8px 10px;margin:6px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+ .sched-item .st{font-size:11px;padding:1px 7px;border-radius:10px;color:#fff}.sched-item .st.on{background:#2e7d32}.sched-item .st.off{background:#90a4ae}
 </style></head><body>
 <!-- ==== デモ(モック) shim：サーバAPIを canned データに差し替え、本物のUIをそのまま駆動 ==== -->
 <script>
@@ -196,6 +220,21 @@
    var method=(init&&init.method||'GET').toUpperCase();
    var path=url.split('?')[0];
    var has=function(s){ return path.indexOf(s)>=0; };
+   // --- 新機能（モデル/プロジェクト/トークン/スケジュール）のデモ用モック ---
+   if(has('/api/env')) return J({llmAvailable:false,localLlm:false,defaultModel:'claude-sonnet-4-6',jpyPerUsd:150,
+     models:[{id:'claude-haiku-4-5',label:'Haiku 4.5（最安・高速）',inPerM:1,outPerM:5},{id:'claude-sonnet-4-6',label:'Sonnet 4.6（既定・バランス）',inPerM:3,outPerM:15},{id:'claude-sonnet-5',label:'Sonnet 5（新・高性能）',inPerM:3,outPerM:15},{id:'claude-opus-4-8',label:'Opus 4.8（最高精度）',inPerM:5,outPerM:25},{id:'claude-fable-5',label:'Fable 5（最上位）',inPerM:10,outPerM:50}],
+     domains:[{key:'none',label:'（業務指定なし）',defaultPrompt:''},{key:'finance',label:'金融',defaultPrompt:'金融業務の重点観点: 与信・残高整合・端数処理・監査証跡…'},{key:'sales',label:'販売管理',defaultPrompt:'販売管理: 受注→出荷→請求の整合・在庫引当・与信…'},{key:'inventory',label:'在庫管理',defaultPrompt:'在庫: 入出庫・棚卸差異・引当・有効期限…'}]});
+   if(has('/api/projects')&&method==='GET') return J({projects:[{id:'default',name:'ToDo回帰デモ',createdAt:'',updatedAt:'',suites:1}],current:'default'});
+   if(has('/api/project')&&method==='GET') return J({id:'default',name:'ToDo回帰デモ',settings:{model:'auto',domain:'none'}});
+   if(has('/api/project')||has('/api/projects')) return J({id:'default',name:'ToDo回帰デモ',settings:{}});
+   if(has('/api/token-usage')){ var series=[],cum=0,cu=0,ph=['explore','explore','review','regen','review'];
+     for(var i=0;i<5;i++){ cum+=1800+i*900; cu+=0.006+i*0.004; series.push({ts:'2026-07-16T0'+i+':00:00Z',cumTokens:cum,cumUsd:cu,phase:ph[i],model:'claude-sonnet-4-6'}); }
+     return J({count:5,totalTokens:cum,totalInput:Math.round(cum*0.7),totalOutput:Math.round(cum*0.3),totalCacheRead:0,totalCacheWrite:0,totalUsd:cu,totalJpy:cu*150,jpyPerUsd:150,byPhase:{explore:{tokens:5400,usd:0.03},review:{tokens:6300,usd:0.05},regen:{tokens:3600,usd:0.02}},byModel:{'claude-sonnet-4-6':{tokens:cum,usd:cu}},series:series}); }
+   if(has('/api/schedules')&&method==='GET') return J({schedules:[{id:'sch-demo',name:'毎晩3時 回帰',suiteId:'demo',afterUrl:'https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/',kind:'daily',time:'03:00',enabled:true,nextRun:'2026-07-17T18:00:00.000Z'}]});
+   if(has('/api/schedules')&&method==='POST') return J({id:'sch-new',enabled:true,nextRun:''});
+   if(has('/api/schedule/run-now')) return J({runId:'demo-cmp'});
+   if(has('/api/schedule')) return J({ok:true,deleted:true});
+   if(has('/api/ci/')) return J({runId:'demo-cmp',status:'done'});
    if(has('/api/explore')) return J({runId:'demo-explore'});
    if(has('/api/ai-review')) return J({runId:'demo-ai'});
    if(has('/api/auto-improve')) return J({runId:'demo-improve'});
@@ -234,20 +273,35 @@
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
+<div class="ctrlbar" id="m-ctrlbar">
+ <span class="cb-item">📁 <select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
+ <span class="cb-item"><button id="cb-mode" class="cb-toggle on" type="button">🟢 API利用モード</button></span>
+ <span class="cb-item">🤖 <select id="cb-model" title="使用モデル"><option value="auto">自動（おまかせ）</option></select></span>
+ <span class="cb-item">🏢 <select id="cb-domain" title="業務ドメイン"><option value="none">（業務指定なし）</option></select></span>
+ <span class="cb-item"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
+ <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
+</div>
 <div class="wrap">
  <div class="nav">
   <button id="nav-manage" class="navbtn active" type="button">🧪 テスト管理</button>
   <button id="nav-issues" class="navbtn" type="button">🐞 課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
  </div>
  <div id="view-manage">
+  <!-- 設計/実行 サブタブ（作成だけ・実行だけの運用に対応） -->
+  <div class="subtabs">
+   <button id="sub-design" class="subtab active" type="button">🎨 テスト設計（作成）</button>
+   <button id="sub-exec" class="subtab" type="button">▶ テスト実行</button>
+  </div>
   <!-- 工程ステッパー（クリックで各工程へジャンプ・現在地をハイライト） -->
   <div class="stepper" id="m-stepper">
-   <span class="step active" data-target="m-explore">① 捜索</span>
-   <span class="step is-locked" data-target="m-review">② レビュー</span>
-   <span class="step is-locked" data-target="m-editor">③ 編集</span>
-   <span class="step is-locked" data-target="m-save">④ 保存</span>
-   <span class="step is-locked" data-target="m-runner">⑤ 比較</span>
+   <span class="step active" data-target="m-explore" data-phase="design">① 捜索</span>
+   <span class="step is-locked" data-target="m-review" data-phase="design">② レビュー</span>
+   <span class="step is-locked" data-target="m-editor" data-phase="design">③ 編集</span>
+   <span class="step is-locked" data-target="m-save" data-phase="design">④ 保存</span>
+   <span class="step is-locked" data-target="m-runner" data-phase="exec">⑤ 比較</span>
+   <span class="step" data-target="m-schedule" data-phase="exec">⑥ 定期実行</span>
   </div>
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
@@ -341,6 +395,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
 # 保証表現（禁止事項）
 「システム全体を完全に網羅」「すべてのAPIを確認」「不具合が存在しないことを保証」「業務仕様どおりを保証」「セキュリティ上問題がないことを保証」とは表現しない。
 保証は「指定URL・指定認証状態・テストデータ・実行環境・捜索条件のもとで、到達・観測できた対象を定義基準で確認し、再実行可能なテストと証跡を生成した」範囲に限定。</textarea>
+   </details>
+
+   <details id="m-domainDetails">
+    <summary>🏢 業務ドメイン別プロンプト ── 上部で選んだ業務に応じた重点観点を注入</summary>
+    <p class="muted">業務（金融・人事・会計・販売管理・在庫・生産など）ごとに重視すべきテスト観点は異なります。上部バーの<b>業務ドメイン</b>を選ぶと下欄に既定観点が入ります（編集可）。この内容は探索とAIレビューに注入され、テストケースへ反映されます。ノウハウとは別枠です。</p>
+    <textarea id="m-domainPrompt" rows="6" placeholder="上部の業務ドメインを選ぶと既定の重点観点が入ります（自由に編集できます）"></textarea>
    </details>
 
    
@@ -464,6 +524,31 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    </div>
   </div>
 
+  <!-- ⑥ 定期実行（スケジュール）：保存済みスイートを時刻/間隔で自動比較。CI連携も。 -->
+  <div class="card hidden" id="m-schedule">
+   <h3>⑥ 定期実行（保存済みスイートを自動でN+1比較）</h3>
+   <p class="muted" style="margin:0 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。運用フェーズ（設計→実行反復→結果で設計強化）に対応。</p>
+   <div class="sched-row">
+    <div><label>対象スイート</label><select id="sc-suite"><option value="">保存済みスイートを選択…</option></select></div>
+    <div style="flex:1;min-width:220px"><label>対象URL（N+1）</label><input id="sc-after" type="url" placeholder="https://n1.example.com/" style="width:100%"></div>
+    <div><label>方式</label><select id="sc-kind"><option value="daily">毎日（時刻指定）</option><option value="interval">一定間隔</option></select></div>
+    <div id="sc-timeWrap"><label>時刻</label><input id="sc-time" type="time" value="03:00"></div>
+    <div id="sc-intWrap" class="hidden"><label>間隔(分)</label><input id="sc-interval" type="number" min="1" value="60" style="width:90px"></div>
+    <div style="flex:0"><button id="sc-add" style="margin:0">＋ スケジュール追加</button></div>
+   </div>
+   <div class="sched-list" id="sc-list"><span class="muted">登録されたスケジュールはありません。</span></div>
+   <details style="margin-top:12px">
+    <summary>🔗 CI連携（cron / GitHub Actions から実行）</summary>
+    <p class="muted">非対話でCLIまたはAPIから実行できます。差分があれば終了コード1（CIで失敗検知可）。</p>
+    <pre style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap"># CLI（cron/GitHub Actions のステップに）
+npx att ci-run --project &lt;pid&gt; --suite &lt;suiteId&gt; --after https://n1.example.com/ --json
+
+# API（トークン認証時は ?token= 併用）
+curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: application/json' \
+  -d '{"suiteId":"&lt;suiteId&gt;","after":"https://n1.example.com/"}'</pre>
+   </details>
+  </div>
+
  </div><!-- /view-manage -->
 
  <!-- 課題管理（別ビュー）：ID＋タイトルの一覧→クリックで詳細＋テストケース双方向リンク -->
@@ -483,10 +568,142 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
   </div>
  </div>
 </div>
+<!-- 下辺：トークン使用量の時系列＋概算金額（プロジェクト単位） -->
+<div id="m-tokenbar" class="hidden">
+ <div class="tb-head">
+  <span>💠 トークン累計 <b class="tb-big" id="tb-tokens">0</b></span>
+  <span>概算コスト <b class="tb-yen" id="tb-yen">¥0</b> <span id="tb-usd" class="muted" style="color:#9fb6d8">($0)</span></span>
+  <span class="muted" id="tb-breakdown" style="color:#9fb6d8"></span>
+  <span class="tb-toggle" id="tb-toggle">▼ 隠す</span>
+ </div>
+ <svg id="tb-svg" viewBox="0 0 1000 70" preserveAspectRatio="none"><polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline><polygon id="tb-area" fill="rgba(143,227,160,.15)" points=""></polygon></svg>
+</div>
 <script>
  const $=(id)=>document.getElementById(id);
  const qtoken=new URLSearchParams(location.search).get("token")||"";
- const withTok=(u)=>qtoken?u+(u.includes("?")?"&":"?")+"token="+encodeURIComponent(qtoken):u;
+ var curProject=localStorage.getItem('att_project')||'';
+ function withTok(u){ var q=[]; if(qtoken)q.push('token='+encodeURIComponent(qtoken)); if(curProject)q.push('project='+encodeURIComponent(curProject)); return q.length? u+(u.includes('?')?'&':'?')+q.join('&') : u; }
+ // ==== 制御バー（プロジェクト/モード/モデル/業務ドメイン）＋トークングラフ ====
+ var ATT_ENV={llmAvailable:false,localLlm:false,models:[],domains:[],defaultModel:'claude-sonnet-4-6',jpyPerUsd:150};
+ var apiMode=true; // API利用モード（false=APIオフ＝ルールベース）
+ function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:'', llm:apiMode }; }
+ function applyModeUi(){
+   var b=$('cb-mode'); if(!b) return;
+   b.textContent=apiMode?'🟢 API利用モード':'⚪ APIオフ（ルールベース）';
+   b.classList.toggle('on',apiMode); b.classList.toggle('off',!apiMode);
+   var mdl=$('cb-model'); if(mdl) mdl.disabled=!apiMode;
+   var llmChk=$('m-llm'); if(llmChk){ llmChk.checked=apiMode; }
+   // APIオフ時はAI系ボタンを不活性化
+   ['m-aiReviewBtn','m-autoBtn','m-regenBtn','m-applyRecBtn'].forEach(function(id){ var e=$(id); if(e) e.disabled=!apiMode; });
+   if(typeof mEstimate==='function') mEstimate();
+ }
+ function updateBadge(){
+   var el=$('cb-badge'); if(!el) return;
+   if(ATT_ENV.localLlm){ el.className='cb-badge local'; el.textContent='🖥 ローカルLLM（トークン制限なし）'; }
+   else if(ATT_ENV.llmAvailable){ el.className='cb-badge ok'; el.textContent='🔑 APIキー設定済み'; }
+   else { el.className='cb-badge warn'; el.textContent='🔑 APIキー未設定（APIオフのみ）'; }
+ }
+ function loadEnv(){ return fetch(withTok('/api/env')).then(function(r){return r.json();}).then(function(e){
+   ATT_ENV=e||ATT_ENV;
+   var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">自動（おまかせ）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
+   var dom=$('cb-domain'); if(dom){ dom.innerHTML=(ATT_ENV.domains||[]).map(function(d){return '<option value="'+d.key+'">'+escHtml(d.label)+'</option>';}).join(''); }
+   if(!ATT_ENV.llmAvailable){ apiMode=false; } // キー無ければ強制オフ
+   applyModeUi(); updateBadge();
+ }).catch(function(){}); }
+ function domainPromptFor(key){ var d=(ATT_ENV.domains||[]).find(function(x){return x.key===key;}); return d?d.defaultPrompt:''; }
+ function loadProjects(){ return fetch(withTok('/api/projects')).then(function(r){return r.json();}).then(function(r){
+   var sel=$('cb-project'); if(!sel) return; var list=(r&&r.projects)||[];
+   if(!curProject && r&&r.current) curProject=r.current;
+   sel.innerHTML=list.map(function(p){return '<option value="'+p.id+'"'+(p.id===curProject?' selected':'')+'>'+escHtml(p.name)+'（'+p.suites+'件）</option>';}).join('')||'<option value="">既定プロジェクト</option>';
+ }).catch(function(){}); }
+ function loadProjectSettings(){ if(!curProject) return Promise.resolve(); return fetch(withTok('/api/project?id='+encodeURIComponent(curProject))).then(function(r){return r.json();}).then(function(p){
+   var s=(p&&p.settings)||{};
+   if(s.model&&$('cb-model')) $('cb-model').value=s.model;
+   if(s.domain&&$('cb-domain')) $('cb-domain').value=s.domain;
+   if($('m-domainPrompt')) $('m-domainPrompt').value=s.domainPrompt||($('cb-domain')?domainPromptFor($('cb-domain').value):'');
+   if(typeof s.llmMode==='boolean'){ apiMode=s.llmMode&&ATT_ENV.llmAvailable; }
+   if(s.knowhow&&$('m-knowhow')) $('m-knowhow').value=s.knowhow;
+   if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
+   if(typeof s.specMode==='boolean'&&$('m-specMode')) $('m-specMode').checked=s.specMode;
+   if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
+   applyModeUi();
+ }).catch(function(){}); }
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+   return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
+ function initCtrlBar(){
+   loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
+   var cbm=$('cb-mode'); if(cbm) cbm.addEventListener('click',function(){ if(!ATT_ENV.llmAvailable){ apiMode=false; if(typeof toast==='function') toast('APIキー未設定のためAPIオフのみ利用できます','ng'); } else { apiMode=!apiMode; } applyModeUi(); });
+   var cbp=$('cb-project'); if(cbp) cbp.addEventListener('change',function(){ curProject=cbp.value; localStorage.setItem('att_project',curProject); loadProjectSettings().then(function(){ loadSavedList(); loadSchedules&&loadSchedules(); renderTokenBar(); }); });
+   var cbn=$('cb-newProj'); if(cbn) cbn.addEventListener('click',function(){ var name=prompt('新規プロジェクト名'); if(!name) return; fetch(withTok('/api/projects'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}).then(function(r){return r.json();}).then(function(p){ curProject=p.id; localStorage.setItem('att_project',curProject); loadProjects().then(loadProjectSettings).then(function(){ loadSavedList(); }); }); });
+   var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
+   var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate(); });
+   var cbd=$('cb-domain'); if(cbd) cbd.addEventListener('change',function(){ var dp=$('m-domainPrompt'); if(dp && !dp.value.trim()) dp.value=domainPromptFor(cbd.value); });
+   var cbs=$('cb-save'); if(cbs) cbs.addEventListener('click',saveProjectSettings);
+ }
+ // ==== トークン下辺グラフ ====
+ function fmtInt(n){ return (n||0).toLocaleString('ja-JP'); }
+ function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){
+   var bar=$('m-tokenbar'); if(!bar) return;
+   if(!s||!s.count){ bar.classList.add('hidden'); return; }
+   bar.classList.remove('hidden');
+   $('tb-tokens').textContent=fmtInt(s.totalTokens);
+   $('tb-yen').textContent='¥'+fmtInt(Math.round(s.totalJpy));
+   $('tb-usd').textContent='($'+(s.totalUsd||0).toFixed(3)+' ／ '+fmtInt(Math.round(s.jpyPerUsd))+'円/$)';
+   var bp=s.byPhase||{}; $('tb-breakdown').textContent=Object.keys(bp).map(function(k){return k+':'+fmtInt(bp[k].tokens);}).join(' / ');
+   var pts=s.series||[]; var maxT=Math.max.apply(null,pts.map(function(p){return p.cumTokens;}).concat([1]));
+   var W=1000,H=70,n=pts.length;
+   function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-((p.cumTokens/maxT)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
+   var line=pts.map(xy).join(' ');
+   $('tb-line').setAttribute('points',line);
+   $('tb-area').setAttribute('points','0,'+H+' '+line+' '+W+','+H);
+ }).catch(function(){}); }
+ (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var svg=$('tb-svg'); var hidden=svg.style.display==='none'; svg.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
+ // ==== 設計/実行 サブタブ ====
+ var curPhase='design';
+ function applyPhase(ph){ curPhase=ph;
+   $('sub-design').classList.toggle('active',ph==='design'); $('sub-exec').classList.toggle('active',ph==='exec');
+   mStepEls.forEach(function(el){ el.style.display=(el.getAttribute('data-phase')===ph)?'':'none'; });
+   // 非アクティブ相のカードは inline display:none で隠す。アクティブ相は display:'' に戻し
+   // 既存の .hidden クラス制御に委ねる（二重管理を避ける）。
+   ['m-explore','m-review','m-editor','m-save'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='design')?'':'none'; });
+   ['m-runner','m-schedule'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='exec')?'':'none'; });
+   if(ph==='exec'){ ['m-runner','m-schedule'].forEach(function(id){ var c=$(id); if(c) c.classList.remove('hidden'); }); }
+ }
+ (function(){ var d=$('sub-design'),e=$('sub-exec');
+   if(d) d.addEventListener('click',function(){ applyPhase('design'); });
+   if(e) e.addEventListener('click',function(){ applyPhase('exec'); loadSavedList(); loadSchedules&&loadSchedules(); }); })();
+ // ==== 定期実行スケジュール ====
+ function loadSchedules(){ var sel=$('sc-suite'); if(!sel) return;
+   fetch(withTok('/api/suites')).then(function(r){return r.json();}).then(function(r){ var list=(r&&r.suites)||[];
+     sel.innerHTML='<option value="">保存済みスイートを選択…</option>'+list.map(function(s){return '<option value="'+s.id+'">'+escHtml(s.name)+'（'+s.count+'件）</option>';}).join(''); });
+   fetch(withTok('/api/schedules')).then(function(r){return r.json();}).then(function(r){ renderSchedules((r&&r.schedules)||[]); });
+ }
+ function renderSchedules(list){ var box=$('sc-list'); if(!box) return;
+   if(!list.length){ box.innerHTML='<span class="muted">登録されたスケジュールはありません。</span>'; return; }
+   box.innerHTML=list.map(function(s){
+     var when=s.kind==='interval'?('毎'+s.intervalMin+'分'):('毎日 '+(s.time||'03:00'));
+     var next=s.nextRun?new Date(s.nextRun).toLocaleString('ja-JP'):'-';
+     var last=s.lastRun?('／ 前回 '+new Date(s.lastRun).toLocaleString('ja-JP')+'（'+(s.lastStatus||'-')+'）'):'';
+     return '<div class="sched-item"><span class="st '+(s.enabled?'on':'off')+'">'+(s.enabled?'有効':'停止')+'</span>'
+       +'<b>'+escHtml(s.name||when)+'</b> <span class="muted">'+when+' → '+escHtml(s.afterUrl)+'</span>'
+       +'<span class="muted">次回 '+next+' '+last+'</span>'
+       +'<span style="margin-left:auto"></span>'
+       +'<button class="btn-mini" data-act="run" data-id="'+s.id+'">今すぐ実行</button>'
+       +'<button class="btn-mini btn-gray" data-act="toggle" data-id="'+s.id+'">'+(s.enabled?'停止':'有効化')+'</button>'
+       +'<button class="btn-mini btn-del" data-act="del" data-id="'+s.id+'">削除</button></div>';
+   }).join('');
+   [].slice.call(box.querySelectorAll('button[data-act]')).forEach(function(b){ b.addEventListener('click',function(){
+     var id=b.getAttribute('data-id'),act=b.getAttribute('data-act');
+     if(act==='del'){ fetch(withTok('/api/schedule?id='+encodeURIComponent(id)),{method:'DELETE'}).then(function(){loadSchedules();}); }
+     else if(act==='run'){ fetch(withTok('/api/schedule/run-now'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('実行を開始しました','ok'); setTimeout(loadSchedules,1500); }); }
+     else if(act==='toggle'){ var cur=list.find(function(x){return x.id===id;}); fetch(withTok('/api/schedule'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,enabled:!(cur&&cur.enabled)})}).then(function(){loadSchedules();}); }
+   }); });
+ }
+ (function(){ var k=$('sc-kind'); if(k) k.addEventListener('change',function(){ $('sc-timeWrap').classList.toggle('hidden',k.value!=='daily'); $('sc-intWrap').classList.toggle('hidden',k.value!=='interval'); });
+   var add=$('sc-add'); if(add) add.addEventListener('click',function(){ var suiteId=$('sc-suite').value, after=$('sc-after').value.trim();
+     if(!suiteId){ alert('スイートを選択してください'); return; } if(!/^https?:\/\//.test(after)){ alert('対象URL(http/https)を入力してください'); return; }
+     var kind=$('sc-kind').value; var body={suiteId:suiteId,afterUrl:after,kind:kind,time:$('sc-time').value,intervalMin:+$('sc-interval').value,enabled:true};
+     fetch(withTok('/api/schedules'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).then(function(){ loadSchedules(); if(typeof toast==='function') toast('スケジュールを追加しました','ok'); }); }); })();
  // 捜索スライダーのラベル更新 & 推定
  ['m-depth','m-breadth','m-exception','m-priority'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('input',function(){ $(id+'v').textContent=(+el.value).toFixed(2); mEstimate(); }); });
  $('m-maxPages').addEventListener('input',function(){ $('m-maxPagesv').textContent=$('m-maxPages').value; mEstimate(); });
@@ -623,7 +840,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var s=await fetch(withTok('/api/status?id='+id)).then(function(r){return r.json();}).catch(function(){return null;});
      if(!s)return;
      var lines=(s.progress||[]); lg.textContent=lines.join('\n')+(s.status==='running'?'\n… 処理中':''); lg.scrollTop=lg.scrollHeight;
-     if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false;
+     if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false; try{renderTokenBar();}catch(e){}
        if(s.status==='error'){lg.textContent+='\n[失敗] '+s.error;return;} onDone(s); }
    },1000);
  }
@@ -631,7 +848,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var u=$('m-url').value.trim();
    if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
    var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,headed:$('m-headed').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value};
-   Object.assign(body,collectSpec());
+   Object.assign(body,collectSpec()); Object.assign(body,collectLlm());
    $('m-exploreBtn').disabled=true; var lg=$('m-log'); lg.classList.remove('hidden'); lg.textContent='捜索を開始しています…';
    var r=await fetch(withTok('/api/explore'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-exploreBtn').disabled=false;return;}
@@ -797,7 +1014,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  $('m-aiReviewBtn').addEventListener('click',function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var btn=$('m-aiReviewBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='AIレビューを開始しています…（4観点＋合議）'; $('m-aiResult').innerHTML='';
-   fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,depth:aiDepth()})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+   fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } },btn);
     });
@@ -805,7 +1022,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  $('m-applyRecBtn').addEventListener('click',function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var btn=$('m-applyRecBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='信頼度の推奨アクションを反映中…';
-   fetch(withTok('/api/apply-recs'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+   fetch(withTok('/api/apply-recs'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
         if(s.suite){ mSuite=s.suite; renderCases();
@@ -819,7 +1036,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  $('m-regenBtn').addEventListener('click',function(){
    if(!mSuite||!mAiReview){alert('先にAIレビューを実施してください');return;}
    var btn=$('m-regenBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='改善提案のテストケースを追加中…（既存は保持）';
-   fetch(withTok('/api/regenerate'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,aiReview:mAiReview,depth:aiDepth()})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+   fetch(withTok('/api/regenerate'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,aiReview:mAiReview,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
         if(s.suite){ mSuite=s.suite; renderCases(); var n=(s.summary&&s.summary.added)||0; toast('✨ 改善提案から '+n+' 件のテストケースを追加しました（下の③で確認・編集できます）','ok'); }
@@ -832,7 +1049,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var target=+$('m-aiTarget').value, rounds=+$('m-aiRounds').value, depth=aiDepth();
    if(!confirm('目標 '+target+'点まで、レビュー↔改善を最大 '+rounds+' ラウンド自動反復します。\n各ラウンドで複数回のClaude API呼び出し（従量課金）が発生します。実行しますか？')) return;
    var btn=$('m-autoBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='自律改善を開始しています…'; $('m-autoResult').innerHTML='';
-   fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,target:target,maxRounds:rounds,depth:depth})}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+   fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:target,maxRounds:rounds,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
         if(s.suite){ mSuite=s.suite; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } renderCases();
@@ -1039,4 +1256,6 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  });
  // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
  $('m-dashDetails').addEventListener('toggle',function(){ var f=$('m-frame'); if($('m-dashDetails').open && f.getAttribute('data-src') && f.src.indexOf('dashboard')<0){ f.src=f.getAttribute('data-src'); } });
+ // ==== 初期化（全関数/変数定義後に実行）====
+ initCtrlBar(); applyPhase('design'); setInterval(renderTokenBar, 8000);
 </script></body></html>
