@@ -6,7 +6,7 @@
  header{background:#1f3864;color:#fff;padding:14px 22px}header h1{margin:0;font-size:19px}
  .wrap{max-width:1000px;margin:18px auto;padding:0 14px}
  .card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 5px rgba(0,0,0,.08);margin-bottom:16px;scroll-margin-top:56px}
- .stepper{position:sticky;top:0;z-index:1500;display:flex;gap:6px;background:#eef1f5;padding:9px 0 8px;margin:0 0 10px;flex-wrap:wrap;border-bottom:1px solid #dde3ec}
+ .stepper{position:sticky;top:138px;z-index:3;display:flex;gap:6px;background:#eef1f5;padding:9px 8px 8px;margin:0 0 10px;flex-wrap:wrap;border-bottom:1px solid #dde3ec;border-radius:8px}
  .stepper .step{display:inline-flex;align-items:center;gap:5px;background:#fff;color:#37507a;border:1px solid #d3dcea;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
  .stepper .step:hover{background:#e7eefc}
  .stepper .step.active{background:#1f3864;color:#fff;border-color:#1f3864}
@@ -99,6 +99,16 @@
  .navbtn.active{background:#1f2d4d;color:#fff;border-color:#1f2d4d;box-shadow:0 -4px 12px rgba(31,45,77,.30)}
  /* 画面パネル（この中に作業タブが一階層下でぶら下がる） */
  .screen{background:#f3f6fb;border:2px solid #1f2d4d;border-radius:12px;padding:16px 16px 16px;position:relative;z-index:1;box-shadow:0 8px 22px rgba(20,30,60,.12)}
+ /* 左サイドバー・レイアウト：画面切替を常時左に表示（スクロールしても消えない） */
+ .applayout{display:flex;gap:14px;align-items:flex-start}
+ .sidebar{position:sticky;top:92px;align-self:flex-start;flex:0 0 156px;width:156px;z-index:5}
+ .sidebar .nav{flex-direction:column;align-items:stretch;gap:7px;padding:0;margin:0}
+ .sidebar .navbtn{border-radius:10px;border:1px solid #c3cee0;border-bottom:1px solid #c3cee0;text-align:left;top:0;box-shadow:none;padding:12px 14px;font-size:14px}
+ .sidebar .navbtn.active{background:#1f2d4d;color:#fff;border-color:#1f2d4d;box-shadow:0 3px 10px rgba(31,45,77,.28)}
+ .navbtn-admin{background:#f4dede;color:#7a1f1f;border-color:#e2b6b6}
+ .sidebar .navbtn-admin.active{background:#7a1f1f;color:#fff;border-color:#7a1f1f}
+ .content{flex:1;min-width:0}
+ @media(max-width:760px){.applayout{flex-direction:column;gap:8px}.sidebar{position:sticky;top:0;width:auto;flex:auto;z-index:1550;background:#eef2f8;padding:6px;border-radius:10px}.sidebar .nav{flex-direction:row;flex-wrap:wrap}}
  .navcount{background:#c62828;color:#fff;border-radius:10px;font-size:11px;padding:0 7px;margin-left:4px}
  .issbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
  /* 課題の集計：内訳＝円グラフ／時系列＝線グラフ */
@@ -173,7 +183,7 @@
  .cb-badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:700}
  .cb-badge.ok{background:#2e7d32;color:#fff}.cb-badge.warn{background:#ef6c00;color:#fff}.cb-badge.local{background:#00695c;color:#fff}
  /* 画面の中の並列タブ（設計｜実行・一覧｜集計｜設定）＝一階層下。フォルダタブが下のワークスペースに繋がる */
- .subnav{display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin:2px 0 0;padding:0 4px;position:relative;z-index:2}
+ .subnav{display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin:0;padding:6px 4px 0;position:sticky;top:88px;z-index:4;background:#f3f6fb}
  .subtab{background:#dde5f0;color:#45557a;border:1px solid #cdd8e8;border-bottom:0;border-radius:9px 9px 0 0;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer;margin:0;position:relative;top:1px}
  .subtab:hover{background:#e9eff8}
  .subtab.active{background:#fff;color:#1f3864;border-color:#b7c6de;box-shadow:0 -2px 6px rgba(30,50,90,.08)}
@@ -355,6 +365,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -365,16 +376,23 @@
  <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
 </div>
 <div class="wrap">
- <!-- トップは2つの「画面」：テスト管理 と 課題管理（別画面） -->
- <div class="nav">
-  <button id="nav-manage" class="navbtn active" type="button">テスト管理</button>
-  <button id="nav-issues" class="navbtn" type="button">課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
- </div>
+ <div class="applayout">
+ <!-- 左サイドバー：画面切替（スクロールしても常時表示）。現在地を明示 -->
+ <aside class="sidebar">
+  <div class="nav">
+   <button id="nav-manage" class="navbtn active" type="button">テスト管理</button>
+   <button id="nav-issues" class="navbtn" type="button">課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
+   <button id="nav-settings" class="navbtn" type="button">設定</button>
+   <button id="nav-admin" class="navbtn navbtn-admin" type="button">管理者</button>
+  </div>
+ </aside>
+ <div class="content">
  <div id="view-manage" class="screen">
-  <!-- テスト管理の「中」に 設計 と 実行 が“並列”でぶら下がる（タブ切替＝区分け） -->
+  <!-- テスト管理の「中」に 設計 / 実行 / 実行履歴 が“並列”でぶら下がる（タブ切替＝区分け） -->
   <div class="subnav">
    <button id="sub-design" class="subtab active" type="button">テスト設計</button>
    <button id="sub-exec" class="subtab" type="button">テスト実行</button>
+   <button id="sub-history" class="subtab" type="button">実行履歴</button>
   </div>
   <div class="workspace">
   <!-- 工程ステッパー（クリックで各工程へジャンプ・現在地をハイライト） -->
@@ -384,8 +402,6 @@
    <span class="step is-locked" data-target="m-editor" data-phase="design">③ 編集</span>
    <span class="step is-locked" data-target="m-save" data-phase="design">④ 保存</span>
    <span class="step is-locked" data-target="m-runner" data-phase="exec">⑤ 比較</span>
-   <span class="step" data-target="m-history" data-phase="exec">⑥ 実行履歴</span>
-   <span class="step" data-target="m-schedule" data-phase="exec">⑦ 定期実行</span>
   </div>
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
@@ -416,77 +432,7 @@
     <textarea id="m-supplement" rows="3" placeholder="例）ログイン後のマイページを重点的に。異常系（空・不正値）も試して。"></textarea>
    </details>
 
-   <details>
-    <summary>有識者ノウハウ（プロンプト編集） ── LLM誘導捜索の system に注入</summary>
-    <p class="muted">捜索の“勘所”をプロンプトとして編集できます。空欄にすると既定ノウハウが使われます。</p>
-    <textarea id="m-knowhow" rows="8">あなたは、Webアプリケーション、捜索的テスト、ブラウザ自動化、HTTP通信解析に精通した熟練QAエンジニアです。
-入力として与えられるのは、原則として開始URLのみです。
-仕様書、設計書、画面一覧、API仕様書、DB定義書、テストケースは存在しないものとして扱ってください。
-指定URLを起点として、ブラウザから到達可能な画面、状態、操作、入力項目、状態遷移、および捜索中に観測されたAPI通信を発見してください。
-その結果から、パッチ適用後に同じ条件で再実行可能なUI回帰テストおよびAPI通信比較テストを生成してください。
-
-# 目的
-1. Webアプリケーションの構造を捜索によって把握する
-2. 発見した画面・状態・操作・入力項目・状態遷移をモデル化する
-3. UI操作によって発生したAPI通信を記録する
-4. 未捜索の対象を優先して確認する
-5. 捜索した経路を再実行可能なテストケースに変換する
-6. パッチ適用前後で、UIとAPI通信の差分を比較できるようにする
-7. 実行済み範囲と未到達範囲を明示する
-保証するのは「不具合が存在しないこと」ではなく、指定条件下で発見済み対象を定義基準で実行したことです。
-
-# 捜索対象（UI）
-ページ / 画面状態 / モーダル / ダイアログ / タブ / メニュー / ドロワー / フォーム / ボタン / リンク / チェックボックス / ラジオボタン / セレクトボックス / ファイル選択 / ページネーション / 検索 / 並べ替え / フィルター / ログイン・ログアウト / 戻る・進む・再読み込み / エラーメッセージ / 完了メッセージ
-
-# 捜索対象（状態）
-同じURLでも表示内容や操作可能要素が異なる場合は別の状態として扱う。
-例：未ログイン / ログイン済み / データなし / データあり / 検索結果なし・あり / 入力前・入力中・入力エラー / 確認画面 / 登録完了 / 編集モード / 読み取り専用 / モーダル表示中 / ローディング中 / APIエラー発生中
-
-# 捜索対象（API）
-ブラウザ操作中に実際に発生した通信のみを対象：Fetch / XHR / GraphQL / REST / WebSocket / SSE / アップロード / ダウンロード / 認証通信 / バックグラウンド通信。
-観測されなかったAPI・内部API・バッチ・Webhookは網羅と判定しない。保証範囲は「捜索中に観測された通信」に限定。
-
-# 入力テストの観点
-HTML属性・ラベル・エラーメッセージ・APIレスポンスから制約を推定し、各入力項目に対し可能な範囲で：
-代表正常値 / 空欄 / 最小値・最小未満 / 最大値・最大超過 / 最短長・最短未満 / 最大長・最大超過 / 不正形式 / 全角・半角 / 空白・前後空白・改行 / 記号 / 絵文字 / 重複値 / 存在しない値。
-破壊的・危険・違法・環境に重大影響を与える入力は実行しない。全組み合わせはせず、代表値・境界値・ペアワイズ・高リスク組み合わせを優先。
-
-# 捜索アルゴリズム（繰り返す）
-1. 現在の画面・DOM・URL・操作可能要素を観測
-2. 現在の状態を識別（新規なら登録）
-3. 未実行の操作可能要素を列挙
-4. 未実行の状態・遷移・入力分類につながる操作を優先
-5. 操作前スクショと状態を保存 / ネットワーク監視を開始
-6. 操作を実行し、UI変化・URL変化・DOM変化・API通信・コンソールエラーを記録
-7. 操作後スクショを保存し、状態遷移と再実行手順を登録
-8. 必要に応じて元状態へ戻り、未捜索対象を再評価
-
-# 捜索の優先順位
-1.未到達画面 2.未確認状態 3.未実行操作 4.未確認状態遷移 5.未確認入力分類 6.未確認の権限/認証状態 7.新しいAPIを発生させる操作 8.エラー/警告/通信失敗箇所 9.処理時間が長い箇所 10.既存経路の組み合わせ変更 11.自由捜索
-
-# 必須捜索と自由捜索
-必須：発見済み画面への到達 / 発見済み操作の実行 / 発見済み状態遷移の実行 / フォーム正常値 / 必須項目の空欄 / HTML属性由来の境界値 / 画面エラー・コンソールエラー・HTTP 4xx/5xx の記録 / 主要操作で発生したAPI通信の記録。
-自由：戻る・進む・再読み込み / 二重クリック / 連続送信 / 操作順序変更 / 入力途中の遷移 / モーダル外クリック / 複数タブ / セッション切れ / 通信遅延・APIエラー時のUI / 同一操作反復 / 境界値の組み合わせ / 想定外遷移。
-
-# 安全制御（明示許可がない限り実行しない）
-本番データ削除 / 大量データ登録 / 大量リクエスト / 負荷試験・DoS相当 / 実ユーザーへのメール・通知 / 実決済 / 外部サービスへの実送信 / アカウント削除 / 権限変更 / パスワード変更 / 契約変更 / 個人情報の取得・出力 / セキュリティ攻撃。
-破壊的の可能性がある操作は実行せず、未実行理由として記録。
-
-# API・秘匿情報の扱い
-認証情報・Cookie・トークン・個人情報・秘密情報はそのまま出力せずマスキング（例 Authorization: Bearer ******** / email: u***@example.com）。
-比較用に日時・タイムスタンプ・UUID・セッションID・CSRF・トークン・乱数・自動採番ID・環境依存値・順不同配列などの動的値は正規化（除外/別管理）。元データと正規化後の両方を保持。
-API仕様書が無いため、パッチ前レスポンスは「期待結果」ではなく「観測ベースライン」として扱う。
-
-# 保証表現（禁止事項）
-「システム全体を完全に網羅」「すべてのAPIを確認」「不具合が存在しないことを保証」「業務仕様どおりを保証」「セキュリティ上問題がないことを保証」とは表現しない。
-保証は「指定URL・指定認証状態・テストデータ・実行環境・捜索条件のもとで、到達・観測できた対象を定義基準で確認し、再実行可能なテストと証跡を生成した」範囲に限定。</textarea>
-   </details>
-
-   <details id="m-domainDetails">
-    <summary>業務ドメイン別プロンプト ── 上部で選んだ業務に応じた重点観点を注入</summary>
-    <p class="muted">業務（金融・人事・会計・販売管理・在庫・生産など）ごとに重視すべきテスト観点は異なります。上部バーの<b>業務ドメイン</b>を選ぶと下欄に既定観点が入ります（編集可）。この内容は探索とAIレビューに注入され、テストケースへ反映されます。ノウハウとは別枠です。</p>
-    <textarea id="m-domainPrompt" rows="6" placeholder="上部の業務ドメインを選ぶと既定の重点観点が入ります（自由に編集できます）"></textarea>
-   </details>
+   <p class="muted" style="font-size:12px;margin:2px 0">※ 有識者ノウハウ・業務ドメイン別プロンプトは<b>「管理者」画面</b>に移動しました（ヘッダの管理者から編集）。</p>
 
    <details>
     <summary>仕様の画面遷移図（Mermaid・任意） ── 1回目走査の遷移図と比較する</summary>
@@ -645,39 +591,12 @@ graph TD
    </div>
   </div>
 
-  <!-- ⑥ 実行履歴（実行バージョン：スイート名＋日時／結果サマリ） -->
+  <!-- 実行履歴（テスト設計/実行と同列のサブタブ。実行バージョン＝スイート名＋日時／結果サマリ） -->
   <div class="card hidden" id="m-history">
-   <h3>⑥ 実行履歴（実行バージョン）</h3>
+   <h3>実行履歴（実行バージョン）</h3>
    <p class="muted" style="margin:0 0 8px">過去のテスト実行を<b>実行バージョン（スイート名＋実行日時）</b>ごとに保存しています。結果サマリ・レポート・課題（この実行で検出）を確認できます。</p>
    <button id="m-histReload" class="btn-mini btn-gray" type="button">再読込</button>
    <div id="m-histList" style="margin-top:8px"><span class="muted">読み込み中…</span></div>
-  </div>
-
-  <!-- ⑦ 定期実行（スケジュール）：保存済みスイートを時刻/間隔で自動比較。CI連携も。 -->
-  <div class="card hidden" id="m-schedule" style="padding:10px 16px">
-   <details>
-   <summary style="cursor:pointer;font-weight:700;color:#2a4b7c;font-size:15px">⑦ 定期実行 <span class="muted" style="font-weight:400;font-size:12px">── 保存済みスイートを時刻/間隔で自動N+1比較・CI連携（必要な時に開く）</span></summary>
-   <p class="muted" style="margin:8px 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。運用フェーズ（設計→実行反復→結果で設計強化）に対応。</p>
-   <div class="sched-row">
-    <div><label>対象スイート</label><select id="sc-suite"><option value="">保存済みスイートを選択…</option></select></div>
-    <div style="flex:1;min-width:220px"><label>対象URL（N+1）</label><input id="sc-after" type="url" placeholder="https://n1.example.com/" style="width:100%"></div>
-    <div><label>方式</label><select id="sc-kind"><option value="daily">毎日（時刻指定）</option><option value="interval">一定間隔</option></select></div>
-    <div id="sc-timeWrap"><label>時刻</label><input id="sc-time" type="time" value="03:00"></div>
-    <div id="sc-intWrap" class="hidden"><label>間隔(分)</label><input id="sc-interval" type="number" min="1" value="60" style="width:90px"></div>
-    <div style="flex:0"><button id="sc-add" style="margin:0">＋ スケジュール追加</button></div>
-   </div>
-   <div class="sched-list" id="sc-list"><span class="muted">登録されたスケジュールはありません。</span></div>
-   <details style="margin-top:12px">
-    <summary>CI連携（cron / GitHub Actions から実行）</summary>
-    <p class="muted">非対話でCLIまたはAPIから実行できます。差分があれば終了コード1（CIで失敗検知可）。</p>
-    <pre style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap"># CLI（cron/GitHub Actions のステップに）
-npx att ci-run --project &lt;pid&gt; --suite &lt;suiteId&gt; --after https://n1.example.com/ --json
-
-# API（トークン認証時は ?token= 併用）
-curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: application/json' \
-  -d '{"suiteId":"&lt;suiteId&gt;","after":"https://n1.example.com/"}'</pre>
-   </details>
-   </details>
   </div>
 
   </div><!-- /workspace -->
@@ -717,6 +636,120 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
   </div>
   </div><!-- /workspace -->
  </div>
+
+ <!-- 設定（プロジェクト単位）：担当者マスタ・定期実行 -->
+ <div id="view-settings" class="screen hidden">
+  <div style="font-weight:700;color:#2a4b7c;margin:2px 0 10px">設定（このプロジェクト） <span class="muted" style="font-weight:400;font-size:12px">── プロジェクトごとに保存されます</span></div>
+  <div class="card">
+   <h3>担当者マスタ</h3>
+   <p class="muted" style="margin:0 0 8px">課題の「担当」で選べる担当者を登録します（<b>1行に1名</b>）。ここで登録した人が、課題の担当ドロップダウンに表示されます（自由入力も可）。</p>
+   <textarea id="set-assignees" rows="5" style="width:100%;box-sizing:border-box;font-size:13px" placeholder="例）&#10;山田太郎&#10;佐藤花子"></textarea>
+   <div style="margin-top:8px"><button id="set-assignees-save" style="margin:0">担当者マスタを保存</button> <span id="set-assignees-msg" class="muted"></span></div>
+  </div>
+  <div class="card" id="m-schedule">
+   <h3>定期実行（スケジュール）</h3>
+   <p class="muted" style="margin:0 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。</p>
+   <div class="sched-row">
+    <div><label>対象スイート</label><select id="sc-suite"><option value="">保存済みスイートを選択…</option></select></div>
+    <div style="flex:1;min-width:220px"><label>対象URL（N+1）</label><input id="sc-after" type="url" placeholder="https://n1.example.com/" style="width:100%"></div>
+    <div><label>方式</label><select id="sc-kind"><option value="daily">毎日（時刻指定）</option><option value="interval">一定間隔</option></select></div>
+    <div id="sc-timeWrap"><label>時刻</label><input id="sc-time" type="time" value="03:00"></div>
+    <div id="sc-intWrap" class="hidden"><label>間隔(分)</label><input id="sc-interval" type="number" min="1" value="60" style="width:90px"></div>
+    <div style="flex:0"><button id="sc-add" style="margin:0">＋ スケジュール追加</button></div>
+   </div>
+   <div class="sched-list" id="sc-list"><span class="muted">登録されたスケジュールはありません。</span></div>
+   <details style="margin-top:12px">
+    <summary>CI連携（cron / GitHub Actions から実行）</summary>
+    <p class="muted">非対話でCLIまたはAPIから実行できます。差分があれば終了コード1（CIで失敗検知可）。</p>
+    <pre style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;font-size:12px;white-space:pre-wrap"># CLI（cron/GitHub Actions のステップに）
+npx att ci-run --project &lt;pid&gt; --suite &lt;suiteId&gt; --after https://n1.example.com/ --json
+
+# API（トークン認証時は ?token= 併用）
+curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: application/json' \
+  -d '{"suiteId":"&lt;suiteId&gt;","after":"https://n1.example.com/"}'</pre>
+   </details>
+  </div>
+ </div>
+
+ <!-- 管理者（暫定・後で別場所へ移す）：業務ドメイン別プロンプト・有識者ノウハウ（通常利用者には見せない） -->
+ <div id="view-admin" class="screen hidden">
+  <div style="font-weight:700;color:#7a1f1f;margin:2px 0 10px">管理者設定 <span class="muted" style="font-weight:400;font-size:12px">── 通常の利用者には見せない項目（暫定的にここに集約。将来は別画面へ）</span></div>
+  <div class="card" id="adm-domain-card">
+   <h3>業務ドメイン別プロンプト</h3>
+   <p class="muted" style="margin:0 0 8px">業務（金融・人事・会計・販売管理・在庫・生産など）ごとに重視すべきテスト観点は異なります。上部バーの<b>業務ドメイン</b>を選び「決定→反映」すると下欄に既定観点が入ります（編集可）。この内容は探索とAIレビューに注入され、テストケースへ反映されます。</p>
+   <details id="m-domainDetails" open><summary style="cursor:pointer;font-weight:600;color:#37507a;font-size:13px">プロンプトを編集</summary>
+    <textarea id="m-domainPrompt" rows="6" style="width:100%;box-sizing:border-box;margin-top:6px" placeholder="上部の業務ドメインを選ぶと既定の重点観点が入ります（自由に編集できます）"></textarea>
+   </details>
+  </div>
+  <div class="card" id="adm-knowhow-card">
+   <h3>有識者ノウハウ（プロンプト編集）</h3>
+   <p class="muted" style="margin:0 0 8px">LLM誘導捜索の system に注入します。捜索の“勘所”をプロンプトとして編集できます。空欄にすると既定ノウハウが使われます。</p>
+   <textarea id="m-knowhow" rows="10" style="width:100%;box-sizing:border-box">あなたは、Webアプリケーション、捜索的テスト、ブラウザ自動化、HTTP通信解析に精通した熟練QAエンジニアです。
+入力として与えられるのは、原則として開始URLのみです。
+仕様書、設計書、画面一覧、API仕様書、DB定義書、テストケースは存在しないものとして扱ってください。
+指定URLを起点として、ブラウザから到達可能な画面、状態、操作、入力項目、状態遷移、および捜索中に観測されたAPI通信を発見してください。
+その結果から、パッチ適用後に同じ条件で再実行可能なUI回帰テストおよびAPI通信比較テストを生成してください。
+
+# 目的
+1. Webアプリケーションの構造を捜索によって把握する
+2. 発見した画面・状態・操作・入力項目・状態遷移をモデル化する
+3. UI操作によって発生したAPI通信を記録する
+4. 未捜索の対象を優先して確認する
+5. 捜索した経路を再実行可能なテストケースに変換する
+6. パッチ適用前後で、UIとAPI通信の差分を比較できるようにする
+7. 実行済み範囲と未到達範囲を明示する
+保証するのは「不具合が存在しないこと」ではなく、指定条件下で発見済み対象を定義基準で実行したことです。
+
+# 捜索対象（UI）
+ページ / 画面状態 / モーダル / ダイアログ / タブ / メニュー / ドロワー / フォーム / ボタン / リンク / チェックボックス / ラジオボタン / セレクトボックス / ファイル選択 / ページネーション / 検索 / 並べ替え / フィルター / ログイン・ログアウト / 戻る・進む・再読み込み / エラーメッセージ / 完了メッセージ
+
+# 捜索対象（状態）
+同じURLでも表示内容や操作可能要素が異なる場合は別の状態として扱う。
+例：未ログイン / ログイン済み / データなし / データあり / 検索結果なし・あり / 入力前・入力中・入力エラー / 確認画面 / 登録完了 / 編集モード / 読み取り専用 / モーダル表示中 / ローディング中 / APIエラー発生中
+
+# 捜索対象（API）
+ブラウザ操作中に実際に発生した通信のみを対象：Fetch / XHR / GraphQL / REST / WebSocket / SSE / アップロード / ダウンロード / 認証通信 / バックグラウンド通信。
+観測されなかったAPI・内部API・バッチ・Webhookは網羅と判定しない。保証範囲は「捜索中に観測された通信」に限定。
+
+# 入力テストの観点
+HTML属性・ラベル・エラーメッセージ・APIレスポンスから制約を推定し、各入力項目に対し可能な範囲で：
+代表正常値 / 空欄 / 最小値・最小未満 / 最大値・最大超過 / 最短長・最短未満 / 最大長・最大超過 / 不正形式 / 全角・半角 / 空白・前後空白・改行 / 記号 / 絵文字 / 重複値 / 存在しない値。
+破壊的・危険・違法・環境に重大影響を与える入力は実行しない。全組み合わせはせず、代表値・境界値・ペアワイズ・高リスク組み合わせを優先。
+
+# 捜索アルゴリズム（繰り返す）
+1. 現在の画面・DOM・URL・操作可能要素を観測
+2. 現在の状態を識別（新規なら登録）
+3. 未実行の操作可能要素を列挙
+4. 未実行の状態・遷移・入力分類につながる操作を優先
+5. 操作前スクショと状態を保存 / ネットワーク監視を開始
+6. 操作を実行し、UI変化・URL変化・DOM変化・API通信・コンソールエラーを記録
+7. 操作後スクショを保存し、状態遷移と再実行手順を登録
+8. 必要に応じて元状態へ戻り、未捜索対象を再評価
+
+# 捜索の優先順位
+1.未到達画面 2.未確認状態 3.未実行操作 4.未確認状態遷移 5.未確認入力分類 6.未確認の権限/認証状態 7.新しいAPIを発生させる操作 8.エラー/警告/通信失敗箇所 9.処理時間が長い箇所 10.既存経路の組み合わせ変更 11.自由捜索
+
+# 必須捜索と自由捜索
+必須：発見済み画面への到達 / 発見済み操作の実行 / 発見済み状態遷移の実行 / フォーム正常値 / 必須項目の空欄 / HTML属性由来の境界値 / 画面エラー・コンソールエラー・HTTP 4xx/5xx の記録 / 主要操作で発生したAPI通信の記録。
+自由：戻る・進む・再読み込み / 二重クリック / 連続送信 / 操作順序変更 / 入力途中の遷移 / モーダル外クリック / 複数タブ / セッション切れ / 通信遅延・APIエラー時のUI / 同一操作反復 / 境界値の組み合わせ / 想定外遷移。
+
+# 安全制御（明示許可がない限り実行しない）
+本番データ削除 / 大量データ登録 / 大量リクエスト / 負荷試験・DoS相当 / 実ユーザーへのメール・通知 / 実決済 / 外部サービスへの実送信 / アカウント削除 / 権限変更 / パスワード変更 / 契約変更 / 個人情報の取得・出力 / セキュリティ攻撃。
+破壊的の可能性がある操作は実行せず、未実行理由として記録。
+
+# API・秘匿情報の扱い
+認証情報・Cookie・トークン・個人情報・秘密情報はそのまま出力せずマスキング（例 Authorization: Bearer ******** / email: u***@example.com）。
+比較用に日時・タイムスタンプ・UUID・セッションID・CSRF・トークン・乱数・自動採番ID・環境依存値・順不同配列などの動的値は正規化（除外/別管理）。元データと正規化後の両方を保持。
+API仕様書が無いため、パッチ前レスポンスは「期待結果」ではなく「観測ベースライン」として扱う。
+
+# 保証表現（禁止事項）
+「システム全体を完全に網羅」「すべてのAPIを確認」「不具合が存在しないことを保証」「業務仕様どおりを保証」「セキュリティ上問題がないことを保証」とは表現しない。
+保証は「指定URL・指定認証状態・テストデータ・実行環境・捜索条件のもとで、到達・観測できた対象を定義基準で確認し、再実行可能なテストと証跡を生成した」範囲に限定。</textarea>
+  </div>
+ </div>
+
+ </div><!-- /content -->
+ </div><!-- /applayout -->
 </div>
 <!-- 下辺：トークン使用量の時系列＋概算金額（プロジェクト単位） -->
 <div id="m-tokenbar" class="hidden">
@@ -795,6 +828,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
    if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
    if(Array.isArray(s.apiIgnore)&&$('m-apiIgnore')) $('m-apiIgnore').value=s.apiIgnore.join('\n');
+   window.__assignees=Array.isArray(s.assignees)?s.assignees:[]; renderAssigneeMaster(); renderAssigneeDatalist();
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
@@ -873,17 +907,18 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  // ==== 設計/実行 サブタブ ====
  var curPhase='design';
  function applyPhase(ph){ curPhase=ph;
-   $('sub-design').classList.toggle('active',ph==='design'); $('sub-exec').classList.toggle('active',ph==='exec');
+   $('sub-design').classList.toggle('active',ph==='design'); $('sub-exec').classList.toggle('active',ph==='exec'); if($('sub-history')) $('sub-history').classList.toggle('active',ph==='history');
+   // ステッパーは設計/実行のみ表示（実行履歴は一覧のみ）
+   $('m-stepper').style.display=(ph==='history')?'none':'';
    mStepEls.forEach(function(el){ el.style.display=(el.getAttribute('data-phase')===ph)?'':'none'; });
-   // 非アクティブ相のカードは inline display:none で隠す。アクティブ相は display:'' に戻し
-   // 既存の .hidden クラス制御に委ねる（二重管理を避ける）。
    ['m-explore','m-review','m-editor','m-save'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='design')?'':'none'; });
-   ['m-runner','m-schedule','m-history'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='exec')?'':'none'; });
-   if(ph==='exec'){ ['m-runner','m-schedule','m-history'].forEach(function(id){ var c=$(id); if(c) c.classList.remove('hidden'); }); }
+   var r=$('m-runner'); if(r){ r.style.display=(ph==='exec')?'':'none'; if(ph==='exec') r.classList.remove('hidden'); }
+   var h=$('m-history'); if(h){ h.style.display=(ph==='history')?'':'none'; if(ph==='history') h.classList.remove('hidden'); }
  }
- (function(){ var d=$('sub-design'),e=$('sub-exec');
+ (function(){ var d=$('sub-design'),e=$('sub-exec'),hh=$('sub-history');
    if(d) d.addEventListener('click',function(){ applyPhase('design'); });
-   if(e) e.addEventListener('click',function(){ if(!confirmLeave())return; applyPhase('exec'); loadSavedList(); loadExecSuites(); loadSchedules&&loadSchedules(); loadRunHistory(); }); })();
+   if(e) e.addEventListener('click',function(){ if(!confirmLeave())return; applyPhase('exec'); loadSavedList(); loadExecSuites(); });
+   if(hh) hh.addEventListener('click',function(){ if(!confirmLeave())return; applyPhase('history'); loadRunHistory(); }); })();
  // ==== 実行履歴（実行バージョン） ====
  function loadRunHistory(){ var box=$('m-histList'); if(!box) return;
    fetch(withTok('/api/runs')).then(function(r){return r.json();}).then(function(r){ var runs=(r&&r.runs)||[];
@@ -997,9 +1032,9 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function collectSpec(){ var mm=$('m-specMermaid')?normMermaid($('m-specMermaid').value):''; if($('m-specMermaid')&&$('m-specMermaid').value!==mm)$('m-specMermaid').value=mm; return { specMode:$('m-specMode')?$('m-specMode').checked:false, specMermaid:mm }; }
  var ISS_STATUS=['未対応','対応中','確認中','完了','対象外'], ISS_PRI=['高','中','低'], mSelIssue=null;
  // ---- ビュー切替 ----
- function showView(v){ $('view-manage').classList.toggle('hidden',v!=='manage'); $('view-issues').classList.toggle('hidden',v!=='issues');
-   $('nav-manage').classList.toggle('active',v==='manage'); $('nav-issues').classList.toggle('active',v==='issues');
-   $('m-stepper').style.display=(v==='manage')?'':'none'; }
+ function showView(v){ $('view-manage').classList.toggle('hidden',v!=='manage'); $('view-issues').classList.toggle('hidden',v!=='issues'); if($('view-settings')) $('view-settings').classList.toggle('hidden',v!=='settings'); if($('view-admin')) $('view-admin').classList.toggle('hidden',v!=='admin');
+   $('nav-manage').classList.toggle('active',v==='manage'); $('nav-issues').classList.toggle('active',v==='issues'); if($('nav-settings')) $('nav-settings').classList.toggle('active',v==='settings'); if($('nav-admin')) $('nav-admin').classList.toggle('active',v==='admin');
+   $('m-stepper').style.display=(v==='manage'&&curPhase!=='history')?'':'none'; }
  // ---- 工程ステッパー（ジャンプ＋スクロール連動ハイライト） ----
  var mStepEls=[].slice.call(document.querySelectorAll('#m-stepper .step'));
  mStepEls.forEach(function(el){ el.addEventListener('click',function(){
@@ -1025,6 +1060,15 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    requestAnimationFrame(function(){ syncStepper(); mStepTick=false; }); },{passive:true});
  $('nav-manage').addEventListener('click',function(){ showView('manage'); });
  $('nav-issues').addEventListener('click',function(){ if(!confirmLeave())return; showView('issues'); if(mSelIssue) renderIssueDetail(mSelIssue); });
+ (function(){ var s=$('nav-settings'); if(s) s.addEventListener('click',function(){ if(!confirmLeave())return; showView('settings'); loadSchedules&&loadSchedules(); renderAssigneeMaster(); }); })();
+ (function(){ var a=$('nav-admin'); if(a) a.addEventListener('click',function(){ if(!confirmLeave())return; showView('admin'); }); })();
+ // ==== 担当者マスタ（プロジェクト設定 assignees）====
+ function renderAssigneeMaster(){ var ta=$('set-assignees'); if(ta) ta.value=(window.__assignees||[]).join('\n'); }
+ (function(){ var sv=$('set-assignees-save'); if(sv) sv.addEventListener('click',function(){
+   var list=($('set-assignees').value||'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
+   var uniq=[]; list.forEach(function(x){ if(uniq.indexOf(x)<0)uniq.push(x); }); window.__assignees=uniq;
+   fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{assignees:uniq}})}).then(function(r){return r.json();}).then(function(){ $('set-assignees-msg').textContent='保存しました（'+uniq.length+'名）'; renderAssigneeDatalist(); if(typeof toast==='function')toast('担当者マスタを保存しました（'+uniq.length+'名）','ok'); }).catch(function(){ $('set-assignees-msg').textContent='保存に失敗しました'; }); }); })();
+ function renderAssigneeDatalist(){ var dl=$('m-assigneeList'); if(!dl) return; dl.innerHTML=(window.__assignees||[]).map(function(a){return '<option value="'+esc(a)+'"></option>';}).join(''); }
  // ==== 課題管理サブタブ（一覧/集計/項目設定）====
  function showIssTab(t){
    $('iss-view-list').classList.toggle('hidden',t!=='list');
@@ -1190,7 +1234,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
     +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
     +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence)+'</dd>'
     +'<dt>ステータス / 優先度</dt><dd>'+sel('status',ISS_STATUS)+' '+sel('priority',ISS_PRI)+'</dd>'
-    +'<dt>担当</dt><dd><input id="issf-assignee" value="'+escAttr(i.assignee||'')+'" placeholder="担当者" style="width:160px"></dd>'
+    +'<dt>担当</dt><dd><input id="issf-assignee" list="m-assigneeList" value="'+escAttr(i.assignee||'')+'" placeholder="担当者（設定の担当者マスタから選択・自由入力可）" style="width:240px"><datalist id="m-assigneeList">'+((window.__assignees||[]).map(function(a){return '<option value="'+escAttr(a)+'"></option>';}).join(''))+'</datalist></dd>'
     +'<dt>原因</dt><dd><textarea id="issf-cause" rows="2" style="width:100%;box-sizing:border-box" placeholder="不具合の原因（例: 記号除去でアポストロフィが消える等）">'+escHtml(i.cause||'')+'</textarea></dd>'
     +'<dt>修正内容</dt><dd><textarea id="issf-fix" rows="2" style="width:100%;box-sizing:border-box" placeholder="修正の内容（例: normalizeInput から記号除去を撤去）">'+escHtml(i.fix||'')+'</textarea></dd>'
     +'<dt>メモ</dt><dd><textarea id="issf-note" rows="2" style="width:100%;box-sizing:border-box">'+escHtml(i.note||'')+'</textarea></dd>'
