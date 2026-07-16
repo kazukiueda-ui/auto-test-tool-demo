@@ -352,6 +352,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -387,8 +388,9 @@
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
    <h3>① 修正前(N)を捜索して、テストケースを生成</h3>
-   <label>テストケース生成のターゲットURL（修正前 N）</label>
-   <input id="m-url" type="url" placeholder="https://n.example.com/">
+   <label>テストケース生成のターゲットURL（修正前 N）<span class="muted" style="font-weight:400">（過去に入力したURLは入力欄クリックで履歴から選べます）</span></label>
+   <input id="m-url" type="url" placeholder="https://n.example.com/" list="m-urlHistory" autocomplete="off">
+   <datalist id="m-urlHistory"></datalist>
 
    <!-- 捜索の方針（表出スライダー） -->
    <div class="slider main">
@@ -613,7 +615,7 @@ graph TD
     <div id="m-execCases" class="muted" style="margin-top:8px">「テスト設計」で作成→④で保存したスイートを、ここで選んで実行します。</div>
    </div>
    <p class="muted" style="margin:10px 0 10px">修正前URLは不要です。選択したスイートに保存された N（修正前）の結果と比較します。UIで<b>追加した新規ケースは対象外</b>（Nの結果が無いため）。編集したケースは比較対象です。</p>
-   <label>修正後 URL（N+1）<span class="muted" style="font-weight:400">（既定は1回目のURL。変更後の環境なら書き換え）</span></label><input id="m-after" type="url" placeholder="https://n1.example.com/">
+   <label>修正後 URL（N+1）<span class="muted" style="font-weight:400">（既定は1回目のURL。変更後の環境なら書き換え。過去入力は履歴から選べます）</span></label><input id="m-after" type="url" placeholder="https://n1.example.com/" list="m-urlHistory" autocomplete="off">
    <div class="opts" style="margin-top:10px">
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video"> 録画（動画を保存・結果画面で再生）</label>
@@ -1120,6 +1122,10 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function fmtDT(iso){ if(!iso) return '-'; try{ var d=new Date(iso); if(isNaN(d.getTime())) return String(iso); var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return String(iso); } }
  // 新規スイート名の既定値＝日付＋時間（例: スイート 2026-07-16 14:30）
  function defaultSuiteName(){ var d=new Date(); var p=function(n){return (n<10?'0':'')+n;}; return 'スイート '+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }
+ // 入力したターゲットURLの履歴（localStorage・最大20件）。datalistで候補表示。
+ function urlHist(){ try{ return JSON.parse(localStorage.getItem('att_url_hist')||'[]'); }catch(e){ return []; } }
+ function pushUrlHist(u){ u=(u||'').trim(); if(!/^https?:\/\//.test(u)) return; var list=urlHist().filter(function(x){return x!==u;}); list.unshift(u); localStorage.setItem('att_url_hist',JSON.stringify(list.slice(0,20))); renderUrlHist(); }
+ function renderUrlHist(){ var dl=$('m-urlHistory'); if(!dl) return; dl.innerHTML=urlHist().map(function(u){return '<option value="'+esc(u)+'"></option>';}).join(''); }
  var issSort={key:'createdAt',dir:-1}; // 既定：起票の新しい順
  function issSortVal(i,key){ if(key==='status')return ISS_STATUS.indexOf(i.status); if(key==='id')return String(i.id||''); if(key==='title')return String(i.title||''); return String(i.createdAt||''); }
  function renderIssueList(){
@@ -1262,6 +1268,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  $('m-exploreBtn').addEventListener('click',async function(){
    var u=$('m-url').value.trim();
    if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
+   pushUrlHist(u);
    var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,headed:$('m-headed').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value};
    Object.assign(body,collectSpec()); Object.assign(body,collectLlm());
    $('m-exploreBtn').disabled=true; var lg=$('m-log'); lg.classList.remove('hidden'); lg.textContent='捜索を開始しています…';
@@ -1658,6 +1665,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(!mSuite){alert('スイートがありません');return;}
    var after=$('m-after').value.trim();
    if(!/^https?:\/\//.test(after)){alert('修正後(N+1)の http(s):// URLを入力してください');return;}
+   pushUrlHist(after);
    var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
    var apiIgnore=($('m-apiIgnore')?$('m-apiIgnore').value:'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
    var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,shots:$('m-shots').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
@@ -1753,5 +1761,5 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
  $('m-dashDetails').addEventListener('toggle',function(){ var f=$('m-frame'); if($('m-dashDetails').open && f.getAttribute('data-src') && f.src.indexOf('dashboard')<0){ f.src=f.getAttribute('data-src'); } });
  // ==== 初期化（全関数/変数定義後に実行）====
- initCtrlBar(); applyPhase('design'); setInterval(renderTokenBar, 8000);
+ initCtrlBar(); applyPhase('design'); renderUrlHist(); setInterval(renderTokenBar, 8000);
 </script></body></html>
