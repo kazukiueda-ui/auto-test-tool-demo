@@ -354,6 +354,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -383,8 +384,8 @@
    <span class="step is-locked" data-target="m-editor" data-phase="design">③ 編集</span>
    <span class="step is-locked" data-target="m-save" data-phase="design">④ 保存</span>
    <span class="step is-locked" data-target="m-runner" data-phase="exec">⑤ 比較</span>
-   <span class="step" data-target="m-schedule" data-phase="exec">⑥ 定期実行</span>
-   <span class="step" data-target="m-history" data-phase="exec">⑦ 実行履歴</span>
+   <span class="step" data-target="m-history" data-phase="exec">⑥ 実行履歴</span>
+   <span class="step" data-target="m-schedule" data-phase="exec">⑦ 定期実行</span>
   </div>
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
@@ -644,10 +645,18 @@ graph TD
    </div>
   </div>
 
-  <!-- ⑥ 定期実行（スケジュール）：保存済みスイートを時刻/間隔で自動比較。CI連携も。 -->
+  <!-- ⑥ 実行履歴（実行バージョン：スイート名＋日時／結果サマリ） -->
+  <div class="card hidden" id="m-history">
+   <h3>⑥ 実行履歴（実行バージョン）</h3>
+   <p class="muted" style="margin:0 0 8px">過去のテスト実行を<b>実行バージョン（スイート名＋実行日時）</b>ごとに保存しています。結果サマリ・レポート・課題（この実行で検出）を確認できます。</p>
+   <button id="m-histReload" class="btn-mini btn-gray" type="button">再読込</button>
+   <div id="m-histList" style="margin-top:8px"><span class="muted">読み込み中…</span></div>
+  </div>
+
+  <!-- ⑦ 定期実行（スケジュール）：保存済みスイートを時刻/間隔で自動比較。CI連携も。 -->
   <div class="card hidden" id="m-schedule" style="padding:10px 16px">
    <details>
-   <summary style="cursor:pointer;font-weight:700;color:#2a4b7c;font-size:15px">⑥ 定期実行 <span class="muted" style="font-weight:400;font-size:12px">── 保存済みスイートを時刻/間隔で自動N+1比較・CI連携（必要な時に開く）</span></summary>
+   <summary style="cursor:pointer;font-weight:700;color:#2a4b7c;font-size:15px">⑦ 定期実行 <span class="muted" style="font-weight:400;font-size:12px">── 保存済みスイートを時刻/間隔で自動N+1比較・CI連携（必要な時に開く）</span></summary>
    <p class="muted" style="margin:8px 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。運用フェーズ（設計→実行反復→結果で設計強化）に対応。</p>
    <div class="sched-row">
     <div><label>対象スイート</label><select id="sc-suite"><option value="">保存済みスイートを選択…</option></select></div>
@@ -669,14 +678,6 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
   -d '{"suiteId":"&lt;suiteId&gt;","after":"https://n1.example.com/"}'</pre>
    </details>
    </details>
-  </div>
-
-  <!-- ⑦ 実行履歴（実行バージョン：スイート名＋日時／結果サマリ） -->
-  <div class="card hidden" id="m-history">
-   <h3>⑦ 実行履歴（実行バージョン）</h3>
-   <p class="muted" style="margin:0 0 8px">過去のテスト実行を<b>実行バージョン（スイート名＋実行日時）</b>ごとに保存しています。結果サマリ・レポート・課題（この実行で検出）を確認できます。</p>
-   <button id="m-histReload" class="btn-mini btn-gray" type="button">再読込</button>
-   <div id="m-histList" style="margin-top:8px"><span class="muted">読み込み中…</span></div>
   </div>
 
   </div><!-- /workspace -->
@@ -1705,7 +1706,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      // 自動起票はしない。問題ありなら「起票」ボタンを出し、確認画面から登録する。
      var fb=$('m-fileIssueBtn'); if(fb) fb.classList.toggle('hidden',!problem);
      $('m-issueDraft').classList.add('hidden'); $('m-issueDraft').innerHTML='';
-     $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues();
+     $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues(); loadRunHistory();
      toast(problem?('問題あり：要確認 '+su.diff+' 件。内容を確認して「起票」してください。'):'問題なし：テスト前後で相違なし', problem?'ng':'ok');
    },$('m-runBtn'));
  });
