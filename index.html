@@ -86,6 +86,11 @@
  .verdict.big .vsub{font-size:13px;opacity:.9;margin-top:3px}
  .verdict.big.v-ok{background:#eafaf0;border-left:10px solid #2e7d32;color:#1b5e20}
  .verdict.big.v-ng{background:#fff5e6;border-left:10px solid #ef6c00;color:#8a4b00}
+ /* 比較結果の内訳を同列で表示（完全一致／明確に異なる／差異の疑い／対象外） */
+ .cmp-break{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 4px}
+ .cmp-chip{flex:1;min-width:120px;border:2px solid;border-radius:10px;padding:8px 10px;text-align:center;background:#fff}
+ .cmp-n{font-size:26px;font-weight:800;line-height:1.1}
+ .cmp-l{font-size:12px;color:#555;font-weight:700;margin-top:2px}
  #m-dashDetails>summary{cursor:pointer;font-weight:600;color:#37507a;font-size:13px}
  /* トップは「画面」切替（テスト管理／課題管理）。タブが下の画面パネルに繋がる立体表現 */
  .nav{display:flex;gap:4px;margin:2px 0 0;padding:0 6px;position:relative;z-index:2}
@@ -96,6 +101,21 @@
  .screen{background:#f3f6fb;border:2px solid #1f2d4d;border-radius:12px;padding:16px 16px 16px;position:relative;z-index:1;box-shadow:0 8px 22px rgba(20,30,60,.12)}
  .navcount{background:#c62828;color:#fff;border-radius:10px;font-size:11px;padding:0 7px;margin-left:4px}
  .issbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+ /* 課題の集計：内訳＝円グラフ／時系列＝線グラフ */
+ .pies{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+ .pcard{background:#fff;border:1px solid #e3e8f0;border-radius:8px;padding:10px 12px;flex:1;min-width:240px}
+ .phd{font-weight:700;font-size:13px;color:#2a4b7c;margin-bottom:6px}
+ .prow{display:flex;align-items:center;gap:10px}
+ .psvg{width:120px;height:120px;flex:0 0 120px}
+ .plegs{flex:1;min-width:0}
+ .pleg{display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0}
+ .pleg i{width:11px;height:11px;border-radius:2px;flex:0 0 auto}
+ .lcard{background:#fff;border:1px solid #e3e8f0;border-radius:8px;padding:10px 12px}
+ .lsvg{max-width:100%;height:auto}
+ /* 実行タブ：スイート選択 */
+ .exec-pick{background:#eef4ff;border:1px solid #cfe0ff;border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+ .exec-pick label{font-weight:700}
+ .exec-pick #m-execCases{flex-basis:100%}
  .iss-split{display:flex;gap:12px}@media(max-width:760px){.iss-split{flex-direction:column}}
  .iss-listcol{flex:0 0 42%;max-height:640px;overflow:auto;border:1px solid #e3e8f0;border-radius:8px}
  .iss-detailcol{flex:1;min-width:0;border:1px solid #e3e8f0;border-radius:8px;padding:12px}
@@ -301,6 +321,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -474,34 +495,31 @@ graph TD
      <div id="m-applyRecResult" class="hidden" style="margin-top:8px;background:#eef4ff;border:1px solid #cfe0ff;border-radius:8px;padding:8px 10px;font-size:13px"></div>
     </div>
     <div class="act-sec">
-     <div class="act-hd">③ AIレビューして改善（4観点で合議）</div>
+     <div class="act-hd">③ AIレビュー ── 現状評価＋（任意で）目標まで自動改善</div>
+     <p class="muted" style="margin:2px 0 8px">まず現状のテストをAI（架空のレビュアー）が評価します。下の<b>改善ラウンド数を1以上</b>にすると、そのまま「レビュー→不足観点＋AI改善ケース追加→再レビュー」を<b>目標評価に到達するか頭打ちになるまで自動で反復</b>します（Claude API・要APIキー・従量課金。ラウンドを増やすほど費用増）。</p>
      <div class="slider" style="max-width:520px;margin:2px 0 8px">
       <div class="lab"><span>レビュー深度（浅い＝速い・要点 ⇔ 深い＝網羅的に全部洗い出す）</span><b id="m-aiDepthv">0.60</b></div>
       <input type="range" id="m-aiDepth" min="0" max="1" step="0.05" value="0.6">
       <div class="muted">深いほど各観点の指摘・生成ケース数の上限が増え（最大30指摘/40ケース）、修正箇所を残らず洗い出します（トークン＝課金も増加）。</div>
      </div>
-     <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">AIレビューを実施</button>
-     <span class="muted">※実施は任意。AI（架空のレビュアー）による評価で、Claude APIを使用します（要APIキー・従量課金）。</span>
+     <div class="slider" style="max-width:520px;margin:2px 0 6px">
+      <div class="lab"><span>改善ラウンド数（<b>0＝レビューのみ</b> ／ 1以上＝目標まで自動改善）</span><b id="m-aiRoundsv">0回（レビューのみ）</b></div>
+      <input type="range" id="m-aiRounds" min="0" max="3" step="1" value="0">
+     </div>
+     <div id="m-targetWrap" class="slider hidden" style="max-width:520px;margin:2px 0 8px">
+      <div class="lab"><span>目標 総合評価（自動改善の到達目標）</span><b id="m-aiTargetv">85点</b></div>
+      <input type="range" id="m-aiTarget" min="60" max="100" step="1" value="85">
+     </div>
+     <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">AIレビューを実行</button>
+     <span class="muted" id="m-aiRunNote">※現在は「レビューのみ」（スイートは変更しません）。ラウンド数を1以上にすると自動改善まで実行します。</span>
      <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
      <div id="m-aiResult"></div>
-     <!-- レビュー本文を読んだ後に「反映するか」を決める（本文の下に配置） -->
-     <div id="m-regenWrap" class="hidden" style="border-top:1px dashed #cdb6e0;margin-top:12px;padding-top:10px">
-      <div class="muted" style="margin-bottom:6px">レビューを確認し、改善提案を取り入れる場合は（既存テストは保持したまま追加）：</div>
+     <div id="m-autoResult" style="margin-top:8px"></div>
+     <!-- レビュー結果を見て手動で部分適用したい上級者向け（自動改善を使わない場合の受け皿） -->
+     <details id="m-regenWrap" class="editsec hidden" style="margin-top:12px">
+      <summary>レビュー結果を見て、手動で改善提案ケースだけ追加する（上級者向け）</summary>
+      <div class="muted" style="margin:6px 0">既存テストは保持したまま、改善提案のテストケースだけを追加します（自動改善＝ラウンド1以上を使えばこの操作は不要です）。</div>
       <button id="m-regenBtn" class="btn-sm" style="background:#2e7d32">改善提案のテストケースを追加</button>
-     </div>
-     <div style="border-top:1px dashed #cdb6e0;margin-top:12px;padding-top:10px">
-      <div class="act-hd" style="color:#6a1b9a">目標評価まで自動改善（レビュー↔改善を自律反復）</div>
-      <p class="muted" style="margin:2px 0 8px">「レビュー→不足観点＋AI改善ケースを追加→再レビュー」を、<b>目標評価に到達するか改善が頭打ちになるまで自動で繰り返します</b>。追加ケースは既存を保持したまま増やします。<b>API呼び出しが複数ラウンド分（＝相応の従量課金）</b>発生します。</p>
-      <div class="slider" style="max-width:520px;margin:2px 0 6px">
-       <div class="lab"><span>目標 総合評価</span><b id="m-aiTargetv">85点</b></div>
-       <input type="range" id="m-aiTarget" min="60" max="100" step="1" value="85">
-      </div>
-      <div class="slider" style="max-width:520px;margin:2px 0 6px">
-       <div class="lab"><span>最大ラウンド数（頭打ちなら早期終了）</span><b id="m-aiRoundsv">3回</b></div>
-       <input type="range" id="m-aiRounds" min="1" max="6" step="1" value="3">
-      </div>
-      <button id="m-autoBtn" class="btn-sm" style="background:#8a1f5c">目標まで自動改善を実行</button>
-      <div id="m-autoResult" style="margin-top:8px"></div>
      </div>
     </div>
    </div>
@@ -529,10 +547,11 @@ graph TD
 
   <!-- ④ 名前を付けて保存（③編集とは別カードに分離し、ステッパー5工程と1対1対応） -->
   <div class="card hidden" id="m-save">
-   <h3 id="m-saveHead">④ 名前を付けて保存（サーバに保存し、後日再利用できます）</h3>
+   <h3 id="m-saveHead">④ 名前を付けて保存（保存してテスト実行させることができます）</h3>
+   <p class="muted" style="margin:0 0 8px">ここで<b>名前を付けて保存</b>すると、「テスト実行」タブのスイート一覧に表示され、選んで実行（N+1比較）できます。<b>実行するにはまず保存が必要です。</b></p>
    <div class="row" style="align-items:flex-end">
     <div><label>スイート名</label><input id="m-name" type="text" style="width:100%" placeholder="例）ToDoサイト回帰スイートv1"></div>
-    <div style="flex:0"><button id="m-saveBtn" style="margin:0">保存</button></div>
+    <div style="flex:0"><button id="m-saveBtn" style="margin:0">保存してテスト実行できるようにする</button></div>
    </div>
    <span id="m-saveMsg" class="muted"></span>
   </div>
@@ -540,8 +559,15 @@ graph TD
   <!-- ⑤ N+1を実行して保存済みNと比較 -->
   <div class="card hidden" id="m-runner">
    <h3>⑤ 修正後(N+1) を実行して、保存済みの結果(N)と比較</h3>
-   <p class="muted" style="margin:0 0 10px">修正前URLは不要です。① の捜索時に保存した N（修正前）の結果と比較します。UIで<b>追加した新規ケースは対象外</b>（Nの結果が無いため）。編集したケースは比較対象です。</p>
-   <label>修正後 URL（N+1）</label><input id="m-after" type="url" placeholder="https://n1.example.com/">
+   <div class="exec-pick">
+    <label style="font-weight:700">実行するスイートを選択</label>
+    <select id="m-execSuite"><option value="">保存済みスイートを選択…</option></select>
+    <button id="m-execReload" class="btn-mini btn-gray" type="button">再読込</button>
+    <span id="m-execInfo" class="muted"></span>
+    <div id="m-execCases" class="muted" style="margin-top:8px">「テスト設計」で作成→④で保存したスイートを、ここで選んで実行します。</div>
+   </div>
+   <p class="muted" style="margin:10px 0 10px">修正前URLは不要です。選択したスイートに保存された N（修正前）の結果と比較します。UIで<b>追加した新規ケースは対象外</b>（Nの結果が無いため）。編集したケースは比較対象です。</p>
+   <label>修正後 URL（N+1）<span class="muted" style="font-weight:400">（既定は1回目のURL。変更後の環境なら書き換え）</span></label><input id="m-after" type="url" placeholder="https://n1.example.com/">
    <div class="opts" style="margin-top:10px">
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-runHeaded"> 画面動作を表示（ローカル実行時のみ）</label>
@@ -552,10 +578,12 @@ graph TD
    <div id="m-resultCard" class="hidden" style="margin-top:12px">
     <div id="m-verdict"></div>
     <div id="m-resultActions" style="margin:10px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+     <button id="m-fileIssueBtn" class="btn-sm hidden" style="background:#c62828">起票する（内容を確認して登録）</button>
      <a id="m-reportLink" href="#" target="_blank" style="font-weight:600">総合テスト報告書 ↗</a>
      <a id="m-xlsxLink" href="#" style="font-weight:600">テストケースExcel ⬇</a>
      <a id="m-issuesLink" href="#" class="hidden" style="font-weight:600;color:#c62828">課題管理で確認</a>
     </div>
+    <div id="m-issueDraft" class="hidden" style="margin:10px 0;border:1px solid #f0c9c9;background:#fff7f7;border-radius:8px;padding:12px"></div>
     <details id="m-dashDetails"><summary>詳細（ダッシュボード：ケース別・網羅・遷移図など）を開く</summary>
      <div style="margin-top:8px"><a id="m-openLink" href="#" target="_blank" class="muted">新しいタブで開く ↗</a></div>
      <iframe id="m-frame" src="about:blank"></iframe>
@@ -564,9 +592,10 @@ graph TD
   </div>
 
   <!-- ⑥ 定期実行（スケジュール）：保存済みスイートを時刻/間隔で自動比較。CI連携も。 -->
-  <div class="card hidden" id="m-schedule">
-   <h3>⑥ 定期実行（保存済みスイートを自動でN+1比較）</h3>
-   <p class="muted" style="margin:0 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。運用フェーズ（設計→実行反復→結果で設計強化）に対応。</p>
+  <div class="card hidden" id="m-schedule" style="padding:10px 16px">
+   <details>
+   <summary style="cursor:pointer;font-weight:700;color:#2a4b7c;font-size:15px">⑥ 定期実行 <span class="muted" style="font-weight:400;font-size:12px">── 保存済みスイートを時刻/間隔で自動N+1比較・CI連携（必要な時に開く）</span></summary>
+   <p class="muted" style="margin:8px 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。運用フェーズ（設計→実行反復→結果で設計強化）に対応。</p>
    <div class="sched-row">
     <div><label>対象スイート</label><select id="sc-suite"><option value="">保存済みスイートを選択…</option></select></div>
     <div style="flex:1;min-width:220px"><label>対象URL（N+1）</label><input id="sc-after" type="url" placeholder="https://n1.example.com/" style="width:100%"></div>
@@ -585,6 +614,7 @@ npx att ci-run --project &lt;pid&gt; --suite &lt;suiteId&gt; --after https://n1.
 # API（トークン認証時は ?token= 併用）
 curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: application/json' \
   -d '{"suiteId":"&lt;suiteId&gt;","after":"https://n1.example.com/"}'</pre>
+   </details>
    </details>
   </div>
 
@@ -668,7 +698,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var mdl=$('cb-model'); if(mdl) mdl.disabled=!apiMode;
    var llmChk=$('m-llm'); if(llmChk){ llmChk.checked=apiMode; }
    // APIオフ時はAI系ボタンを不活性化
-   ['m-aiReviewBtn','m-autoBtn','m-regenBtn','m-applyRecBtn'].forEach(function(id){ var e=$(id); if(e) e.disabled=!apiMode; });
+   ['m-aiReviewBtn','m-regenBtn','m-applyRecBtn'].forEach(function(id){ var e=$(id); if(e) e.disabled=!apiMode; });
    if(typeof mEstimate==='function') mEstimate();
  }
  function updateBadge(){
@@ -789,7 +819,28 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  }
  (function(){ var d=$('sub-design'),e=$('sub-exec');
    if(d) d.addEventListener('click',function(){ applyPhase('design'); });
-   if(e) e.addEventListener('click',function(){ applyPhase('exec'); loadSavedList(); loadSchedules&&loadSchedules(); }); })();
+   if(e) e.addEventListener('click',function(){ applyPhase('exec'); loadSavedList(); loadExecSuites(); loadSchedules&&loadSchedules(); }); })();
+ // ==== 実行タブ：保存済みスイートを選択して実行 ====
+ function loadExecSuites(){ var sel=$('m-execSuite'); if(!sel) return; var cur=sel.value;
+   fetch(withTok('/api/suites')).then(function(r){return r.json();}).then(function(r){ var list=(r&&r.suites)||[];
+     sel.innerHTML='<option value="">保存済みスイートを選択…</option>'+list.map(function(s){return '<option value="'+s.id+'"'+(s.id===cur?' selected':'')+'>'+escHtml(s.name)+'（'+s.count+'件）</option>';}).join('');
+     if(!list.length){ $('m-execInfo').textContent='保存済みスイートがありません。「テスト設計」で作成→④で保存してください。'; } }); }
+ function renderExecCases(suite){ var box=$('m-execCases'); if(!box) return;
+   var scs=(suite&&suite.scenarios)||[];
+   if(!scs.length){ box.innerHTML='<span class="muted">このスイートにケースがありません。</span>'; return; }
+   var rows=scs.slice(0,50).map(function(sc,i){ return '<div style="font-size:12.5px;padding:2px 0;border-bottom:1px solid #eef1f6">'+(i+1)+'. '+escHtml(sc.name||('SCN-'+(i+1)))+'</div>'; }).join('');
+   box.innerHTML='<div style="font-weight:700;margin-bottom:4px;color:#2a4b7c">このスイートのテストケース（'+scs.length+'件）</div><div style="max-height:200px;overflow:auto;background:#fff;border:1px solid #e3e8f0;border-radius:6px;padding:6px 10px">'+rows+(scs.length>50?'<div class="muted">…ほか '+(scs.length-50)+' 件</div>':'')+'</div>'; }
+ (function(){ var sel=$('m-execSuite'); if(sel) sel.addEventListener('change',async function(){
+     var id=sel.value; if(!id){ $('m-execInfo').textContent=''; $('m-execCases').innerHTML='<span class="muted">スイートを選択してください。</span>'; return; }
+     $('m-execInfo').textContent='読み込み中…';
+     var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(id))).then(function(r){return r.json();}).catch(function(){return null;});
+     if(!rec||!rec.suite){ $('m-execInfo').textContent='読み込みに失敗しました'; return; }
+     mSuite=rec.suite; mSuiteId=rec.id; mCompared=false;
+     var url=(rec.suite.startUrl||''); if($('m-after')) $('m-after').value=url; // 既定でN+1に1回目URLを入れる
+     $('m-execInfo').textContent='選択中: '+escHtml(rec.name||rec.id)+'（開始URL: '+escHtml(url)+'）';
+     renderExecCases(rec.suite);
+   });
+   var rl=$('m-execReload'); if(rl) rl.addEventListener('click',loadExecSuites); })();
  // ==== 定期実行スケジュール ====
  function loadSchedules(){ var sel=$('sc-suite'); if(!sel) return;
    fetch(withTok('/api/suites')).then(function(r){return r.json();}).then(function(r){ var list=(r&&r.suites)||[];
@@ -831,7 +882,13 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  // AIレビューの深度・目標のラベル更新
  (function(){ var d=$('m-aiDepth'); if(d) d.addEventListener('input',function(){ $('m-aiDepthv').textContent=(+d.value).toFixed(2); });
    var t=$('m-aiTarget'); if(t) t.addEventListener('input',function(){ $('m-aiTargetv').textContent=t.value+'点'; });
-   var r=$('m-aiRounds'); if(r) r.addEventListener('input',function(){ $('m-aiRoundsv').textContent=r.value+'回'; }); })();
+   var r=$('m-aiRounds'); if(r) r.addEventListener('input',applyRounds); applyRounds(); })();
+ // 改善ラウンド数に応じて、目標スライダーの表示と実行ボタンの意味を切り替える
+ function applyRounds(){ var r=$('m-aiRounds'); if(!r)return; var n=+r.value;
+   var lbl=$('m-aiRoundsv'); if(lbl) lbl.textContent=(n===0)?'0回（レビューのみ）':(n+'回（目標まで自動改善）');
+   var tw=$('m-targetWrap'); if(tw) tw.classList.toggle('hidden', n===0);
+   var note=$('m-aiRunNote'); if(note) note.textContent=(n===0)?'※現在は「レビューのみ」（スイートは変更しません）。ラウンド数を1以上にすると自動改善まで実行します。':('※レビュー→改善を最大 '+n+' ラウンド自動反復し、目標点まで改善します（従量課金）。');
+   var btn=$('m-aiReviewBtn'); if(btn) btn.textContent=(n===0)?'AIレビューを実行':'AIレビュー＋自動改善を実行'; }
  function aiDepth(){ var d=$('m-aiDepth'); return d?+d.value:0.6; }
  function mEstimate(){
    var cases=+$('m-maxPages').value;
@@ -892,28 +949,56 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(b)b.addEventListener('click',function(){showIssTab('stats');});
    if(c)c.addEventListener('click',function(){showIssTab('fields');}); })();
  // ==== 集計・分析（ステータス/観点別＋時系列 発見数/修正数）====
- function issBar(title,obj,colorFn){ var ks=Object.keys(obj); var max=Math.max.apply(null,ks.map(function(k){return obj[k];}).concat([1]));
-   var rows=ks.map(function(k){ var v=obj[k],w=Math.round(v/max*100); return '<div style="display:flex;align-items:center;gap:8px;margin:2px 0;font-size:13px"><span style="width:120px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(k)+'</span><span style="flex:1;background:#eef1f6;border-radius:4px;overflow:hidden;height:16px"><i style="display:block;height:100%;width:'+w+'%;background:'+(colorFn?colorFn(k):'#4a6cf7')+'"></i></span><b style="width:34px">'+v+'</b></div>'; }).join('');
-   return '<div class="sufbar" style="margin:6px 0"><div style="font-weight:700;margin-bottom:4px">'+title+'</div>'+rows+'</div>'; }
+ var STAT_COL={'未対応':'#c62828','対応中':'#1565c0','確認中':'#6a1b9a','完了':'#2e7d32','対象外':'#90a4ae'};
+ var PIE_PAL=['#4a6cf7','#ef6c00','#2e7d32','#6a1b9a','#00838f','#c62828','#5d4037','#7cb342','#1565c0','#ad1457'];
+ function pieColor(k,i){ return STAT_COL[k]||PIE_PAL[i%PIE_PAL.length]; }
+ // 内訳＝ドーナツ円グラフ（インラインSVG・自己完結）
+ function issPie(title,obj){ var ks=Object.keys(obj).filter(function(k){return obj[k]>0;});
+   var total=ks.reduce(function(s,k){return s+obj[k];},0);
+   if(!total) return '<div class="pcard"><div class="phd">'+escHtml(title)+'</div><span class="muted">データなし</span></div>';
+   var cx=60,cy=60,r=52,r0=30,inner='',leg='',a0=-Math.PI/2;
+   if(ks.length===1){ var k0=ks[0],c0=pieColor(k0,0);
+     inner='<circle cx="'+cx+'" cy="'+cy+'" r="'+((r+r0)/2)+'" fill="none" stroke="'+c0+'" stroke-width="'+(r-r0)+'"><title>'+escHtml(k0)+': '+obj[k0]+' (100%)</title></circle>';
+     leg='<div class="pleg"><i style="background:'+c0+'"></i>'+escHtml(k0)+' <b>'+obj[k0]+'</b> <span class="muted">100%</span></div>';
+   } else { ks.forEach(function(k,i){ var frac=obj[k]/total,a1=a0+frac*2*Math.PI,col=pieColor(k,i),lg=frac>0.5?1:0;
+     var x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+     var xi1=cx+r0*Math.cos(a1),yi1=cy+r0*Math.sin(a1),xi0=cx+r0*Math.cos(a0),yi0=cy+r0*Math.sin(a0);
+     inner+='<path d="M'+x0.toFixed(2)+' '+y0.toFixed(2)+' A'+r+' '+r+' 0 '+lg+' 1 '+x1.toFixed(2)+' '+y1.toFixed(2)+' L'+xi1.toFixed(2)+' '+yi1.toFixed(2)+' A'+r0+' '+r0+' 0 '+lg+' 0 '+xi0.toFixed(2)+' '+yi0.toFixed(2)+' Z" fill="'+col+'"><title>'+escHtml(k)+': '+obj[k]+' ('+Math.round(frac*100)+'%)</title></path>';
+     leg+='<div class="pleg"><i style="background:'+col+'"></i>'+escHtml(k)+' <b>'+obj[k]+'</b> <span class="muted">'+Math.round(frac*100)+'%</span></div>';
+     a0=a1; }); }
+   return '<div class="pcard"><div class="phd">'+escHtml(title)+'</div><div class="prow"><svg class="psvg" viewBox="0 0 120 120">'+inner+'</svg><div class="plegs">'+leg+'</div></div></div>';
+ }
+ // 時系列＝横軸に日付をとった線グラフ（発見数・修正数）
+ function issLine(days,found,fixed){ if(!days.length) return '<span class="muted">データなし</span>';
+   var padL=30,padR=12,padT=12,padB=26,H=180, W=Math.max(340,days.length*48+padL+padR);
+   var iw=W-padL-padR, ih=H-padT-padB;
+   var maxV=Math.max.apply(null,days.map(function(d){return Math.max(found[d]||0,fixed[d]||0);}).concat([1]));
+   function X(i){ return padL+(days.length===1?iw/2:(i/(days.length-1))*iw); }
+   function Y(v){ return padT+ih-(v/maxV)*ih; }
+   var grid='',tk=Math.min(maxV,4);
+   for(var t=0;t<=tk;t++){ var v=Math.round(maxV*t/tk),y=Y(v); grid+='<line x1="'+padL+'" y1="'+y.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+y.toFixed(1)+'" stroke="#e6ebf2"/><text x="'+(padL-4)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end" font-size="9" fill="#889">'+v+'</text>'; }
+   function path(obj){ return days.map(function(d,i){return (i?'L':'M')+X(i).toFixed(1)+' '+Y(obj[d]||0).toFixed(1);}).join(' '); }
+   function dots(obj,col){ return days.map(function(d,i){return '<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(obj[d]||0).toFixed(1)+'" r="2.6" fill="'+col+'"><title>'+d+': '+(obj[d]||0)+'</title></circle>';}).join(''); }
+   var xlab=days.map(function(d,i){ if(days.length>8 && (i%2)) return ''; return '<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle" font-size="9" fill="#889">'+escHtml(d.slice(5))+'</text>'; }).join('');
+   return '<div style="overflow-x:auto"><svg class="lsvg" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'">'+grid
+     +'<path d="'+path(found)+'" fill="none" stroke="#c62828" stroke-width="2"/>'+dots(found,'#c62828')
+     +'<path d="'+path(fixed)+'" fill="none" stroke="#2e7d32" stroke-width="2"/>'+dots(fixed,'#2e7d32')
+     +xlab+'</svg></div>';
+ }
  function renderIssueStats(){ var el=$('iss-stats'); if(!el)return; var list=(window.__issues||[]);
    if(!list.length){ el.innerHTML='<span class="muted">課題が起票されると集計が表示されます。</span>'; return; }
    var ST=['未対応','対応中','確認中','完了','対象外']; var byStatus={}; ST.forEach(function(s){byStatus[s]=0;});
    var byCat={}, byTier={};
    list.forEach(function(i){ byStatus[i.status]=(byStatus[i.status]||0)+1; var c=(i.category&&i.category[0])||'未分類'; byCat[c]=(byCat[c]||0)+1; var tr=i.kindLabel||i.tier||'-'; byTier[tr]=(byTier[tr]||0)+1; });
-   var scColor={'未対応':'#c62828','対応中':'#1565c0','確認中':'#6a1b9a','完了':'#2e7d32','対象外':'#90a4ae'};
+   var stForPie={}; ST.forEach(function(s){ if(byStatus[s]>0) stForPie[s]=byStatus[s]; });
    function dayOf(iso){ try{ return String(iso).slice(0,10); }catch(e){ return ''; } }
    var days={}, found={}, fixed={};
    list.forEach(function(i){ var d=dayOf(i.createdAt); if(d){days[d]=1; found[d]=(found[d]||0)+1;} if(i.status==='完了'){ var d2=dayOf(i.updatedAt); if(d2){days[d2]=1; fixed[d2]=(fixed[d2]||0)+1;} } });
    var dayList=Object.keys(days).sort();
-   var maxD=Math.max.apply(null,dayList.map(function(d){return Math.max(found[d]||0,fixed[d]||0);}).concat([1]));
-   var tsRows=dayList.map(function(d){ var f=found[d]||0,x=fixed[d]||0;
-     return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:1px 0"><span style="width:80px">'+d+'</span><span style="flex:1;display:flex;gap:2px;align-items:center"><i title="発見'+f+'" style="background:#c62828;height:14px;width:'+Math.round(f/maxD*50)+'%;min-width:'+(f?2:0)+'px;border-radius:2px"></i><i title="修正'+x+'" style="background:#2e7d32;height:14px;width:'+Math.round(x/maxD*50)+'%;min-width:'+(x?2:0)+'px;border-radius:2px"></i></span><b style="width:96px;font-size:11px;color:#666">発見'+f+' / 修正'+x+'</b></div>'; }).join('');
    var openN=list.filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
    el.innerHTML='<div class="muted" style="margin-bottom:8px">全 '+list.length+' 件（未完了 '+openN+' ／ 完了 '+(byStatus['完了']||0)+'）</div>'
-     +issBar('ステータス別',byStatus,function(k){return scColor[k]||'#4a6cf7';})
-     +issBar('業務領域別',byCat)
-     +issBar('判定(観点)別',byTier)
-     +'<div class="sufbar" style="margin:6px 0"><div style="font-weight:700;margin-bottom:4px">時系列（<span style="color:#c62828">■発見数</span> ／ <span style="color:#2e7d32">■修正数(完了)</span>）</div>'+(tsRows||'<span class="muted">データなし</span>')+'</div>';
+     +'<div class="pies">'+issPie('ステータス別',stForPie)+issPie('業務領域別',byCat)+issPie('判定(観点)別',byTier)+'</div>'
+     +'<div class="lcard"><div class="phd">時系列（<span style="color:#c62828">●発見数</span> ／ <span style="color:#2e7d32">●修正数(完了)</span> ／ 横軸＝日付）</div>'+issLine(dayList,found,fixed)+'</div>';
  }
  // ==== カスタム項目の定義（プロジェクト共通）====
  var ISS_FTYPES=[['text','テキスト'],['textarea','複数行テキスト'],['select','選択(ドロップダウン)'],['number','数値'],['date','日付']];
@@ -944,6 +1029,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  }
  function updateNavCount(){ var openN=(window.__issues||[]).filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
    var b=$('nav-issCount'); b.textContent=openN; b.classList.toggle('hidden',openN===0); }
+ function fmtDT(iso){ if(!iso) return '-'; try{ var d=new Date(iso); if(isNaN(d.getTime())) return String(iso); var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return String(iso); } }
  function renderIssueList(){
    var list=(window.__issues||[]); var openOnly=$('m-issOpen').checked; var q=($('m-issSearch').value||'').toLowerCase();
    var shown=list.filter(function(i){ if(openOnly&&(i.status==='完了'||i.status==='対象外'))return false; if(q&&(i.title+' '+i.caseName+' '+i.diff).toLowerCase().indexOf(q)<0)return false; return true; });
@@ -952,7 +1038,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var w=$('m-issList');
    if(!shown.length){ w.innerHTML='<div class="muted" style="padding:12px">課題はありません（2回目でNGが出ると自動起票されます）。</div>'; return; }
    var rows=shown.map(function(i){
-     return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+'" data-id="'+i.id+'"><td><span class="stchip sc-'+i.status+'">'+i.status+'</span></td><td><b>'+escHtml(i.title)+'</b><div class="muted">'+i.id.slice(-6)+' / '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+'</div></td></tr>';
+     return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+'" data-id="'+i.id+'"><td><span class="stchip sc-'+i.status+'">'+i.status+'</span></td><td><b>'+escHtml(i.title)+'</b><div class="muted">'+i.id.slice(-6)+' / '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+'<br>起票 '+fmtDT(i.createdAt)+(i.suite&&(i.suite.name||i.suite.id)?' ／ '+escHtml(i.suite.name||i.suite.id):'')+'</div></td></tr>';
    }).join('');
    w.innerHTML='<table class="iss"><thead><tr><th style="width:78px">状態</th><th>課題（クリックで詳細）</th></tr></thead><tbody>'+rows+'</tbody></table>';
    w.querySelectorAll('tr.irow').forEach(function(tr){ tr.addEventListener('click',function(){ mSelIssue=tr.getAttribute('data-id'); renderIssueList(); renderIssueDetail(mSelIssue); }); });
@@ -985,6 +1071,8 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
     +'<dl class="idl">'
     +'<dt>課題ID</dt><dd>'+i.id+(i.external?' / 連携: '+escHtml(i.external.system)+' '+escHtml(i.external.key):'')+'</dd>'
     +'<dt>対象テストケース</dt><dd><b>'+escHtml(i.caseId)+'</b> '+escHtml(i.caseName)+' <button id="m-issGoCase" class="btn-mini" style="background:#37507a">このテストケースを開く</button></dd>'
+    +'<dt>実行スイート</dt><dd>'+((i.suite&&(i.suite.name||i.suite.id))?escHtml(i.suite.name||i.suite.id):'<span class="muted">（不明）</span>')+'</dd>'
+    +'<dt>起票日時</dt><dd>'+fmtDT(i.createdAt)+'<span class="muted"> ／ 最終更新: '+fmtDT(i.updatedAt)+'</span></dd>'
     +'<dt>判定 / カテゴリ</dt><dd>'+escHtml(i.kindLabel)+' ／ '+escHtml((i.category||[]).join(' > '))+' ／ 対象: '+escHtml(i.target)+(i.occurrences>1?' ／ 再発 '+i.occurrences+'回':'')+'</dd>'
     +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
     +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence)+'</dd>'
@@ -1156,7 +1244,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function showCtx(x,y,path){
    var m=$('m-ctx'); m.innerHTML='';
    function item(label,fn){ var b=document.createElement('button'); b.textContent=label; b.onclick=function(){ hideCtx(); fn(); }; m.appendChild(b); }
-   item('新規サブフォルダ', function(){ addFolder(path); });
+   item('📁 新規サブフォルダ', function(){ addFolder(path); });
    if(path.length){ item('名前を変更', function(){ renameFolder(path); }); var s=document.createElement('div'); s.className='sep'; m.appendChild(s); item('フォルダを削除', function(){ deleteFolder(path); }); }
    m.style.left=Math.min(x,window.innerWidth-180)+'px'; m.style.top=y+'px'; m.classList.remove('hidden');
  }
@@ -1172,7 +1260,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var tree=$('m-tree'); tree.innerHTML='';
    // ルート「すべて」（ドロップで自動分類へ戻す）
    var rrow=document.createElement('div'); rrow.className='frow'+((!mSelFolder||!mSelFolder.length)?' sel':'');
-   rrow.innerHTML='<span class="ftw"></span>すべて <span class="fcount">('+root.count+')</span>';
+   rrow.innerHTML='<span class="ftw"></span>🗂 すべて <span class="fcount">('+root.count+')</span>';
    rrow.onclick=function(){ mSelFolder=null; renderCases(); };
    rrow.oncontextmenu=function(e){ e.preventDefault(); e.stopPropagation(); showCtx(e.clientX,e.clientY,[]); };
    makeDrop(rrow, []); // すべてにドロップ＝明示フォルダ解除（自動分類）
@@ -1184,7 +1272,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
        var wrap=document.createElement('div'); wrap.className='fnode';
        var row=document.createElement('div'); row.className='frow'+(sameFolder(mSelFolder,ch.path)?' sel':'');
        var tw=hasKids?(expanded?'▾':'▸'):'';
-       row.innerHTML='<span class="ftw'+(hasKids?' ftog':'')+'">'+tw+'</span>'+(hasKids?(expanded?'':''):'')+' <span>'+escapeHtml(ch.name)+'</span><span class="fcount">('+ch.count+')</span>';
+       row.innerHTML='<span class="ftw'+(hasKids?' ftog':'')+'">'+tw+'</span>'+(hasKids&&expanded?'📂':'📁')+' <span>'+escapeHtml(ch.name)+'</span><span class="fcount">('+ch.count+')</span>';
        if(hasKids){ row.querySelector('.ftog').onclick=function(e){ e.stopPropagation(); if(expanded)mExpanded.delete(pk); else mExpanded.add(pk); renderTree(root,items); }; }
        row.onclick=function(e){ e.stopPropagation(); if(hasKids)mExpanded.add(pk); mSelFolder=ch.path.slice(); renderCases(); };
        row.oncontextmenu=function(e){ e.preventDefault(); e.stopPropagation(); mSelFolder=ch.path.slice(); showCtx(e.clientX,e.clientY,ch.path); };
@@ -1199,7 +1287,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function escapeHtml(s){ return esc(s); }
  function renderList(items){
    var wrap=$('m-cases'); wrap.innerHTML='';
-   $('m-path').textContent=''+((mSelFolder&&mSelFolder.length)?mSelFolder.join(' ＞ '):'すべて');
+   $('m-path').textContent='📁 '+((mSelFolder&&mSelFolder.length)?mSelFolder.join(' ＞ '):'すべて');
    var shown=items.filter(function(it){ return folderStarts(it.path, mSelFolder); });
    if(!shown.length){ wrap.innerHTML='<div class="muted">このフォルダにケースはありません</div>'; return; }
    shown.forEach(function(it){
@@ -1229,12 +1317,30 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    },350);
  }
  $('m-reviewBtn').addEventListener('click',refreshReview);
+ // 統合実行：ラウンド0=レビューのみ／1以上=目標まで自動改善（レビューを内包）
  $('m-aiReviewBtn').addEventListener('click',function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
-   var btn=$('m-aiReviewBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='AIレビューを開始しています…（4観点＋合議）'; $('m-aiResult').innerHTML='';
-   fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+   var rounds=+($('m-aiRounds').value||0), target=+($('m-aiTarget').value||85), depth=aiDepth();
+   var btn=$('m-aiReviewBtn'); var lg=$('m-aiLog'); lg.classList.remove('hidden'); $('m-aiResult').innerHTML=''; $('m-autoResult').innerHTML='';
+   if(rounds===0){
+     btn.disabled=true; lg.textContent='AIレビューを開始しています…';
+     fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+      .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
+        poll(r.runId,lg,function(s){ btn.disabled=false; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } },btn);
+      });
+     return;
+   }
+   if(!confirm('目標 '+target+'点まで、レビュー→改善を最大 '+rounds+' ラウンド自動反復します。\n各ラウンドで複数回のClaude API呼び出し（従量課金）が発生します。実行しますか？')) return;
+   btn.disabled=true; lg.textContent='AIレビュー＋自動改善を開始しています…';
+   fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:target,maxRounds:rounds,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } },btn);
+      poll(r.runId,lg,function(s){ btn.disabled=false;
+        if(s.suite){ mSuite=s.suite; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } renderCases();
+          var sm=s.summary||{}; var rws=(sm.rounds||[]).map(function(x){return '<tr><td>R'+x.round+'</td><td style="text-align:right">'+x.before+'→'+x.after+'</td><td style="text-align:right">+'+x.added+'</td></tr>';}).join('');
+          $('m-autoResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:'+(sm.reachedTarget?'#2e7d32':'#ef6c00')+';font-size:16px">'+esc2(sm.note||'')+'</b>'+(rws?'<table style="margin-top:6px;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:2px 8px">ラウンド</th><th style="padding:2px 8px">評価</th><th style="padding:2px 8px">追加</th></tr></thead><tbody>'+rws+'</tbody></table>':'')+'</div>';
+          toast((sm.reachedTarget?'目標到達：':'改善完了：')+esc2(sm.note||''),'ok');
+        }
+      },btn);
     });
  });
  $('m-applyRecBtn').addEventListener('click',function(){
@@ -1258,23 +1364,6 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
         if(s.suite){ mSuite=s.suite; renderCases(); var n=(s.summary&&s.summary.added)||0; toast('改善提案から '+n+' 件のテストケースを追加しました（下の③で確認・編集できます）','ok'); }
-      },btn);
-    });
- });
- // 目標評価まで自律ループ（レビュー↔改善の反復）
- $('m-autoBtn').addEventListener('click',function(){
-   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
-   var target=+$('m-aiTarget').value, rounds=+$('m-aiRounds').value, depth=aiDepth();
-   if(!confirm('目標 '+target+'点まで、レビュー↔改善を最大 '+rounds+' ラウンド自動反復します。\n各ラウンドで複数回のClaude API呼び出し（従量課金）が発生します。実行しますか？')) return;
-   var btn=$('m-autoBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='自律改善を開始しています…'; $('m-autoResult').innerHTML='';
-   fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:target,maxRounds:rounds,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
-    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-      poll(r.runId,lg,function(s){ btn.disabled=false;
-        if(s.suite){ mSuite=s.suite; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } renderCases();
-          var sm=s.summary||{}; var rws=(sm.rounds||[]).map(function(x){return '<tr><td>R'+x.round+'</td><td style="text-align:right">'+x.before+'→'+x.after+'</td><td style="text-align:right">+'+x.added+'</td></tr>';}).join('');
-          $('m-autoResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:'+(sm.reachedTarget?'#2e7d32':'#ef6c00')+';font-size:16px">'+esc2(sm.note||'')+'</b>'+(rws?'<table style="margin-top:6px;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:2px 8px">ラウンド</th><th style="padding:2px 8px">評価</th><th style="padding:2px 8px">追加</th></tr></thead><tbody>'+rws+'</tbody></table>':'')+'</div>';
-          toast((sm.reachedTarget?'目標到達：':'改善完了：')+esc2(sm.note||''), sm.reachedTarget?'ok':'ok');
-        }
       },btn);
     });
  });
@@ -1447,10 +1536,12 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    mSuiteId=r.id; refreshStepMarks(); $('m-saveMsg').textContent='保存しました（'+r.name+' / '+r.count+'件）'; loadSavedList();
  });
  $('m-runBtn').addEventListener('click',async function(){
+   if(!mSuiteId){alert('実行するスイートを選択してください（先に「テスト設計」で作成→④で保存し、上の一覧から選びます）');return;}
    if(!mSuite){alert('スイートがありません');return;}
    var after=$('m-after').value.trim();
    if(!/^https?:\/\//.test(after)){alert('修正後(N+1)の http(s):// URLを入力してください');return;}
-   var body={suite:mSuite,after:after,shots:$('m-shots').checked,headed:$('m-runHeaded').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
+   var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
+   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,shots:$('m-shots').checked,headed:$('m-runHeaded').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
    $('m-runBtn').disabled=true; var lg=$('m-runlog'); lg.classList.remove('hidden'); lg.textContent='N+1を実行して比較を開始…'; $('m-resultCard').classList.add('hidden');
    var r=await fetch(withTok('/api/run-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-runBtn').disabled=false;return;}
@@ -1462,16 +1553,73 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      // まず「問題ある/なし」を大きく表示
      var vh;
      if(!problem){ vh='<div class="verdict big v-ok"><div class="vico">✓</div><div><div class="vtxt">問題なし</div><div class="vsub">テスト前後で相違ありません（比較 '+su.total+' ケース／回帰なし）</div></div></div>'; }
-     else { vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">問題あり ── 要確認 '+su.diff+' 件</div><div class="vsub">明確に異なる '+clear+' 件 ／ 差異の疑い '+suspect+' 件'+(skip?(' ／ 対象外 '+skip):'')+'。詳細は下記または課題管理で確認。</div></div></div>'; }
-     $('m-verdict').innerHTML=vh;
+     else { vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">問題あり ── 要確認 '+su.diff+' 件</div><div class="vsub">詳細は下記または課題管理で確認。</div></div></div>'; }
+     // 比較したテストケースの内訳を「同列」で視覚化（完全一致／明確に異なる／差異の疑い／対象外）
+     var okN=Math.max(0, (su.total||0)-clear-suspect-skip);
+     function cmpChip(lbl,n,col,bg){ return '<div class="cmp-chip" style="border-color:'+col+';background:'+bg+'"><div class="cmp-n" style="color:'+col+'">'+n+'</div><div class="cmp-l">'+lbl+'</div></div>'; }
+     var breakHtml='<div class="cmp-break">'
+       +cmpChip('完全一致',okN,'#2e7d32','#eafaf0')
+       +cmpChip('明確に異なる',clear,'#c62828','#fdecea')
+       +cmpChip('差異の疑い',suspect,'#ef6c00','#fff4e6')
+       +(skip?cmpChip('対象外',skip,'#90a4ae','#f2f4f7'):'')
+       +'</div>';
+     $('m-verdict').innerHTML=vh+breakHtml;
      var durl=withTok('runs/'+r.runId+'/dashboard.html'); $('m-openLink').href=durl; $('m-frame').setAttribute('data-src',durl); $('m-frame').src=durl;
      $('m-dashDetails').open=true; // テスト実施終了後はダッシュボードを開いた状態にする
      $('m-reportLink').href=withTok('runs/'+r.runId+'/report.html'); $('m-xlsxLink').href=withTok('runs/'+r.runId+'/testcases.xlsx');
+     mLastRunId=r.runId;
      var il=$('m-issuesLink'); il.classList.toggle('hidden',!problem); il.onclick=function(e){ e.preventDefault(); showView('issues'); loadIssues(); };
+     // 自動起票はしない。問題ありなら「起票」ボタンを出し、確認画面から登録する。
+     var fb=$('m-fileIssueBtn'); if(fb) fb.classList.toggle('hidden',!problem);
+     $('m-issueDraft').classList.add('hidden'); $('m-issueDraft').innerHTML='';
      $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues();
-     toast(problem?('問題あり：要確認 '+su.diff+' 件（明確に異なる '+clear+'／疑い '+suspect+'）'):'問題なし：テスト前後で相違なし', problem?'ng':'ok');
+     toast(problem?('問題あり：要確認 '+su.diff+' 件。内容を確認して「起票」してください。'):'問題なし：テスト前後で相違なし', problem?'ng':'ok');
    },$('m-runBtn'));
  });
+ // ==== 起票フロー：結果のNGからドラフトを取得→確認・編集→課題管理へ登録 ====
+ var mLastRunId=null, mDrafts=[];
+ (function(){ var b=$('m-fileIssueBtn'); if(!b) return; b.addEventListener('click',async function(){
+   if(!mLastRunId){ alert('先にN+1比較を実行してください'); return; }
+   b.disabled=true; var box=$('m-issueDraft'); box.classList.remove('hidden'); box.innerHTML='起票内容を準備中…';
+   var r=await fetch(withTok('/api/issue-draft?runId='+encodeURIComponent(mLastRunId))).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   b.disabled=false;
+   if(!r||r.error){ box.innerHTML='<span style="color:#c62828">取得失敗: '+esc2((r&&r.error)||'不明')+'</span>'; return; }
+   mDrafts=(r.drafts||[]);
+   if(!mDrafts.length){ box.innerHTML='<span class="muted">起票対象のNGはありませんでした。</span>'; return; }
+   renderDrafts();
+ }); })();
+ function renderDrafts(){ var box=$('m-issueDraft');
+   var rows=mDrafts.map(function(d,idx){
+     var pris=['高','中','低'].map(function(p){return '<option'+(p===d.priority?' selected':'')+'>'+p+'</option>';}).join('');
+     return '<div class="draft-row" data-i="'+idx+'" style="border-top:1px solid #f0d5d5;padding:8px 0">'
+       +'<label style="font-weight:700;display:flex;align-items:center;gap:6px"><input type="checkbox" class="dft-on" checked> 起票する</label>'
+       +'<div style="margin:4px 0"><input class="dft-title" value="'+escAttr(d.title||'')+'" style="width:100%;padding:5px 8px;border:1px solid #e0c0c0;border-radius:5px;font-weight:700"></div>'
+       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:#666"><span>対象: <b>'+escHtml(d.caseId||'')+'</b> '+escHtml(d.caseName||'')+'</span><span>優先度 <select class="dft-pri">'+pris+'</select></span>'+(d.suite&&(d.suite.name||d.suite.id)?'<span>スイート: '+escHtml(d.suite.name||d.suite.id)+'</span>':'')+'</div>'
+       +'<div style="margin:4px 0"><div class="muted" style="font-size:11px">具体的な相違点</div><textarea class="dft-diff" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;border:1px solid #e0c0c0;border-radius:5px">'+escHtml(d.diff||'')+'</textarea></div>'
+       +'<div style="margin:4px 0"><div class="muted" style="font-size:11px">原因（任意・分かっていれば）</div><textarea class="dft-cause" rows="1" style="width:100%;box-sizing:border-box;font-size:12px;border:1px solid #e0c0c0;border-radius:5px" placeholder="例: 記号除去でアポストロフィが消える等">'+escHtml(d.cause||'')+'</textarea></div>'
+       +'</div>';
+   }).join('');
+   box.innerHTML='<div style="font-weight:700;color:#c62828;margin-bottom:4px">起票内容の確認（'+mDrafts.length+'件）</div>'
+     +'<div class="muted" style="font-size:12px;margin-bottom:6px">必要に応じて編集し、チェックを付けたものを課題管理へ登録します。登録後も課題管理で編集できます。</div>'
+     +rows
+     +'<div style="margin-top:10px;display:flex;gap:10px"><button id="m-draftSubmit" class="btn-sm" style="background:#c62828">課題管理に登録</button><button id="m-draftCancel" class="btn-sm btn-gray">キャンセル</button></div>';
+   $('m-draftCancel').onclick=function(){ box.classList.add('hidden'); box.innerHTML=''; };
+   $('m-draftSubmit').onclick=submitDrafts;
+ }
+ async function submitDrafts(){ var box=$('m-issueDraft');
+   var picked=[];
+   box.querySelectorAll('.draft-row').forEach(function(row){ if(!row.querySelector('.dft-on').checked) return; var i=+row.getAttribute('data-i'); var d=Object.assign({},mDrafts[i]);
+     d.title=row.querySelector('.dft-title').value; d.priority=row.querySelector('.dft-pri').value; d.diff=row.querySelector('.dft-diff').value; d.cause=row.querySelector('.dft-cause').value; picked.push(d); });
+   if(!picked.length){ alert('登録する課題にチェックを付けてください'); return; }
+   var btn=$('m-draftSubmit'); btn.disabled=true; btn.textContent='登録中…';
+   var r=await fetch(withTok('/api/issue-add'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({drafts:picked})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   if(!r||r.error){ btn.disabled=false; btn.textContent='課題管理に登録'; alert('登録失敗: '+((r&&r.error)||'不明')); return; }
+   box.classList.add('hidden'); box.innerHTML='';
+   $('m-fileIssueBtn').classList.add('hidden');
+   toast('課題管理に登録しました（新規 '+(r.created||0)+' 件／更新 '+(r.updated||0)+' 件）','ok');
+   loadIssues(); updateNavCount();
+   showView('issues'); loadIssues();
+ }
  // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
  $('m-dashDetails').addEventListener('toggle',function(){ var f=$('m-frame'); if($('m-dashDetails').open && f.getAttribute('data-src') && f.src.indexOf('dashboard')<0){ f.src=f.getAttribute('data-src'); } });
  // ==== 初期化（全関数/変数定義後に実行）====
