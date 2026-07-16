@@ -210,6 +210,8 @@
  function H(t){ return Promise.resolve(new Response(t,{status:200,headers:{'Content-Type':'text/html; charset=utf-8'}})); }
  var cache={};
  function load(p){ if(!cache[p]) cache[p]=origFetch(p).then(function(r){return r.text();}); return cache[p]; }
+ // デモ用：保存済みスイート一覧の簡易状態（保存すると増える＝実行タブにも出る）
+ var _demoSuites=[{id:'demo',name:'ToDo管理 デモ（保存済み）',count:10,updatedAt:'2026-07-16T00:00:00Z'}];
  var EXP=[
   '[捜索] https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/ を走査中…（ルールベース）',
   '　└ 入力欄/追加ボタン/フィルタ3種/各項目のチェック・削除 を検出',
@@ -299,8 +301,11 @@
    if(has('/api/review')) return load('data/review.html').then(function(t){ return H(t); });
    if(has('/api/spec')) return load('data/spec.json').then(function(t){ return J(JSON.parse(t)); });
    if(has('/api/issues')) return load('data/issues.json').then(function(t){ return J(JSON.parse(t.split('"/runs/').join('"runs/'))); });
-   if(has('/api/suites')&&method==='GET') return J({suites:[]});
-   if(has('/api/suites')&&method==='POST') return J({id:'demo',name:'ToDo管理 デモ',count:10,updatedAt:''});
+   if(has('/api/suites')&&method==='GET') return J({suites:_demoSuites});
+   if(has('/api/suites')&&method==='POST'){ var nm='ToDo管理 デモ'; try{ var pb=JSON.parse((init&&init.body)||'{}'); if(pb.name) nm=String(pb.name); }catch(e){}
+     var id=(nm.toLowerCase().replace(/[^\w-]/g,'').slice(0,16))||'suite'; var ex=_demoSuites.filter(function(x){return x.name===nm;})[0];
+     if(ex){ ex.updatedAt='2026-07-16T00:00:00Z'; return J(ex); }
+     var rec={id:id,name:nm,count:10,updatedAt:'2026-07-16T00:00:00Z'}; _demoSuites.unshift(rec); return J(rec); }
    if(has('/api/suite')&&method==='GET') return load('data/suite.json').then(function(t){ return J({id:'demo',name:'ToDo管理 デモ',suite:JSON.parse(t)}); });
    if(has('/api/issue-update')) return J({issue:{}});
    if(has('/api/augment')) return J({suite:null,added:[],notDerivable:['デモではケース追加は無効です']});
