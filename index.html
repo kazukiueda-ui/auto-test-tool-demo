@@ -298,10 +298,20 @@
      if(id==='demo-apply') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['信頼度の推奨アクションを反映中…','完了'],suite:JSON.parse(t),summary:{details:['不足観点ケースを追加','弱ロケータを安定要素へ変更']}}); });
      if(id==='demo-regen') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['改善提案からケース生成中…','完了'],suite:JSON.parse(t),summary:{added:6}}); });
      if(id==='demo-cmp') return load('data/summary.json').then(function(t){ return J({status:'done',progress:CMP,summary:JSON.parse(t).summary}); });
+     if(id==='demo-capture') return load('data/suite.json').then(function(t){ return J({status:'done',progress:['1回目(N)を実行中…','ベースライン取得 完了: 2 件（比較対象になりました）'],suite:JSON.parse(t),summary:{captured:2}}); });
      return J({status:'done',progress:[]});
    }
    if(has('/api/review')) return load('data/review.html').then(function(t){ return H(t); });
    if(has('/api/spec')) return load('data/spec.json').then(function(t){ return J(JSON.parse(t)); });
+   if(has('/api/runs')&&method==='GET') return J({runs:[
+     {runId:'demo-cmp',version:'ToDo回帰デモ @ 2026-07-16 03:00',suiteName:'ToDo回帰デモ',after:'https://uedakazuki-plainliving.github.io/auto-test-site-demo/patched/',at:'2026-07-16T03:00:00.000Z',total:12,same:8,diff:4,skipped:0}
+   ]});
+   if(has('/api/capture-baseline')) return J({runId:'demo-capture'});
+   if(has('/api/issue-draft')) return J({drafts:[
+     {key:'demo|SCN-009|diff-structure',title:'[明確に異なる] 「A & B」を追加して一覧表示',caseId:'SCN-009',caseName:'「A & B」を追加して一覧表示',priority:'高',diff:'表示/構造の差 ⇒ 本文テキスト: N「Tom & Jerry」→ N+1「Tom &amp; Jerry」',cause:'',suite:{name:'ToDo回帰デモ'},runVersion:'ToDo回帰デモ @ 2026-07-16 03:00',alreadyOpen:false},
+     {key:'demo|SCN-002|diff-api',title:'[明確に異なる] 新規ToDoを追加できる（API差分）',caseId:'SCN-002',caseName:'新規ToDoを追加できる',priority:'高',diff:'API差分 ⇒ N「POST api/todos {text}」→ N+1「POST api/todo {title}」',cause:'',suite:{name:'ToDo回帰デモ'},runVersion:'ToDo回帰デモ @ 2026-07-16 03:00',alreadyOpen:false}
+   ]});
+   if(has('/api/issue-add')&&method==='POST'){ var n=1; try{ var pb=JSON.parse((init&&init.body)||'{}'); if(Array.isArray(pb.drafts)) n=pb.drafts.length; }catch(e){} return J({created:n,updated:0}); }
    if(has('/api/issues')) return load('data/issues.json').then(function(t){ return J(JSON.parse(t.split('"/runs/').join('"runs/'))); });
    if(has('/api/suites')&&method==='GET') return J({suites:_demoSuites});
    if(has('/api/suites')&&method==='POST'){ var nm='ToDo管理 デモ'; try{ var pb=JSON.parse((init&&init.body)||'{}'); if(pb.name) nm=String(pb.name); }catch(e){}
@@ -321,6 +331,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
@@ -370,6 +381,7 @@
    <span class="step is-locked" data-target="m-save" data-phase="design">④ 保存</span>
    <span class="step is-locked" data-target="m-runner" data-phase="exec">⑤ 比較</span>
    <span class="step" data-target="m-schedule" data-phase="exec">⑥ 定期実行</span>
+   <span class="step" data-target="m-history" data-phase="exec">⑦ 実行履歴</span>
   </div>
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
@@ -655,6 +667,14 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    </details>
   </div>
 
+  <!-- ⑦ 実行履歴（実行バージョン：スイート名＋日時／結果サマリ） -->
+  <div class="card hidden" id="m-history">
+   <h3>⑦ 実行履歴（実行バージョン）</h3>
+   <p class="muted" style="margin:0 0 8px">過去のテスト実行を<b>実行バージョン（スイート名＋実行日時）</b>ごとに保存しています。結果サマリ・レポート・課題（この実行で検出）を確認できます。</p>
+   <button id="m-histReload" class="btn-mini btn-gray" type="button">再読込</button>
+   <div id="m-histList" style="margin-top:8px"><span class="muted">読み込み中…</span></div>
+  </div>
+
   </div><!-- /workspace -->
  </div><!-- /view-manage -->
 
@@ -685,7 +705,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
   </div>
   <div id="iss-view-fields" class="card hidden">
    <h3 style="margin:0 0 4px">カスタム項目の設定（このプロジェクト共通）</h3>
-   <p class="muted" style="margin:0 0 10px">ここで定義した項目（名前＋型）は、<b>このプロジェクトの全課題で共通</b>に使えます（JIRA風）。型はテキスト/複数行/選択/数値/日付から選べます。</p>
+   <p class="muted" style="margin:0 0 10px">ここで定義した項目（名前＋型）は、<b>このプロジェクトの全課題で共通</b>に使えます。型はテキスト/複数行/選択/数値/日付から選べます。</p>
    <div id="iss-fields-editor"></div>
    <button id="iss-fields-add" class="btn-sm btn-gray" style="margin-top:6px">＋ 項目を追加</button>
    <div style="margin-top:10px"><button id="iss-fields-save" style="margin:0">項目定義を保存</button> <span id="iss-fields-msg" class="muted"></span></div>
@@ -778,7 +798,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
    var cbm=$('cb-mode'); if(cbm) cbm.addEventListener('click',function(){ if(!ATT_ENV.llmAvailable){ apiMode=false; if(typeof toast==='function') toast('APIキー未設定のためAPIオフのみ利用できます','ng'); } else { apiMode=!apiMode; } applyModeUi(); });
-   var cbp=$('cb-project'); if(cbp) cbp.addEventListener('change',function(){ curProject=cbp.value; localStorage.setItem('att_project',curProject); loadProjectSettings().then(function(){ loadSavedList(); loadSchedules&&loadSchedules(); renderTokenBar(); }); });
+   var cbp=$('cb-project'); if(cbp){ var cbpPrev=cbp.value; cbp.addEventListener('change',function(){ if(!confirmLeave()){ cbp.value=cbpPrev; return; } cbpPrev=cbp.value; curProject=cbp.value; markClean(); localStorage.setItem('att_project',curProject); loadProjectSettings().then(function(){ loadSavedList(); loadSchedules&&loadSchedules(); renderTokenBar(); }); }); }
    var cbn=$('cb-newProj'); if(cbn) cbn.addEventListener('click',function(){ var name=prompt('新規プロジェクト名'); if(!name) return; fetch(withTok('/api/projects'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}).then(function(r){return r.json();}).then(function(p){ curProject=p.id; localStorage.setItem('att_project',curProject); loadProjects().then(loadProjectSettings).then(function(){ loadSavedList(); }); }); });
    var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
    var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate();
@@ -853,17 +873,36 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    // 非アクティブ相のカードは inline display:none で隠す。アクティブ相は display:'' に戻し
    // 既存の .hidden クラス制御に委ねる（二重管理を避ける）。
    ['m-explore','m-review','m-editor','m-save'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='design')?'':'none'; });
-   ['m-runner','m-schedule'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='exec')?'':'none'; });
-   if(ph==='exec'){ ['m-runner','m-schedule'].forEach(function(id){ var c=$(id); if(c) c.classList.remove('hidden'); }); }
+   ['m-runner','m-schedule','m-history'].forEach(function(id){ var c=$(id); if(c) c.style.display=(ph==='exec')?'':'none'; });
+   if(ph==='exec'){ ['m-runner','m-schedule','m-history'].forEach(function(id){ var c=$(id); if(c) c.classList.remove('hidden'); }); }
  }
  (function(){ var d=$('sub-design'),e=$('sub-exec');
    if(d) d.addEventListener('click',function(){ applyPhase('design'); });
-   if(e) e.addEventListener('click',function(){ applyPhase('exec'); loadSavedList(); loadExecSuites(); loadSchedules&&loadSchedules(); }); })();
+   if(e) e.addEventListener('click',function(){ if(!confirmLeave())return; applyPhase('exec'); loadSavedList(); loadExecSuites(); loadSchedules&&loadSchedules(); loadRunHistory(); }); })();
+ // ==== 実行履歴（実行バージョン） ====
+ function loadRunHistory(){ var box=$('m-histList'); if(!box) return;
+   fetch(withTok('/api/runs')).then(function(r){return r.json();}).then(function(r){ var runs=(r&&r.runs)||[];
+     if(!runs.length){ box.innerHTML='<span class="muted">まだ実行履歴はありません（⑤で比較を実行すると保存されます）。</span>'; return; }
+     box.innerHTML='<table class="iss"><thead><tr><th>実行バージョン</th><th style="width:132px">実行日時</th><th style="width:150px">結果サマリ</th><th style="width:150px">リンク</th></tr></thead><tbody>'
+       +runs.map(function(v){ var ng=v.diff||0, ok=v.same||0, sk=v.skipped||0;
+         var badge=ng>0?'<span class="stchip" style="background:#c62828">NG '+ng+'</span>':'<span class="stchip" style="background:#2e7d32">OK</span>';
+         return '<tr><td><b>'+escHtml(v.suiteName||'')+'</b><div class="muted imono" style="font-family:ui-monospace,monospace">'+escHtml(v.runId)+'</div></td>'
+           +'<td class="imono">'+fmtDT(v.at)+'</td>'
+           +'<td>'+badge+' <span class="muted">一致'+ok+'／要確認'+ng+(sk?'／対象外'+sk:'')+'（全'+(v.total||0)+'）</span></td>'
+           +'<td style="font-size:12px"><a href="'+withTok('runs/'+v.runId+'/dashboard.html')+'" target="_blank">ダッシュボード↗</a> ／ <a href="'+withTok('runs/'+v.runId+'/report.html')+'" target="_blank">報告書↗</a></td></tr>';
+       }).join('')+'</tbody></table>'; }).catch(function(){ box.innerHTML='<span class="muted">履歴の取得に失敗しました。</span>'; }); }
+ (function(){ var rl=$('m-histReload'); if(rl) rl.addEventListener('click',loadRunHistory); })();
+ // 設計中の編集（③一覧の入力/変更）を未保存としてマーク
+ (function(){ var box=$('m-cases'); if(box){ box.addEventListener('input',markDirty); box.addEventListener('change',markDirty); } })();
  // ==== 実行タブ：保存済みスイートを選択して実行 ====
- function loadExecSuites(){ var sel=$('m-execSuite'); if(!sel) return; var cur=sel.value;
-   fetch(withTok('/api/suites')).then(function(r){return r.json();}).then(function(r){ var list=(r&&r.suites)||[];
-     sel.innerHTML='<option value="">保存済みスイートを選択…</option>'+list.map(function(s){return '<option value="'+s.id+'"'+(s.id===cur?' selected':'')+'>'+escHtml(s.name)+'（'+s.count+'件）</option>';}).join('');
-     if(!list.length){ $('m-execInfo').textContent='保存済みスイートがありません。「テスト設計」で作成→④で保存してください。'; } }); }
+ function loadExecSuites(){ var sel=$('m-execSuite'); if(!sel) return;
+   // 設計→実行の遷移では、設計/保存したスイート(mSuiteId)を既定選択。無ければ現在選択を維持。
+   var prefer=mSuiteId||sel.value;
+   return fetch(withTok('/api/suites')).then(function(r){return r.json();}).then(function(r){ var list=(r&&r.suites)||[];
+     sel.innerHTML='<option value="">保存済みスイートを選択…</option>'+list.map(function(s){return '<option value="'+s.id+'"'+(s.id===prefer?' selected':'')+'>'+escHtml(s.name)+'（'+s.count+'件）</option>';}).join('');
+     if(!list.length){ $('m-execInfo').textContent='保存済みスイートがありません。「テスト設計」で作成→④で保存してください。'; return; }
+     if(prefer && list.some(function(s){return s.id===prefer;})){ sel.value=prefer; sel.dispatchEvent(new Event('change')); } // 設計したスイートを自動で読み込む
+   }); }
  function renderExecCases(suite){ var box=$('m-execCases'); if(!box) return;
    var scs=(suite&&suite.scenarios)||[];
    if(!scs.length){ box.innerHTML='<span class="muted">このスイートにケースがありません。</span>'; return; }
@@ -874,7 +913,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      $('m-execInfo').textContent='読み込み中…';
      var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(id))).then(function(r){return r.json();}).catch(function(){return null;});
      if(!rec||!rec.suite){ $('m-execInfo').textContent='読み込みに失敗しました'; return; }
-     mSuite=rec.suite; mSuiteId=rec.id; mCompared=false;
+     mSuite=rec.suite; mSuiteId=rec.id; mCompared=false; markClean();
      var url=(rec.suite.startUrl||''); if($('m-after')) $('m-after').value=url; // 既定でN+1に1回目URLを入れる
      $('m-execInfo').textContent='選択中: '+escHtml(rec.name||rec.id)+'（開始URL: '+escHtml(url)+'）';
      renderExecCases(rec.suite);
@@ -980,7 +1019,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  window.addEventListener('scroll',function(){ if(mStepTick) return; mStepTick=true;
    requestAnimationFrame(function(){ syncStepper(); mStepTick=false; }); },{passive:true});
  $('nav-manage').addEventListener('click',function(){ showView('manage'); });
- $('nav-issues').addEventListener('click',function(){ showView('issues'); if(mSelIssue) renderIssueDetail(mSelIssue); });
+ $('nav-issues').addEventListener('click',function(){ if(!confirmLeave())return; showView('issues'); if(mSelIssue) renderIssueDetail(mSelIssue); });
  // ==== 課題管理サブタブ（一覧/集計/項目設定）====
  function showIssTab(t){
    $('iss-view-list').classList.toggle('hidden',t!=='list');
@@ -1134,6 +1173,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
     +'<dt>課題ID</dt><dd>'+i.id+(i.external?' / 連携: '+escHtml(i.external.system)+' '+escHtml(i.external.key):'')+'</dd>'
     +'<dt>対象テストケース</dt><dd><b>'+escHtml(i.caseId)+'</b> '+escHtml(i.caseName)+' <button id="m-issGoCase" class="btn-mini" style="background:#37507a">このテストケースを開く</button></dd>'
     +'<dt>実行スイート</dt><dd>'+((i.suite&&(i.suite.name||i.suite.id))?escHtml(i.suite.name||i.suite.id):'<span class="muted">（不明）</span>')+'</dd>'
+    +'<dt>実行バージョン</dt><dd>'+((i.runVersions&&i.runVersions.length)?i.runVersions.map(function(v){return escHtml(v);}).join('<br>'):(i.runVersion?escHtml(i.runVersion):'<span class="muted">（不明）</span>'))+'</dd>'
     +'<dt>起票日時</dt><dd>'+fmtDT(i.createdAt)+'<span class="muted"> ／ 最終更新: '+fmtDT(i.updatedAt)+'</span></dd>'
     +'<dt>判定 / カテゴリ</dt><dd>'+escHtml(i.kindLabel)+' ／ '+escHtml((i.category||[]).join(' > '))+' ／ 対象: '+escHtml(i.target)+(i.occurrences>1?' ／ 再発 '+i.occurrences+'回':'')+'</dd>'
     +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
@@ -1173,7 +1213,11 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  $('m-issOpen').addEventListener('change',renderIssueList);
  $('m-issSearch').addEventListener('input',renderIssueList);
 
- var mSuite=null, mSuiteId=null, mtimer=null, mCompared=false;
+ var mSuite=null, mSuiteId=null, mtimer=null, mCompared=false, mDirty=false;
+ // 設計したスイートが未保存（新規/編集後で保存前）なら true。画面遷移時に確認する。
+ function markDirty(){ mDirty=true; }
+ function markClean(){ mDirty=false; }
+ function confirmLeave(){ return !mDirty || confirm('テストスイートが未保存です。保存せずに移動しますか？\n（キャンセルすると留まって、④「保存」で保存できます）'); }
  var KINDS=['goto','click','fill','submit','assert'];
 
  async function loadSavedList(){
@@ -1220,7 +1264,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    $('m-exploreBtn').disabled=true; var lg=$('m-log'); lg.classList.remove('hidden'); lg.textContent='捜索を開始しています…';
    var r=await fetch(withTok('/api/explore'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-exploreBtn').disabled=false;return;}
-   poll(r.runId,lg,function(s){ mSuite=s.suite; mSuiteId=null; mCompared=false; $('m-name').value=''; renderCases();
+   poll(r.runId,lg,function(s){ mSuite=s.suite; mSuiteId=null; mCompared=false; markDirty(); $('m-name').value=''; renderCases();
      var n=(s.suite&&s.suite.scenarios?s.suite.scenarios.length:0);
      toast('1回目（捜索）完了：テストケース '+n+' 件を生成しました。内容を確認してください。','ok');
    },$('m-exploreBtn'));
@@ -1229,7 +1273,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var id=$('m-savedSel').value; if(!id){alert('スイートを選択してください');return;}
    var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(id))).then(function(r){return r.json();}).catch(function(){return null;});
    if(!rec||!rec.suite){alert('読み込みに失敗しました');return;}
-   mSuite=rec.suite; mSuiteId=rec.id; mCompared=false; $('m-name').value=rec.name||''; renderCases();
+   mSuite=rec.suite; mSuiteId=rec.id; mCompared=false; markClean(); $('m-name').value=rec.name||''; renderCases();
  });
  var mSelFolder=null; // 選択中フォルダ（パス配列）。null/[]=すべて
  var mExpanded=new Set(), mTreeRoot=null, mTreeItems=null; // 展開中のフォルダ（既定は折り畳み）
@@ -1397,7 +1441,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:target,maxRounds:rounds,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
-        if(s.suite){ mSuite=s.suite; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } renderCases();
+        if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } renderCases();
           var sm=s.summary||{}; var rws=(sm.rounds||[]).map(function(x){return '<tr><td>R'+x.round+'</td><td style="text-align:right">'+x.before+'→'+x.after+'</td><td style="text-align:right">+'+x.added+'</td></tr>';}).join('');
           $('m-autoResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:'+(sm.reachedTarget?'#2e7d32':'#ef6c00')+';font-size:16px">'+esc2(sm.note||'')+'</b>'+(rws?'<table style="margin-top:6px;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:2px 8px">ラウンド</th><th style="padding:2px 8px">評価</th><th style="padding:2px 8px">追加</th></tr></thead><tbody>'+rws+'</tbody></table>':'')+'</div>';
           toast((sm.reachedTarget?'目標到達：':'改善完了：')+esc2(sm.note||''),'ok');
@@ -1411,7 +1455,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    fetch(withTok('/api/apply-recs'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
-        if(s.suite){ mSuite=s.suite; renderCases();
+        if(s.suite){ mSuite=s.suite; markDirty(); renderCases();
           var d=(s.summary&&s.summary.details)||[]; var added=(s.summary&&s.summary.added)||0;
           var rd=$('m-applyRecResult'); if(rd){ rd.classList.remove('hidden'); rd.innerHTML='<b>反映しました</b>'+(added?'（テストケース '+added+' 件を追加）':'')+(d.length?'<ul style="margin:4px 0 0;padding-left:18px">'+d.map(function(x){return '<li>'+String(x).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</li>';}).join('')+'</ul>':'')+'<div class="muted" style="margin-top:4px">追加/変更したケースは下の③で確認・編集できます。「レビュー表示を更新」で信頼度も再計算されます。</div>'; }
           toast('推奨アクションを反映しました'+(added?'（+'+added+'件）':''),'ok'); }
@@ -1425,7 +1469,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    fetch(withTok('/api/regenerate'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,aiReview:mAiReview,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
-        if(s.suite){ mSuite=s.suite; renderCases(); var n=(s.summary&&s.summary.added)||0; toast('改善提案から '+n+' 件のテストケースを追加しました（下の③で確認・編集できます）','ok'); }
+        if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.added)||0; toast('改善提案から '+n+' 件のテストケースを追加しました（下の③で確認・編集できます）','ok'); }
       },btn);
     });
  });
@@ -1494,7 +1538,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
     .then(function(r){return r.json();}).catch(function(){return null;})
     .then(function(r){
       if(!r||!r.suite){alert('生成に失敗しました');if(ab){ab.disabled=false;ab.textContent='不足観点のテストケースを自動生成';}return;}
-      mSuite=r.suite;
+      mSuite=r.suite; markDirty();
       var msg=(r.added||[]).length?(r.added.length+'件の不足観点ケースを生成しました（下の③の一覧に「自動生成」で追加）。'):'既存操作から生成できるケースはありませんでした。';
       if((r.notDerivable||[]).length) msg+='\n派生できない観点（「対象外」を推奨）：'+r.notDerivable.join('・');
       renderCases();
@@ -1582,7 +1626,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  $('m-addCase').addEventListener('click',function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    mSuite.scenarios.push({id:'SCN-NEW'+(mSuite.scenarios.length+1),name:'新規テストケース',depth:0,actions:[{kind:'goto',value:mSuite.startUrl||'',label:'開始'}],origin:'手動追加'});
-   renderCases();
+   markDirty(); renderCases();
  });
  $('m-xlsx').addEventListener('click',async function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
@@ -1595,7 +1639,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var body={name:$('m-name').value.trim()||'無題スイート',suite:mSuite}; if(mSuiteId)body.id=mSuiteId;
    var r=await fetch(withTok('/api/suites'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){$('m-saveMsg').textContent='保存失敗: '+r.error;return;}
-   mSuiteId=r.id; refreshStepMarks(); $('m-saveMsg').textContent='保存しました（'+r.name+' / '+r.count+'件）'; loadSavedList();
+   mSuiteId=r.id; markClean(); refreshStepMarks(); $('m-saveMsg').textContent='保存しました（'+r.name+' / '+r.count+'件）'; loadSavedList();
  });
  // 追加ケースの1回目(N)ベースライン取得（比較対象化）
  $('m-captureBtn').addEventListener('click',function(){
@@ -1603,7 +1647,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var btn=$('m-captureBtn'); btn.disabled=true; var lg=$('m-captureLog'); lg.classList.remove('hidden'); lg.textContent='1回目(N)を実行中…'; $('m-captureMsg').textContent='';
    fetch(withTok('/api/capture-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,onlyMissing:true},mSuiteId?{suiteId:mSuiteId,name:($('m-name').value||'').trim()||undefined}:{}))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.suite){ mSuite=s.suite; renderCases(); var n=(s.summary&&s.summary.captured)||0; $('m-captureMsg').textContent='取得しました（'+n+'件を比較対象に）'; toast('追加ケースの1回目(N)を取得しました（'+n+'件が比較対象に）','ok'); } },btn);
+      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.captured)||0; $('m-captureMsg').textContent='取得しました（'+n+'件を比較対象に）'; toast('追加ケースの1回目(N)を取得しました（'+n+'件が比較対象に）','ok'); } },btn);
     });
  });
  $('m-runBtn').addEventListener('click',async function(){
@@ -1666,20 +1710,25 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      return '<div class="draft-row" data-i="'+idx+'" style="border-top:1px solid #f0d5d5;padding:8px 0">'
        +'<div style="display:flex;gap:8px;align-items:flex-start"><div style="flex:1;min-width:0">'
        +'<input class="dft-title" value="'+escAttr(d.title||'')+'" style="width:100%;padding:5px 8px;border:1px solid #e0c0c0;border-radius:5px;font-weight:700">'
-       +'</div><button class="btn-sm dft-file" data-i="'+idx+'" style="background:#c62828;white-space:nowrap;margin:0">起票</button></div>'
-       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:#666;margin-top:4px"><span>対象: <b>'+escHtml(d.caseId||'')+'</b> '+escHtml(d.caseName||'')+'</span><span>優先度 <select class="dft-pri">'+pris+'</select></span>'+(d.suite&&(d.suite.name||d.suite.id)?'<span>スイート: '+escHtml(d.suite.name||d.suite.id)+'</span>':'')+'<span class="dft-state muted"></span></div>'
+       +'</div><div style="display:flex;gap:6px"><button class="btn-sm dft-ok" data-i="'+idx+'" style="background:#2e7d32;white-space:nowrap;margin:0" title="この結果はOK（誤検知/許容）として起票しない">OK（許容）</button><button class="btn-sm dft-file" data-i="'+idx+'" style="background:#c62828;white-space:nowrap;margin:0">起票</button></div></div>'
+       +(d.alreadyOpen?'<div style="margin-top:4px"><span class="stchip" style="background:#ef6c00">重複あり</span> <span class="muted" style="font-size:12px">同じ課題が既に未完了で存在します（一括登録では起票しません。個別に「起票」すると既存へ実行バージョンを追記します）。</span></div>':'')
+       +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;color:#666;margin-top:4px"><span>対象: <b>'+escHtml(d.caseId||'')+'</b> '+escHtml(d.caseName||'')+'</span><span>優先度 <select class="dft-pri">'+pris+'</select></span>'+(d.suite&&(d.suite.name||d.suite.id)?'<span>スイート: '+escHtml(d.suite.name||d.suite.id)+'</span>':'')+(d.runVersion?'<span>実行: '+escHtml(d.runVersion)+'</span>':'')+'<span class="dft-state muted"></span></div>'
        +'<div style="margin:4px 0"><div class="muted" style="font-size:11px">具体的な相違点</div><textarea class="dft-diff" rows="2" style="width:100%;box-sizing:border-box;font-size:12px;border:1px solid #e0c0c0;border-radius:5px">'+escHtml(d.diff||'')+'</textarea></div>'
        +'<div style="margin:4px 0"><div class="muted" style="font-size:11px">原因（任意・分かっていれば）</div><textarea class="dft-cause" rows="1" style="width:100%;box-sizing:border-box;font-size:12px;border:1px solid #e0c0c0;border-radius:5px" placeholder="例: 記号除去でアポストロフィが消える等">'+escHtml(d.cause||'')+'</textarea></div>'
        +'</div>';
    }).join('');
-   box.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><b style="color:#c62828">起票内容の確認（'+mDrafts.length+'件）</b>'
-     +'<button id="m-draftBulk" class="btn-sm" style="background:#8a1f5c;margin:0">一括登録（全'+mDrafts.length+'件をそのまま起票）</button>'
+   var dupN=mDrafts.filter(function(d){return d.alreadyOpen;}).length; var newN=mDrafts.length-dupN;
+   box.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px"><b style="color:#c62828">起票内容の確認（'+mDrafts.length+'件'+(dupN?'／うち重複'+dupN+'件':'')+'）</b>'
+     +'<button id="m-draftBulk" class="btn-sm" style="background:#8a1f5c;margin:0">一括登録（重複を除く'+newN+'件を起票）</button>'
      +'<button id="m-draftCancel" class="btn-sm btn-gray" style="margin:0">閉じる</button></div>'
-     +'<div class="muted" style="font-size:12px;margin-bottom:6px">各ケースの「起票」で1件ずつ登録できます。まとめて登録するなら「一括登録」。登録後も課題管理で編集できます。</div>'
+     +'<div class="muted" style="font-size:12px;margin-bottom:6px">各ケースの「起票」で1件ずつ登録できます。まとめて登録するなら「一括登録」（<b>重複ありは一括では起票しません</b>）。登録後も課題管理で編集できます。</div>'
      +rows;
    $('m-draftCancel').onclick=function(){ box.classList.add('hidden'); box.innerHTML=''; };
-   $('m-draftBulk').onclick=function(){ registerDrafts(mDrafts.map(function(_,i){return i;}), $('m-draftBulk')); };
+   // 一括は重複（既存課題あり）を除外して起票
+   $('m-draftBulk').onclick=function(){ var idxs=mDrafts.map(function(_,i){return i;}).filter(function(i){return !mDrafts[i].alreadyOpen;}); if(!idxs.length){alert('新規に起票する課題がありません（すべて既存課題と重複）');return;} registerDrafts(idxs, $('m-draftBulk')); };
    box.querySelectorAll('.dft-file').forEach(function(b){ b.onclick=function(){ registerDrafts([+b.getAttribute('data-i')], b); }; });
+   // 「OK（許容）」＝この結果を問題なしと判断し、起票対象から除外
+   box.querySelectorAll('.dft-ok').forEach(function(b){ b.onclick=function(){ var i=+b.getAttribute('data-i'); mDrafts.splice(i,1); if(!mDrafts.length){ box.classList.add('hidden'); box.innerHTML=''; $('m-fileIssueBtn').classList.add('hidden'); toast('すべてOK（許容）として判定しました（起票なし）','ok'); } else { renderDrafts(); toast('この結果はOK（許容）にしました（起票対象から除外）','ok'); } }; });
  }
  // 指定インデックスのドラフト（編集値を反映）を登録。個別/一括で共用。
  async function registerDrafts(idxs, btn){ var box=$('m-issueDraft');
