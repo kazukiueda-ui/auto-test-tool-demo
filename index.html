@@ -279,11 +279,12 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item">📁 <select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
  <span class="cb-item"><button id="cb-mode" class="cb-toggle on" type="button">🟢 API利用モード</button></span>
- <span class="cb-item">🤖 <select id="cb-model" title="使用モデル"><option value="auto">自動（おまかせ）</option></select></span>
+ <span class="cb-item">🤖 <select id="cb-model" title="使用モデル"><option value="auto">🎯 最適なモデルを自動選択（段階別）</option></select></span>
  <span class="cb-item">🏢 <b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
  <span class="cb-item"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
  <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
@@ -581,7 +582,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
   <span class="muted" id="tb-models" style="color:#9fb6d8"></span>
   <span class="muted" id="tb-breakdown" style="color:#9fb6d8"></span>
   <span style="margin-left:auto;display:inline-flex;align-items:center;gap:10px;color:#9fb6d8">
-   <span>高さ <input type="range" id="tb-height" min="60" max="360" step="10" value="90" style="width:110px;vertical-align:middle"></span>
+   <span>期間 <input type="range" id="tb-range" min="5" max="100" step="5" value="100" style="width:130px;vertical-align:middle" title="表示する直近の期間（右=全期間、左=直近だけ拡大）"> <b id="tb-rangeLbl" style="color:#cdd9f0">全期間</b></span>
    <span class="tb-toggle" id="tb-toggle" style="margin:0">▼ 隠す</span>
   </span>
  </div>
@@ -615,7 +616,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  }
  function loadEnv(){ return fetch(withTok('/api/env')).then(function(r){return r.json();}).then(function(e){
    ATT_ENV=e||ATT_ENV;
-   var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">自動（おまかせ）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
+   var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">🎯 最適なモデルを自動選択（段階別）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
    var dom=$('cb-domain'); if(dom){ dom.innerHTML=(ATT_ENV.domains||[]).map(function(d){return '<option value="'+d.key+'">'+escHtml(d.label)+'</option>';}).join(''); }
    if(!ATT_ENV.llmAvailable){ apiMode=false; } // キー無ければ強制オフ
    applyModeUi(); updateBadge();
@@ -673,18 +674,33 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    $('tb-usd').textContent='($'+(s.totalUsd||0).toFixed(3)+' ／ '+fmtInt(Math.round(s.jpyPerUsd))+'円/$)';
    var bm=s.byModel||{}; $('tb-models').textContent='モデル別 '+Object.keys(bm).map(function(k){ return k.replace('claude-','')+' ¥'+fmtInt(Math.round((bm[k].usd||0)*(s.jpyPerUsd||150))); }).join(' / ');
    var bp=s.byPhase||{}; $('tb-breakdown').textContent='工程別 '+Object.keys(bp).map(function(k){return k+' '+fmtInt(bp[k].tokens);}).join(' / ');
-   var pts=s.series||[]; var maxT=Math.max.apply(null,pts.map(function(p){return p.cumTokens;}).concat([1]));
-   var h=+($('tb-height')?$('tb-height').value:90)||90; var W=1000,H=h,n=pts.length;
+   var all=s.series||[]; var n0=all.length;
+   // 期間スライダー（横軸＝期間）：直近 pct% の期間だけを拡大表示する
+   var pct=+($('tb-range')?$('tb-range').value:100)||100;
+   var startIdx=0;
+   if(n0>1 && pct<100){
+     var t0=new Date(all[0].ts).getTime(), tN=new Date(all[n0-1].ts).getTime();
+     var start=tN-(tN-t0)*(pct/100);
+     while(startIdx<n0-2 && new Date(all[startIdx].ts).getTime()<start) startIdx++;
+   }
+   var pts=all.slice(startIdx);
+   // 窓の起点直前の累積をベースラインにして、その期間の増分を描く
+   var base=(startIdx>0)?all[startIdx-1].cumTokens:0;
+   var lbl=$('tb-rangeLbl'); if(lbl){ if(pct>=100||pts.length<2||startIdx===0){ lbl.textContent='全期間'; } else { lbl.textContent='直近'+fmtDur(new Date(pts[pts.length-1].ts).getTime()-new Date(pts[0].ts).getTime()); } }
+   var maxT=Math.max.apply(null,pts.map(function(p){return p.cumTokens;}).concat([base+1]));
+   var range=Math.max(1,maxT-base);
+   var W=1000,H=90,n=pts.length;
    var svg=$('tb-svg'); if(svg){ svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.style.height=H+'px'; }
-   function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-((p.cumTokens/maxT)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
+   function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-(((p.cumTokens-base)/range)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
    var line=pts.map(xy).join(' ');
    $('tb-line').setAttribute('points',line);
    $('tb-area').setAttribute('points','0,'+H+' '+line+' '+W+','+H);
-   // 横軸＝日時ラベル（先頭〜末尾を最大5点）
+   // 横軸＝日時ラベル（表示期間の先頭〜末尾を最大5点）
    var ax=$('tb-axis'); if(ax){ var labs=[],k=Math.min(5,n); for(var i=0;i<k;i++){ var idx=(k<=1)?0:Math.round(i*(n-1)/(k-1)); labs.push('<span>'+fmtTs(pts[idx].ts)+'</span>'); } ax.innerHTML=labs.join(''); }
  }
+ function fmtDur(ms){ if(ms<=0)return '—'; var m=Math.round(ms/60000); if(m<60)return m+'分'; var h=Math.round(m/6)/10; if(h<48)return h+'時間'; return (Math.round(h/24*10)/10)+'日'; }
  function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){ window.__tbData=s; drawTokenBar(s); }).catch(function(){}); }
- (function(){ var h=$('tb-height'); if(h) h.addEventListener('input',function(){ if(window.__tbData) drawTokenBar(window.__tbData); }); })();
+ (function(){ var r=$('tb-range'); if(r) r.addEventListener('input',function(){ if(window.__tbData) drawTokenBar(window.__tbData); }); })();
  (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var svg=$('tb-svg'); var hidden=svg.style.display==='none'; svg.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
  // ==== 設計/実行 サブタブ ====
  var curPhase='design';
@@ -899,7 +915,10 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    mtimer=setInterval(async function(){
      var s=await fetch(withTok('/api/status?id='+id)).then(function(r){return r.json();}).catch(function(){return null;});
      if(!s)return;
-     var lines=(s.progress||[]); lg.textContent=lines.join('\n')+(s.status==='running'?'\n… 処理中':''); lg.scrollTop=lg.scrollHeight;
+     var lines=(s.progress||[]);
+     var atBottom=(lg.scrollHeight-lg.scrollTop-lg.clientHeight)<30; // 末尾付近にいる時だけ追従
+     lg.textContent=lines.join('\n')+(s.status==='running'?'\n… 処理中':'');
+     if(atBottom) lg.scrollTop=lg.scrollHeight; // 上へスクロール中は戻さない（最初のログも読める）
      if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false; removeStop(); try{renderTokenBar();}catch(e){}
        if(s.status==='error'){lg.textContent+='\n[失敗] '+s.error;return;}
        if(s.status==='stopped'){ if(typeof toast==='function') toast('⏹ 停止しました（ここまでの結果を反映します）','ok'); }
