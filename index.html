@@ -328,6 +328,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -503,6 +504,15 @@ graph TD
     <div class="act-sec">
      <div class="act-hd">③ AIレビュー ── 現状評価＋（任意で）目標まで自動改善</div>
      <p class="muted" style="margin:2px 0 8px">まず現状のテストをAI（架空のレビュアー）が評価します。下の<b>改善ラウンド数を1以上</b>にすると、そのまま「レビュー→不足観点＋AI改善ケース追加→再レビュー」を<b>目標評価に到達するか頭打ちになるまで自動で反復</b>します（Claude API・要APIキー・従量課金。ラウンドを増やすほど費用増）。</p>
+     <div style="margin:2px 0 10px">
+      <label style="font-weight:700;margin-right:6px">レビュー方式</label>
+      <select id="m-reviewMode">
+       <option value="auto">自動（規模・リスクで最適化）</option>
+       <option value="light">単一レビュー（軽量・1回呼び出し・低コスト）</option>
+       <option value="full">複数レビュー（4観点＝網羅/リスク/利用者/敵対＋合議・詳細）</option>
+      </select>
+      <div class="muted" id="m-reviewModeNote" style="font-size:12px;margin-top:3px"></div>
+     </div>
      <div class="slider" style="max-width:520px;margin:2px 0 8px">
       <div class="lab"><span>レビュー深度（浅い＝速い・要点 ⇔ 深い＝網羅的に全部洗い出す）</span><b id="m-aiDepthv">0.60</b></div>
       <input type="range" id="m-aiDepth" min="0" max="1" step="0.05" value="0.6">
@@ -696,7 +706,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  // ==== 制御バー（プロジェクト/モード/モデル/業務ドメイン）＋トークングラフ ====
  var ATT_ENV={llmAvailable:false,localLlm:false,models:[],domains:[],defaultModel:'claude-sonnet-4-6',jpyPerUsd:150};
  var apiMode=true; // API利用モード（false=APIオフ＝ルールベース）
- function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:'', llm:apiMode }; }
+ function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', reviewMode:$('m-reviewMode')?$('m-reviewMode').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:'', llm:apiMode }; }
  function applyModeUi(){
    var b=$('cb-mode'); if(!b) return;
    b.textContent=apiMode?'API利用モード':'APIオフ（ルールベース）';
@@ -737,10 +747,11 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
    if(typeof s.specMode==='boolean'&&$('m-specMode')) $('m-specMode').checked=s.specMode;
    if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
+   if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompt:$('m-domainPrompt')?$('m-domainPrompt').value:undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
@@ -847,6 +858,13 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
      renderExecCases(rec.suite);
    });
    var rl=$('m-execReload'); if(rl) rl.addEventListener('click',loadExecSuites); })();
+ // レビュー方式の説明を切り替え
+ (function(){ var sel=$('m-reviewMode'); if(!sel) return;
+   function note(){ var n=$('m-reviewModeNote'); if(!n) return; var v=sel.value;
+     n.textContent = v==='light' ? '単一のAIレビュアーが網羅/リスク/利用者を1回で統合評価します（合議なし・最も低コスト）。'
+       : v==='full' ? '4観点（網羅/リスク/利用者/敵対）を並列レビューし、合議で総合評価をまとめます（精度重視・トークン増）。'
+       : '規模・業務リスクに応じて自動選択（通常は単一、30ケース以上や高リスク業務では複数＋合議）。'; }
+   sel.addEventListener('change',note); note(); })();
  // ==== 定期実行スケジュール ====
  function loadSchedules(){ var sel=$('sc-suite'); if(!sel) return;
    fetch(withTok('/api/suites')).then(function(r){return r.json();}).then(function(r){ var list=(r&&r.suites)||[];
