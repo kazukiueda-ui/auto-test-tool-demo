@@ -179,7 +179,11 @@
  .workspace{background:#fff;border:1px solid #b7c6de;border-radius:0 10px 10px 10px;padding:14px 14px 12px;margin-bottom:6px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(20,30,60,.06)}
  @media(max-width:640px){.subtab{padding:9px 14px}}
  /* トークン/コストの下辺グラフ */
- #m-tokenbar{position:sticky;bottom:0;z-index:1400;background:#0f1620;color:#cfe3ff;border-top:2px solid #24344f;padding:6px 14px 8px;font-size:12px}
+ /* トークン量グラフ：全タブ共通で画面最下部に固定 */
+ #m-tokenbar{position:fixed;left:0;right:0;bottom:0;z-index:1400;background:#0f1620;color:#cfe3ff;border-top:2px solid #24344f;padding:6px 14px 8px;font-size:12px;box-shadow:0 -3px 12px rgba(0,0,0,.25)}
+ body.tb-on{padding-bottom:190px}
+ body.tb-on.tb-min{padding-bottom:44px}
+ @media(max-width:640px){body.tb-on{padding-bottom:230px}}
  #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
  #m-tokenbar .tb-big{font-size:16px;font-weight:800;color:#8fe3a0}
  #m-tokenbar .tb-yen{font-size:16px;font-weight:800;color:#ffd479}
@@ -310,6 +314,8 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
+
 
 
 
@@ -764,8 +770,8 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function fmtTs(iso){ try{ var d=new Date(iso); var p=function(n){return (n<10?'0':'')+n;}; return p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return ''; } }
  function drawTokenBar(s){
    var bar=$('m-tokenbar'); if(!bar) return;
-   if(!s||!s.count){ bar.classList.add('hidden'); return; }
-   bar.classList.remove('hidden');
+   if(!s||!s.count){ bar.classList.add('hidden'); document.body.classList.remove('tb-on'); return; }
+   bar.classList.remove('hidden'); document.body.classList.add('tb-on');
    $('tb-tokens').textContent=fmtInt(s.totalTokens);
    $('tb-yen').textContent='¥'+fmtInt(Math.round(s.totalJpy));
    $('tb-usd').textContent='($'+(s.totalUsd||0).toFixed(3)+' ／ '+fmtInt(Math.round(s.jpyPerUsd))+'円/$)';
@@ -805,7 +811,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
  function fmtDur(ms){ if(ms<=0)return '—'; var m=Math.round(ms/60000); if(m<60)return m+'分'; var h=Math.round(m/6)/10; if(h<48)return h+'時間'; return (Math.round(h/24*10)/10)+'日'; }
  function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){ window.__tbData=s; drawTokenBar(s); }).catch(function(){}); }
  (function(){ var r=$('tb-range'); if(r) r.addEventListener('input',function(){ if(window.__tbData) drawTokenBar(window.__tbData); }); })();
- (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var g=document.querySelector('#m-tokenbar .tb-graphs'); if(!g)return; var hidden=g.style.display==='none'; g.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
+ (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var g=document.querySelector('#m-tokenbar .tb-graphs'); if(!g)return; var hidden=g.style.display==='none'; g.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; document.body.classList.toggle('tb-min', !hidden); }); })();
  // ==== 設計/実行 サブタブ ====
  var curPhase='design';
  function applyPhase(ph){ curPhase=ph;
@@ -1036,7 +1042,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var openN=list.filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
    $('m-issMeta').textContent='全'+list.length+'件（未完了 '+openN+'件）';
    var w=$('m-issList');
-   if(!shown.length){ w.innerHTML='<div class="muted" style="padding:12px">課題はありません（2回目でNGが出ると自動起票されます）。</div>'; return; }
+   if(!shown.length){ w.innerHTML='<div class="muted" style="padding:12px">課題はありません（テスト実行の結果画面から「起票」ボタンで登録します）。</div>'; return; }
    var rows=shown.map(function(i){
      return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+'" data-id="'+i.id+'"><td><span class="stchip sc-'+i.status+'">'+i.status+'</span></td><td><b>'+escHtml(i.title)+'</b><div class="muted">'+i.id.slice(-6)+' / '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+'<br>起票 '+fmtDT(i.createdAt)+(i.suite&&(i.suite.name||i.suite.id)?' ／ '+escHtml(i.suite.name||i.suite.id):'')+'</div></td></tr>';
    }).join('');
