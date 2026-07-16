@@ -339,6 +339,7 @@
 
 
 
+
 <header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -602,7 +603,6 @@ graph TD
    <label>修正後 URL（N+1）<span class="muted" style="font-weight:400">（既定は1回目のURL。変更後の環境なら書き換え）</span></label><input id="m-after" type="url" placeholder="https://n1.example.com/">
    <div class="opts" style="margin-top:10px">
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
-    <label style="display:inline;font-weight:400"><input type="checkbox" id="m-runHeaded"> 画面動作を表示（ローカル実行時のみ）</label>
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video"> 録画（動画を保存・結果画面で再生）</label>
    </div>
    <details class="editsec" style="margin-top:8px">
@@ -1613,7 +1613,7 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    if(!/^https?:\/\//.test(after)){alert('修正後(N+1)の http(s):// URLを入力してください');return;}
    var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
    var apiIgnore=($('m-apiIgnore')?$('m-apiIgnore').value:'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
-   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,shots:$('m-shots').checked,headed:$('m-runHeaded').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
+   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,shots:$('m-shots').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
    $('m-runBtn').disabled=true; var lg=$('m-runlog'); lg.classList.remove('hidden'); lg.textContent='N+1を実行して比較を開始…'; $('m-resultCard').classList.add('hidden');
    var r=await fetch(withTok('/api/run-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-runBtn').disabled=false;return;}
