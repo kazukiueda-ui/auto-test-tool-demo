@@ -155,12 +155,14 @@
  #m-tokenbar .tb-head{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:2px}
  #m-tokenbar .tb-big{font-size:16px;font-weight:800;color:#8fe3a0}
  #m-tokenbar .tb-yen{font-size:16px;font-weight:800;color:#ffd479}
- #m-tokenbar .tb-graphs{display:flex;gap:14px}
- #m-tokenbar .tb-g{flex:1;min-width:0}
- #m-tokenbar .tb-gcap{font-size:11px;color:#9fb6d8;margin:2px 0 1px}
- #m-tokenbar svg{display:block;width:100%;height:80px}
- #m-tokenbar .tb-axis{display:flex;justify-content:space-between;font-size:10px;color:#7f93b3;margin-top:1px}
- @media(max-width:760px){#m-tokenbar .tb-graphs{flex-direction:column}}
+ #m-tokenbar .tb-legend{font-size:11px;margin:2px 0 1px}
+ #m-tokenbar .tb-plot{display:flex;align-items:stretch}
+ #m-tokenbar .tb-svgwrap{flex:1;min-width:0}
+ #m-tokenbar svg{display:block;width:100%;height:96px}
+ #m-tokenbar .tb-yaxis{display:flex;flex-direction:column;justify-content:space-between;font-size:9px;width:64px;padding:1px 3px;line-height:1.1}
+ #m-tokenbar .tb-yleft{color:#ffd479;align-items:flex-end;text-align:right}
+ #m-tokenbar .tb-yright{color:#8fe3a0;align-items:flex-start;text-align:left}
+ #m-tokenbar .tb-axis{display:flex;justify-content:space-between;font-size:10px;color:#7f93b3;margin-top:1px;padding:0 64px}
  #m-tokenbar .tb-axis span{white-space:nowrap}
  #m-tokenbar .tb-toggle{cursor:pointer;color:#9fb6d8;font-size:11px}
  .sched-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border:1px solid #e2e7ee;border-radius:8px;padding:10px;margin:8px 0;background:#fafbfc}
@@ -280,6 +282,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
@@ -593,16 +596,17 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
   </span>
  </div>
  <div class="tb-graphs">
-  <div class="tb-g">
-   <div class="tb-gcap">💠 トークン量（累計）</div>
-   <svg id="tb-svg" viewBox="0 0 1000 80" preserveAspectRatio="none"><polygon id="tb-area" fill="rgba(143,227,160,.15)" points=""></polygon><polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline></svg>
-   <div class="tb-axis" id="tb-axis"></div>
+  <div class="tb-legend"><span style="color:#ffd479">■ 金額 ¥（左軸）</span>　<span style="color:#8fe3a0">■ トークン量（右軸）</span></div>
+  <div class="tb-plot">
+   <div class="tb-yaxis tb-yleft" id="tb-yleft" title="累計金額(円)"></div>
+   <div class="tb-svgwrap"><svg id="tb-svg" viewBox="0 0 1000 96" preserveAspectRatio="none">
+    <polygon id="tb-area" fill="rgba(143,227,160,.12)" points=""></polygon>
+    <polyline id="tb-line2" fill="none" stroke="#ffd479" stroke-width="2" points=""></polyline>
+    <polyline id="tb-line" fill="none" stroke="#8fe3a0" stroke-width="2" points=""></polyline>
+   </svg></div>
+   <div class="tb-yaxis tb-yright" id="tb-yright" title="累計トークン"></div>
   </div>
-  <div class="tb-g">
-   <div class="tb-gcap">💰 概算コスト ¥（累計・モデル別単価を反映して積み上がる）</div>
-   <svg id="tb-svg2" viewBox="0 0 1000 80" preserveAspectRatio="none"><polygon id="tb-area2" fill="rgba(255,212,121,.15)" points=""></polygon><polyline id="tb-line2" fill="none" stroke="#ffd479" stroke-width="2" points=""></polyline></svg>
-   <div class="tb-axis" id="tb-axis2"></div>
-  </div>
+  <div class="tb-axis" id="tb-axis"></div>
  </div>
 </div>
 <script>
@@ -708,24 +712,26 @@ curl -X POST "$HOST/api/ci/run?project=&lt;pid&gt;" -H 'Content-Type: applicatio
    var baseTok=(startIdx>0)?all[startIdx-1].cumTokens:0;
    var baseYen=((startIdx>0)?all[startIdx-1].cumUsd:0)*jpy;
    var lbl=$('tb-rangeLbl'); if(lbl){ if(pct>=100||pts.length<2||startIdx===0){ lbl.textContent='全期間'; } else { lbl.textContent='直近'+fmtDur(new Date(pts[pts.length-1].ts).getTime()-new Date(pts[0].ts).getTime()); } }
-   // 2グラフ描画（①トークン量 ②概算コスト¥＝モデル別単価を反映した cumUsd を円換算）
-   drawSeries(pts, baseTok, function(p){return p.cumTokens;}, 'tb-line','tb-area','tb-axis');
-   drawSeries(pts, baseYen, function(p){return p.cumUsd*jpy;}, 'tb-line2','tb-area2','tb-axis2');
- }
- function drawSeries(pts, base, getV, lineId, areaId, axisId){
-   var W=1000,H=80,n=pts.length;
-   var maxV=Math.max.apply(null,pts.map(function(p){return getV(p);}).concat([base+1]));
-   var range=Math.max(1e-9,maxV-base);
-   function xy(p,i){ var x=n<=1?W:(i/(n-1))*W; var y=H-2-(((getV(p)-base)/range)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }
-   var line=pts.map(xy).join(' ');
-   var ln=document.getElementById(lineId); if(ln) ln.setAttribute('points',line);
-   var ar=document.getElementById(areaId); if(ar) ar.setAttribute('points','0,'+H+' '+line+' '+W+','+H);
-   var ax=document.getElementById(axisId); if(ax){ var labs=[],k=Math.min(5,n); for(var i=0;i<k;i++){ var idx=(k<=1)?0:Math.round(i*(n-1)/(k-1)); labs.push('<span>'+fmtTs(pts[idx].ts)+'</span>'); } ax.innerHTML=labs.join(''); }
+   // 1つのグラフに重ね描き：左軸=金額¥（黄）／右軸=トークン量（緑）
+   var H=96,W=1000,n=pts.length;
+   var maxTok=Math.max.apply(null,pts.map(function(p){return p.cumTokens;}).concat([baseTok+1]));
+   var maxYen=Math.max.apply(null,pts.map(function(p){return p.cumUsd*jpy;}).concat([baseYen+0.01]));
+   function xyOf(getV,base,max){ var rng=Math.max(1e-9,max-base); return pts.map(function(p,i){ var x=(n<=1)?W:(i/(n-1))*W; var y=H-2-(((getV(p)-base)/rng)*(H-6)); return x.toFixed(1)+','+y.toFixed(1); }).join(' '); }
+   var tokLine=xyOf(function(p){return p.cumTokens;},baseTok,maxTok);
+   var yenLine=xyOf(function(p){return p.cumUsd*jpy;},baseYen,maxYen);
+   $('tb-line').setAttribute('points',tokLine);
+   $('tb-area').setAttribute('points','0,'+H+' '+tokLine+' '+W+','+H);
+   $('tb-line2').setAttribute('points',yenLine);
+   // 縦軸ラベル（上=max / 中 / 下=base の3目盛）。左=金額¥、右=トークン。
+   var yl=$('tb-yleft'); if(yl) yl.innerHTML='<span>¥'+fmtInt(Math.round(maxYen))+'</span><span>¥'+fmtInt(Math.round((maxYen+baseYen)/2))+'</span><span>¥'+fmtInt(Math.round(baseYen))+'</span>';
+   var yr=$('tb-yright'); if(yr) yr.innerHTML='<span>'+fmtInt(Math.round(maxTok))+'</span><span>'+fmtInt(Math.round((maxTok+baseTok)/2))+'</span><span>'+fmtInt(Math.round(baseTok))+'</span>';
+   // 横軸（時間）
+   var ax=$('tb-axis'); if(ax){ var labs=[],k=Math.min(5,n); for(var i=0;i<k;i++){ var idx=(k<=1)?0:Math.round(i*(n-1)/(k-1)); labs.push('<span>'+fmtTs(pts[idx].ts)+'</span>'); } ax.innerHTML=labs.join(''); }
  }
  function fmtDur(ms){ if(ms<=0)return '—'; var m=Math.round(ms/60000); if(m<60)return m+'分'; var h=Math.round(m/6)/10; if(h<48)return h+'時間'; return (Math.round(h/24*10)/10)+'日'; }
  function renderTokenBar(){ fetch(withTok('/api/token-usage')).then(function(r){return r.json();}).then(function(s){ window.__tbData=s; drawTokenBar(s); }).catch(function(){}); }
  (function(){ var r=$('tb-range'); if(r) r.addEventListener('input',function(){ if(window.__tbData) drawTokenBar(window.__tbData); }); })();
- (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var g=document.querySelector('#m-tokenbar .tb-graphs'); if(!g)return; var hidden=g.style.display==='none'; g.style.display=hidden?'flex':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
+ (function(){ var t=$('tb-toggle'); if(t) t.addEventListener('click',function(){ var g=document.querySelector('#m-tokenbar .tb-graphs'); if(!g)return; var hidden=g.style.display==='none'; g.style.display=hidden?'block':'none'; t.textContent=hidden?'▼ 隠す':'▲ 表示'; }); })();
  // ==== 設計/実行 サブタブ ====
  var curPhase='design';
  function applyPhase(ph){ curPhase=ph;
