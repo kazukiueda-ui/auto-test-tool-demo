@@ -377,6 +377,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -1620,6 +1621,18 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
     });
  }
  function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+ // 期待値（あるべき具体値）の各行。expect.ts と同一表現。N観測=baselineから生成。
+ function expectLinesJs(b){ if(!b) return []; var d=b.domSummary||{}; var L=[];
+   L.push('画面タイトル＝「'+esc(b.title||'-')+'」であること');
+   var heads=(d.headings||[]).filter(Boolean).slice(0,4);
+   if(heads.length) L.push('主な見出し＝「'+esc(heads.join(' ｜ '))+'」が表示されること');
+   var body=(d.text||'').replace(/\s+/g,' ').trim(); if(body.length>120) body=body.slice(0,120)+'…';
+   if(body) L.push('本文に「'+esc(body)+'」が含まれること');
+   if(typeof d.formCount==='number'&&d.formCount>0) L.push('入力フォーム＝'+d.formCount+'個が存在すること');
+   L.push('HTTPステータス＝'+((b.http&&b.http.status!=null)?b.http.status:'-')+'（正常到達）で応答すること');
+   var api=b.api||[]; if(api.length){ var ex=api.slice(0,4).map(function(c){return esc(c.method)+' '+esc(c.path)+'→'+(c.status==null?'-':c.status);}); L.push('API通信＝'+api.length+'件が同一結果（例: '+ex.join(' , ')+(api.length>4?' ほか':'')+'）であること'); }
+   L.push('画面表示（スクショ）が1回目と一致すること（画素差は判定感度の閾値内、コンソールエラーなし）');
+   return L; }
  // 1回目カードの「このテストが何をするか」パネル（N観測=baselineから。2回目と同じ項目のうち出せるものだけ）
  function caseInfo(sc,meta){
    var b=sc.baseline||null; var rows=[];
@@ -1634,7 +1647,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' = <code>'+esc(a.value||'(空)')+'</code>';}).join(' ／ ')||'—';
    dl('入力値', inputs);
    if(b){
-     dl('期待結果（基準N）', '下記のN観測（表示・通信）を基準とし、2回目で一致を確認'+(b.url?'（到達URL: '+esc(b.url)+(b.http&&b.http.status!=null?' / HTTP '+b.http.status:'')+'）':''));
+     dl('期待結果（あるべき値／1回目Nを正とする）', '修正後(N+1)が下記のとおり1回目(N)と一致すること：<br>・'+expectLinesJs(b).join('<br>・')+'<br><span class="muted">※日時/ID/UUID/桁数の大きい数値など動的値の違いは判定感度に応じて無視されます</span>'+(b.url?'<br><span class="muted">到達URL: '+esc(b.url)+'</span>':''));
      var api=b.api||[];
      if(api.length){
        var ar=api.map(function(c){var w=/POST|PUT|DELETE|PATCH/i.test(c.method);return '<tr><td>'+esc(c.op||'—')+'</td><td>'+esc(c.method)+' <span class="apath">'+esc(c.path)+'</span></td><td>'+(w?'<b style="color:#c2185b">データ更新</b>':'参照')+'</td><td>'+(c.status==null?'-':c.status)+'</td></tr>';}).join('');
