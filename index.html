@@ -374,6 +374,7 @@
 
 
 
+
 <header><h1>TFACT2（仮） ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -516,12 +517,6 @@ graph TD
      <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
      <div id="m-aiResult"></div>
      <div id="m-autoResult" style="margin-top:8px"></div>
-     <!-- レビューの改善提案を1回だけ一括追加（自動改善のような反復はしない） -->
-     <details id="m-regenWrap" class="editsec hidden" style="margin-top:12px">
-      <summary>レビューの改善提案からテストケースを追加（1回だけ・再レビューなし）</summary>
-      <div class="muted" style="margin:6px 0">レビューが挙げた改善提案を、既存テストを保持したまま<b>一括で1回だけ</b>追加します（追加後の再レビューはしません）。※目標点まで「レビュー→改善→再レビュー」を自動で繰り返したい場合は、上の<b>改善ラウンド数を1以上</b>にしてください。</div>
-      <button id="m-regenBtn" class="btn-sm" style="background:#2e7d32">改善提案のテストケースを追加</button>
-     </div>
     </div>
    </div>
   </div>
@@ -799,7 +794,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var mdl=$('cb-model'); if(mdl) mdl.disabled=!apiMode;
    var llmChk=$('m-llm'); if(llmChk){ llmChk.checked=apiMode; }
    // APIオフ時はAI系ボタンを不活性化
-   ['m-aiReviewBtn','m-regenBtn','m-applyRecBtn'].forEach(function(id){ var e=$(id); if(e) e.disabled=!apiMode; });
+   ['m-aiReviewBtn','m-applyRecBtn'].forEach(function(id){ var e=$(id); if(e) e.disabled=!apiMode; });
    if(typeof mEstimate==='function') mEstimate();
  }
  function updateBadge(){
@@ -1504,7 +1499,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      btn.disabled=true; lg.textContent='AIレビューを開始しています…';
      fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
       .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-        poll(r.runId,lg,function(s){ btn.disabled=false; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); $('m-regenWrap').classList.remove('hidden'); } },btn);
+        poll(r.runId,lg,function(s){ btn.disabled=false; if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } },btn);
       });
      return;
    }
@@ -1535,16 +1530,6 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
     });
  });
  var mAiReview=null;
- $('m-regenBtn').addEventListener('click',function(){
-   if(!mSuite||!mAiReview){alert('先にAIレビューを実施してください');return;}
-   var btn=$('m-regenBtn'); btn.disabled=true; var lg=$('m-aiLog'); lg.classList.remove('hidden'); lg.textContent='改善提案のテストケースを追加中…（既存は保持）';
-   fetch(withTok('/api/regenerate'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,aiReview:mAiReview,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
-    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-      poll(r.runId,lg,function(s){ btn.disabled=false;
-        if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.added)||0; toast('改善提案から '+n+' 件のテストケースを追加しました（下の③で確認・編集できます）','ok'); }
-      },btn);
-    });
- });
  function esc2(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
  function renderAiReview(r){
    var sevColor={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
