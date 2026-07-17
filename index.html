@@ -375,6 +375,7 @@
 
 
 
+
 <header><h1>TFACT2（仮） ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -573,7 +574,14 @@ graph TD
    <div class="opts" style="margin-top:10px">
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video"> 録画（動画を保存・結果画面で再生）</label>
+    <label style="display:inline;font-weight:400;margin-left:6px">判定感度
+     <select id="m-sensitivity" style="font-size:13px">
+      <option value="standard" selected>標準（日時/ID/UUID等の動的値は無視）</option>
+      <option value="high">厳格（微差も検出・視覚0.3%）</option>
+      <option value="low">寛容（動的値・非機能を無視・視覚2%）</option>
+     </select></label>
    </div>
+   <div class="muted" id="m-sensNote" style="font-size:12px;margin:2px 0 0"></div>
    <details class="editsec" style="margin-top:8px">
     <summary>API比較で無視するパターン（任意・動的ID/タイムスタンプ等）</summary>
     <div class="muted" style="margin:6px 0">数値ID・UUID・長いhash・6桁以上の数字を含むパスは<b>自動で無視</b>されます。ここでは<b>追加で無視</b>したい通信を1行1パターンで指定します（部分一致。<code>/正規表現/</code> も可）。例）<code>/api/ping</code>、<code>/\/session\/[a-z0-9]+/</code>、<code>timestamp=</code></div>
@@ -843,11 +851,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
    if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
    if(Array.isArray(s.apiIgnore)&&$('m-apiIgnore')) $('m-apiIgnore').value=s.apiIgnore.join('\n');
+   if(s.sensitivity&&$('m-sensitivity')){ $('m-sensitivity').value=s.sensitivity; try{ $('m-sensitivity').dispatchEvent(new Event('change')); }catch(e){} }
    window.__assignees=Array.isArray(s.assignees)?s.assignees:[]; renderAssigneeMaster(); renderAssigneeDatalist();
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
@@ -974,6 +983,13 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      n.textContent = v==='light' ? '単一のAIレビュアーが網羅/リスク/利用者を1回で統合評価します（合議なし・最も低コスト）。'
        : v==='full' ? '4観点（網羅/リスク/利用者/敵対）を並列レビューし、合議で総合評価をまとめます（精度重視・トークン増）。'
        : '規模・業務リスクに応じて自動選択（通常は単一、30ケース以上や高リスク業務では複数＋合議）。'; }
+   sel.addEventListener('change',note); note(); })();
+ // 判定感度の説明
+ (function(){ var sel=$('m-sensitivity'); if(!sel) return;
+   function note(){ var n=$('m-sensNote'); if(!n) return; var v=sel.value;
+     n.textContent = v==='high' ? '厳格：正規化せずに比較し、視覚差0.3%以上・非機能差もNG。わずかな違いも検出したい確認向け。'
+       : v==='low' ? '寛容：日時/ID/UUID/数値/金額/相対時刻を無視、視覚差2%まで許容、非機能差はNGにしません。動的値による誤検知（差分0%なのにNG）を強く抑えます。'
+       : '標準：日時/ID/UUID/6桁以上の数値など動的値の違いは無視し、視覚差1%以上をNG判定。内容が同じで動的値だけ違う誤検知を抑えます。'; }
    sel.addEventListener('change',note); note(); })();
  // ==== 定期実行スケジュール ====
  function loadSchedules(){ var sel=$('sc-suite'); if(!sel) return;
@@ -1720,7 +1736,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    pushUrlHist(after);
    var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
    var apiIgnore=($('m-apiIgnore')?$('m-apiIgnore').value:'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
-   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,shots:$('m-shots').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
+   var sensitivity=$('m-sensitivity')?$('m-sensitivity').value:'standard';
+   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,sensitivity:sensitivity,shots:$('m-shots').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
    $('m-runBtn').disabled=true; var lg=$('m-runlog'); lg.classList.remove('hidden'); lg.textContent='N+1を実行して比較を開始…'; $('m-resultCard').classList.add('hidden');
    var r=await fetch(withTok('/api/run-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-runBtn').disabled=false;return;}
