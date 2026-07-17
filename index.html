@@ -1,5 +1,5 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Auto-test-tool</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>TFACT2（仮）</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>%F0%9F%A7%AA</text></svg>">
 <style>
  body{font-family:'Segoe UI','Meiryo',sans-serif;margin:0;background:#eef1f5;color:#1e2430}
@@ -373,7 +373,8 @@
 
 
 
-<header><h1>Auto-test-tool ── テストケース管理（捜索→編集→保存→比較）</h1></header>
+
+<header><h1>TFACT2（仮） ── テストケース管理（捜索→編集→保存→比較）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
  <span class="cb-item"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
@@ -438,13 +439,11 @@
     <div class="slider"><div class="lab"><span>捜索の深さ</span><b id="m-depthv">0.5</b></div><input type="range" id="m-depth" min="0" max="1" step="0.01" value="0.5"></div><div class="slider"><div class="lab"><span>捜索の広さ</span><b id="m-breadthv">0.5</b></div><input type="range" id="m-breadth" min="0" max="1" step="0.01" value="0.5"></div><div class="slider"><div class="lab"><span>メイン⇔例外</span><b id="m-exceptionv">0.3</b></div><input type="range" id="m-exception" min="0" max="1" step="0.01" value="0.3"></div>
     <div class="slider"><div class="lab"><span>画面数（捜索する画面の最大数）</span><b id="m-maxPagesv">30</b></div><input type="range" id="m-maxPages" min="3" max="60" step="1" value="30"></div>
     <div class="slider"><div class="lab"><span>実行時間の上限（捜索＋再実行の合計）</span><b id="m-maxRunSecv">4分00秒</b></div><input type="range" id="m-maxRunSec" min="30" max="900" step="30" value="240"><div class="muted">短いほど早く終わりますが途中打ち切り（N件で確定）になりやすく、長いほど網羅的に捜索します。捜索はこの上限の約65%を使います。</div></div>
-    <div class="opts"><label style="display:inline;font-weight:400"><input type="checkbox" id="m-llm" checked> LLM誘導捜索（要APIキー）</label>
-     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-headed"> 画面動作を表示（捜索を目視・ローカル実行時のみ）</label></div>
+    <div class="opts"><label style="display:inline;font-weight:400"><input type="checkbox" id="m-llm" checked> LLM誘導捜索（要APIキー）</label></div>
     <label style="margin-top:12px">補足プロンプト（この捜索への追加指示・任意）</label>
     <textarea id="m-supplement" rows="3" placeholder="例）ログイン後のマイページを重点的に。異常系（空・不正値）も試して。"></textarea>
    </details>
 
-   <p class="muted" style="font-size:12px;margin:2px 0">※ 有識者ノウハウ・業務ドメイン別プロンプトは<b>「管理者」画面</b>に移動しました（ヘッダの管理者から編集）。</p>
 
    <details>
     <summary>仕様の画面遷移図（Mermaid・任意） ── 1回目走査の遷移図と比較する</summary>
@@ -1332,7 +1331,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var u=$('m-url').value.trim();
    if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
    pushUrlHist(u);
-   var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,headed:$('m-headed').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value};
+   var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value};
    Object.assign(body,collectSpec()); Object.assign(body,collectLlm());
    $('m-exploreBtn').disabled=true; var lg=$('m-log'); lg.classList.remove('hidden'); lg.textContent='捜索を開始しています…';
    var r=await fetch(withTok('/api/explore'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
