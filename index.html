@@ -378,6 +378,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -1739,7 +1740,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var btn=$('m-captureBtn'); btn.disabled=true; var lg=$('m-captureLog'); lg.classList.remove('hidden'); lg.textContent='1回目(N)を実行中…'; $('m-captureMsg').textContent='';
    fetch(withTok('/api/capture-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,onlyMissing:true},mSuiteId?{suiteId:mSuiteId,name:($('m-name').value||'').trim()||undefined}:{}))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.captured)||0; $('m-captureMsg').textContent='取得しました（'+n+'件を比較対象に）'; toast('追加ケースの1回目(N)を取得しました（'+n+'件が比較対象に）','ok'); } },btn);
+      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.captured)||0; var miss=(s.summary&&s.summary.missing)||0;
+        if(miss>0){ $('m-captureMsg').innerHTML='<span style="color:#c62828;font-weight:700">取得 '+n+'件／未取得 '+miss+'件</span> <span class="muted">未取得ケースは比較対象外です。最大実行時間を延ばすか、対象を分けて再実行してください。</span>'; toast('取得 '+n+'件・未取得 '+miss+'件（時間上限）','ng'); }
+        else { $('m-captureMsg').textContent='取得しました（'+n+'件を比較対象に）'; toast('追加ケースの1回目(N)を取得しました（'+n+'件が比較対象に）','ok'); } } },btn);
     });
  });
  $('m-runBtn').addEventListener('click',async function(){
