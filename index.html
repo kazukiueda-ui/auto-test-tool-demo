@@ -398,6 +398,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -588,7 +589,7 @@ graph TD
    <div id="m-traceResult" style="margin-top:6px"></div>
    <details class="editsec" style="margin-top:10px">
     <summary>DBデータ更新の検証（設定は接続だけ・クエリ任意）</summary>
-    <div style="margin:6px 0;padding:6px 8px;background:#eef6ee;border:1px solid #cfe0cf;border-radius:6px;font-size:12px"><b>自動発見モード（既定）</b>：「設定」画面でDB接続を保存しておくと、<b>テスト実行の前後でDBを丸ごとスナップショットし、変化したテーブル・行を自動で検出</b>します。クエリやテーブルの指定は不要です（read-only・動的値は正規化）。結果は実行後のダッシュボードに表示されます。</div>
+    <div style="margin:6px 0;padding:6px 8px;background:#eef6ee;border:1px solid #cfe0cf;border-radius:6px;font-size:12px"><b>自動発見モード（既定）</b>：「設定」画面でDB接続を保存しておくと、<b>テスト実行の前後でDBを丸ごとスナップショットし、変化したテーブル・行を自動で検出</b>します。クエリやテーブルの指定は不要です（read-only・動的値は正規化）。<br><b>初回は全テーブル</b>を対象にし、結果画面で<b>「★ DBデータ更新を期待値に承認」</b>すると、<b>以降は更新のあったテーブルだけ</b>を対象にして軽量化＆回帰判定します。<span id="m-dbFocusState"></span></div>
     <div class="muted" style="margin:6px 0">下の<b>検証クエリ（任意・上級者向け）</b>は、特定の行だけを期待値化して毎回チェックしたい場合に使います。通常は不要です。無視列に id/created_at 等を入れると誤検知を防げます。</div>
     <div id="m-dbList"></div>
     <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -1990,7 +1991,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(typeof toast==='function') toast('仕様網羅 '+r.coverage+'%（'+r.coveredCount+'/'+r.total+'）','ok');
  });
  // DBデータ更新の検証（クエリ管理・期待値取得・比較）
- function renderDbChecks(){ var box=$('m-dbList'); if(!box) return; var checks=(mSuite&&mSuite.dbChecks)||[];
+ function renderDbFocus(){ var el=$('m-dbFocusState'); if(!el) return; var base=(mSuite&&mSuite.dbAutoBaseline)||null;
+   if(base&&base.length){ el.innerHTML='<br><b style="color:#2e7d32">対象：承認済み更新テーブルのみ（'+base.length+'）</b>：'+base.map(function(d){return escHtml(d.name);}).slice(0,10).join(' / ')+(base.length>10?' …':'')+' <a href="#" id="m-dbResetFocus" style="color:#1565c0">［全テーブルに戻す］</a>';
+     var rl=$('m-dbResetFocus'); if(rl) rl.addEventListener('click',function(e){ e.preventDefault(); if(!confirm('DB検証の対象を「全テーブル」に戻します（次回の実行で全テーブルを再スキャンします）。よろしいですか？')) return; mSuite.dbAutoBaseline=undefined; markDirty(); renderDbFocus(); if(typeof toast==='function')toast('DB検証の対象を全テーブルに戻しました','ok'); }); }
+   else { el.innerHTML='<br><span class="muted">対象：全テーブル（未承認）。実行後に承認すると更新テーブルのみに絞られます。</span>'; }
+ }
+ function renderDbChecks(){ renderDbFocus(); var box=$('m-dbList'); if(!box) return; var checks=(mSuite&&mSuite.dbChecks)||[];
    if(!checks.length){ box.innerHTML='<span class="muted" style="font-size:12px">検証クエリはまだありません。「＋ 検証クエリを追加」で作成します。</span>'; return; }
    box.innerHTML=checks.map(function(c,i){ var has=c.baseline&&!c.baseline.error; return '<div style="border:1px solid #e2e7ee;border-radius:6px;padding:6px;margin:4px 0;background:#fafbfc">'
      +'<div style="display:flex;gap:6px;align-items:center"><input data-i="'+i+'" data-k="name" class="db-f" value="'+escAttr(c.name||'')+'" placeholder="検証名（例：注文が1件増える）" style="flex:1;font-size:12px">'
@@ -2131,9 +2137,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    b.disabled=false;
    if(!r||r.error){ alert('承認に失敗しました: '+((r&&r.error)||'不明')); return; }
    var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(mSuiteId))).then(function(x){return x.json();}).catch(function(){return null;});
-   if(rec&&rec.suite){ mSuite=rec.suite; markClean(); }
+   if(rec&&rec.suite){ mSuite=rec.suite; markClean(); if(typeof renderDbChecks==='function') renderDbChecks(); }
    b.classList.add('hidden');
-   if(typeof toast==='function') toast('DBデータ更新パターンを期待値として承認しました（'+r.approved+'テーブル・次回から回帰判定）','ok');
+   if(typeof toast==='function') toast('DBデータ更新パターンを期待値として承認しました（'+r.approved+'テーブル・次回から更新テーブルのみ対象＆回帰判定）','ok');
  }); })();
  // 変化を承認：差分ケースのbaselineをN+1観測に更新＆承認（新しいゴールデン）。スイートを再読込。
  (function(){ var b=$('m-approveChangesBtn'); if(!b) return; b.addEventListener('click',async function(){
