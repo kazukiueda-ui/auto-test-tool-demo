@@ -251,6 +251,49 @@
  .sched-list{margin-top:10px}
  .sched-item{border:1px solid #e2e7ee;border-radius:8px;padding:8px 10px;margin:6px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
  .sched-item .st{font-size:11px;padding:1px 7px;border-radius:10px;color:#fff}.sched-item .st.on{background:#2e7d32}.sched-item .st.off{background:#90a4ae}
+ /* 実行中の進捗パネル（動きのある“今なにをしているか”表示） */
+ .prog{border:1px solid #dfe6f2;border-radius:10px;padding:11px 13px;margin-top:10px;background:linear-gradient(180deg,#f7f9fe,#eef3fb)}
+ .prog.done{background:linear-gradient(180deg,#eefaf0,#e3f5e8);border-color:#bfe6cf}
+ .prog.fail{background:linear-gradient(180deg,#fdecea,#fbe0dd);border-color:#f3b7b0}
+ .prog.stop{background:#f4f6f9;border-color:#d7dee8}
+ .prog-head{display:flex;align-items:center;gap:9px;font-size:14.5px;font-weight:700;color:#243b63}
+ .prog-ico{font-size:22px;line-height:1;display:inline-block;animation:progpulse 1.1s ease-in-out infinite}
+ .prog.done .prog-ico,.prog.fail .prog-ico,.prog.stop .prog-ico{animation:none}
+ .prog-dots::after{content:'';animation:progdots 1.4s steps(4,end) infinite}
+ .prog-phase{font-size:12px;color:#5a6b86;margin:2px 0 0 31px}
+ .prog-bar{height:6px;background:#e2e9f4;border-radius:4px;overflow:hidden;margin:9px 0 7px;position:relative}
+ .prog-bar>i{position:absolute;left:0;top:0;height:100%;width:38%;border-radius:4px;background:linear-gradient(90deg,#6a1b9a,#37507a,#2e7d32);animation:progslide 1.25s cubic-bezier(.4,0,.2,1) infinite}
+ .prog.done .prog-bar>i,.prog.fail .prog-bar>i,.prog.stop .prog-bar>i{animation:none;width:100%;left:0}
+ .prog.fail .prog-bar>i{background:#c62828}.prog.stop .prog-bar>i{background:#90a4ae}
+ .prog-chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px}
+ .prog-chip{font-size:11.5px;padding:2px 9px;border-radius:12px;border:1px solid #cdd8ea;background:#fff;color:#5a6b86;display:inline-flex;align-items:center;gap:4px}
+ .prog-chip.on{border-color:#6a1b9a;color:#6a1b9a;box-shadow:0 0 0 2px rgba(106,27,154,.08);animation:progpulse 1.1s ease-in-out infinite}
+ .prog-chip.ok{border-color:#2e7d32;color:#1b5e20;background:#eefaf0;animation:none}
+ .prog-steps{list-style:none;margin:6px 0 0;padding:0;font-size:12.5px}
+ .prog-steps li{display:flex;gap:7px;align-items:flex-start;padding:2px 0;color:#44566f;transition:opacity .3s}
+ .prog-steps li .pk{flex:0 0 16px;text-align:center}
+ .prog-steps li.cur{color:#243b63;font-weight:600}
+ .prog-steps li.sub{color:#8493a8;font-size:11.5px;padding-left:16px}
+ .prog-meta{font-size:11px;color:#7385a0;margin-top:7px;display:flex;gap:12px;flex-wrap:wrap}
+ .prog details{margin-top:7px}.prog details>summary{cursor:pointer;font-size:11.5px;color:#7385a0}
+ .prog pre.rawlog{background:#0f1620;color:#cfe3ff;padding:9px;border-radius:7px;margin-top:6px;font-size:11.5px;white-space:pre-wrap;max-height:180px;overflow:auto}
+ @keyframes progpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.14);opacity:.75}}
+ @keyframes progslide{0%{left:-38%}100%{left:100%}}
+ @keyframes progdots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:''}}
+ @media(prefers-reduced-motion:reduce){.prog-ico,.prog-chip.on,.prog-bar>i,.prog-dots::after{animation:none}}
+ /* 業務ドメインのツリー＆ノウハウ表示 */
+ .dom-cat{margin:10px 0 4px}
+ .dom-cat-hd{font-weight:800;font-size:13px;color:#243b63;border-left:4px solid #37507a;padding-left:8px;margin-bottom:4px}
+ .dom-row{border:1px solid #e6ecf5;border-radius:8px;margin:5px 0;background:#fbfcfe;padding:4px 8px}
+ .dom-row>summary{cursor:pointer;font-size:13px;color:#2a4b7c;list-style:revert;padding:2px 0}
+ .dom-row[open]>summary{border-bottom:1px solid #eef1f6;padding-bottom:5px;margin-bottom:5px}
+ .dom-ov{font-size:10.5px;color:#fff;background:#ef6c00;border-radius:9px;padding:1px 7px;margin-left:6px}
+ .kh{font-size:12.5px;color:#33465f}
+ .kh-vp{margin:3px 0;padding-left:18px}.kh-vp li{margin:2px 0}
+ .kh-line{margin:3px 0;line-height:1.5}
+ .kh-tag{color:#fff;font-size:10.5px;border-radius:4px;padding:1px 6px;margin-right:5px;white-space:nowrap}
+ .dom-kh-mini{font-size:12px;color:#44566f;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;padding:7px 10px;margin-top:6px}
+ .dom-kh-mini b{color:#2a4b7c}
 </style></head><body>
 <!-- ==== デモ(モック) shim：サーバAPIを canned データに差し替え、本物のUIをそのまま駆動 ==== -->
 <script>
@@ -430,6 +473,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -439,6 +483,7 @@
  <span class="cb-item"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
  <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
 </div>
+<div id="cb-domain-kh" class="dom-kh-mini hidden"></div>
 <div class="wrap">
  <div class="applayout">
  <!-- 左サイドバー：画面切替（スクロールしても常時表示）。現在地を明示 -->
@@ -878,8 +923,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
 保証は「指定URL・指定認証状態・テストデータ・実行環境・捜索条件のもとで、到達・観測できた対象を定義基準で確認し、再実行可能なテストと証跡を生成した」範囲に限定。</textarea>
   </div>
   <div class="card" id="adm-domain-card">
-   <h3>業務ドメイン別プロンプト</h3>
-   <p class="muted" style="margin:0 0 8px">業務ごとに重点観点プロンプトを用意します（<b>業務の数だけ入力欄</b>）。ヘッダで選んだ業務のプロンプトが探索・AIレビューに注入されます。<b>「＋ 業務を追加」</b>で新しい業務を追加でき、<b>ヘッダの業務ドメイン選択にも反映</b>されます。</p>
+   <h3>業務ドメイン別テスト設計ノウハウ（ツリー管理）</h3>
+   <p class="muted" style="margin:0 0 8px"><b>共通（一般的なWebシステム）→業務システム→業界別</b>の分類ツリーで管理します。各業務を開くと<b>重点観点・境界値・異常系・テストデータ設計</b>のノウハウが表示され、これが探索・AIレビューへ注入されます（テスト専門家＋業務専門家の知見）。プロンプト欄を編集すると<b>その業務だけ上書き</b>できます。<b>「＋ 業務を追加」</b>で独自業務も追加可能（ヘッダの選択にも反映）。</p>
    <div id="adm-domain-list"></div>
    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="adm-domain-add" class="btn-sm btn-gray" type="button">＋ 業務を追加</button><button id="adm-domain-save" class="btn-sm" type="button">業務別プロンプトを保存</button><span id="adm-domain-msg" class="muted"></span></div>
   </div>
@@ -943,7 +988,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function loadEnv(){ return fetch(withTok('/api/env')).then(function(r){return r.json();}).then(function(e){
    ATT_ENV=e||ATT_ENV;
    var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">最適なモデルを自動選択（段階別）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
-   renderDomainSelect();
+   renderDomainSelect(); renderDomainPrompts(); renderDomainMini();
    if(!ATT_ENV.llmAvailable){ apiMode=false; } // キー無ければ強制オフ
    applyModeUi(); updateBadge();
  }).catch(function(){}); }
@@ -953,10 +998,40 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function domainPromptFor(key){ var d=allDomains().find(function(x){return x.key===key;}); return d?(d.defaultPrompt||''):''; }
  function domainLabelFor(key){ var d=allDomains().find(function(x){return x.key===key;}); return d?d.label:(key||''); }
  function currentDomainPrompt(){ var key=$('cb-domain')?$('cb-domain').value:'none'; if(key==='none')return ''; var m=window.__domainPrompts||{}; return (m[key]!=null&&m[key]!=='')?m[key]:domainPromptFor(key); }
- function renderDomainSelect(){ var dom=$('cb-domain'); if(!dom)return; var cur=dom.value; dom.innerHTML=allDomains().map(function(d){return '<option value="'+d.key+'">'+escHtml(d.label)+'</option>';}).join(''); if(cur&&allDomains().some(function(d){return d.key===cur;}))dom.value=cur; }
+ // ヘッダの業務ドメイン選択：分類ごとに optgroup でツリー表示。
+ function renderDomainSelect(){ var dom=$('cb-domain'); if(!dom)return; var cur=dom.value;
+   var tree=ATT_ENV.domainTree||[]; var html='<option value="none">（業務指定なし）</option>';
+   if(tree.length){ tree.forEach(function(g){ html+='<optgroup label="'+escHtml(g.category.label)+'">'+(g.domains||[]).map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>'; }); }
+   else { html+=allDomains().filter(function(d){return d.key!=='none';}).map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join(''); }
+   var cust=(window.__customDomains||[]); if(cust.length) html+='<optgroup label="利用者追加">'+cust.map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>';
+   dom.innerHTML=html; if(cur&&(cur==='none'||allDomains().some(function(d){return d.key===cur;})))dom.value=cur; }
+ // 構造化ノウハウ（観点/境界値/異常系/データ）を読みやすいカードに。
+ function domainKhCard(d){ if(!d||!d.viewpoints||!d.viewpoints.length) return d&&d.summary?('<div class="muted" style="font-size:12px">'+escHtml(d.summary)+'</div>'):'<div class="muted" style="font-size:12px">（利用者追加の業務。下欄に重点観点を記述してください）</div>';
+   var vp=d.viewpoints.map(function(v){return '<li><b>'+escHtml(v.area)+'</b>：'+escHtml((v.points||[]).join('／'))+'</li>';}).join('');
+   var chip=function(label,arr,col){ return (arr&&arr.length)?'<div class="kh-line"><span class="kh-tag" style="background:'+col+'">'+label+'</span>'+escHtml(arr.join('／'))+'</div>':''; };
+   return '<div class="kh">'+(d.summary?'<div class="muted" style="font-size:12px;margin-bottom:3px">'+escHtml(d.summary)+'</div>':'')
+     +'<ul class="kh-vp">'+vp+'</ul>'+chip('境界値',d.boundaries,'#37507a')+chip('異常系',d.abnormal,'#c62828')+chip('データ',d.data,'#2e7d32')+'</div>'; }
+ // 1業務の行（ノウハウ＋上書きプロンプト欄）。
+ function domainRow(d,m){ var v=(m[d.key]!=null)?m[d.key]:(d.defaultPrompt||''); var ov=(m[d.key]!=null&&m[d.key]!=='');
+   return '<details class="dom-row"'+(ov?' open':'')+'><summary><b>'+escHtml(d.label)+'</b> <span class="muted" style="font-size:11px">('+escHtml(d.key)+')</span>'+(ov?'<span class="dom-ov">上書き中</span>':'')+'</summary>'
+     +domainKhCard(d)
+     +'<label class="muted" style="font-size:11px;display:block;margin-top:6px">注入プロンプト（既定は上のノウハウから自動生成。編集すると上書き）</label>'
+     +'<textarea class="dp-box" data-key="'+escAttr(d.key)+'" rows="3" style="width:100%;box-sizing:border-box;font-size:12.5px;margin-top:2px" placeholder="この業務で重視するテスト観点を記述">'+escHtml(v)+'</textarea></details>'; }
+ // 管理画面：業務ドメインを分類ツリーで管理し、各業務のテスト設計ノウハウを表示・編集。
  function renderDomainPrompts(){ var box=$('adm-domain-list'); if(!box)return; var m=window.__domainPrompts||{};
-   box.innerHTML=allDomains().filter(function(d){return d.key!=='none';}).map(function(d){ var v=(m[d.key]!=null)?m[d.key]:(d.defaultPrompt||'');
-     return '<div style="margin:8px 0;border-top:1px solid #eef1f6;padding-top:6px"><div style="font-weight:700;font-size:13px;color:#2a4b7c">'+escHtml(d.label)+' <span class="muted" style="font-weight:400;font-size:11px">('+escHtml(d.key)+')</span></div><textarea class="dp-box" data-key="'+escAttr(d.key)+'" rows="3" style="width:100%;box-sizing:border-box;font-size:13px;margin-top:3px" placeholder="この業務で重視するテスト観点を記述">'+escHtml(v)+'</textarea></div>'; }).join(''); }
+   var tree=ATT_ENV.domainTree||[]; var html='';
+   if(tree.length){ tree.forEach(function(g){ html+='<div class="dom-cat"><div class="dom-cat-hd">'+escHtml(g.category.label)+' <span class="muted" style="font-weight:400;font-size:11px">'+escHtml(g.category.note||'')+'</span></div>'+(g.domains||[]).map(function(d){return domainRow(d,m);}).join('')+'</div>'; }); }
+   else { html=allDomains().filter(function(d){return d.key!=='none';}).map(function(d){return domainRow(d,m);}).join(''); }
+   var cust=(window.__customDomains||[]); if(cust.length) html+='<div class="dom-cat"><div class="dom-cat-hd">利用者追加</div>'+cust.map(function(d){return domainRow(d,m);}).join('')+'</div>';
+   box.innerHTML=html; }
+ // ヘッダ下：選択中業務の重点観点をコンパクトに表示（何が注入されるか可視化）。
+ function renderDomainMini(){ var box=$('cb-domain-kh'); if(!box)return; var key=$('cb-domain')?$('cb-domain').value:'none';
+   if(!key||key==='none'){ box.classList.add('hidden'); box.innerHTML=''; return; }
+   var d=allDomains().find(function(x){return x.key===key;}); if(!d){ box.classList.add('hidden'); return; }
+   box.classList.remove('hidden');
+   var vp=(d.viewpoints||[]).map(function(v){return escHtml(v.area);}).join('・');
+   box.innerHTML='<b>この業務の重点観点</b>：'+(vp||escHtml(d.summary||'—'))+' <a href="#" id="cb-domain-more" style="font-size:11px">詳しく</a>';
+   var more=$('cb-domain-more'); if(more) more.addEventListener('click',function(e){ e.preventDefault(); showView('admin'); setTimeout(function(){ var c=$('adm-domain-card'); if(c)c.scrollIntoView({behavior:'smooth'}); },60); }); }
  (function(){ var add=$('adm-domain-add'); if(add) add.addEventListener('click',function(){ var name=prompt('追加する業務名（例：物流管理）'); if(!name)return; name=name.trim(); if(!name)return;
      var base=name.toLowerCase().replace(/[^\w\u3040-\u30ff\u4e00-\u9faf-]/g,'').slice(0,16)||'biz'; var key='custom-'+base+'-'+((window.__customDomains||[]).length+1);
      window.__customDomains=(window.__customDomains||[]).concat([{key:key,label:name,defaultPrompt:''}]); renderDomainSelect(); renderDomainPrompts(); if($('cb-domain'))$('cb-domain').value=key; if(typeof toast==='function')toast('業務「'+name+'」を追加しました（ヘッダの業務ドメインにも反映）','ok'); });
@@ -973,6 +1048,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    window.__customDomains=Array.isArray(s.customDomains)?s.customDomains:[]; window.__domainPrompts=(s.domainPrompts&&typeof s.domainPrompts==='object')?s.domainPrompts:{};
    renderDomainSelect(); renderDomainPrompts();
    if(s.domain&&$('cb-domain')&&allDomains().some(function(d){return d.key===s.domain;})) $('cb-domain').value=s.domain;
+   renderDomainMini();
    if(typeof s.llmMode==='boolean'){ apiMode=s.llmMode&&ATT_ENV.llmAvailable; }
    if(s.knowhow&&$('m-knowhow')) $('m-knowhow').value=s.knowhow;
    if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
@@ -1002,8 +1078,11 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    // 業務ドメイン：選択を「決定→反映」で確定。業務別プロンプト（管理者で編集）が探索/AIレビューに注入される。
    var cbda=$('cb-domain-apply'); if(cbda) cbda.addEventListener('click',function(){
      var key=$('cb-domain')?$('cb-domain').value:'none'; var label=domainLabelFor(key);
-     if(typeof toast==='function') toast(key==='none'?'業務指定を解除しました':'業務ドメイン「'+label+'」を反映しました（管理者の業務別プロンプトが注入されます）','ok');
+     renderDomainMini();
+     var d=allDomains().find(function(x){return x.key===key;}); var vpn=d&&d.viewpoints?d.viewpoints.length:0;
+     if(typeof toast==='function') toast(key==='none'?'業務指定を解除しました':'業務ドメイン「'+label+'」を反映（重点観点 '+vpn+' 群を探索/AIレビューへ注入）','ok');
    });
+   var cbd=$('cb-domain'); if(cbd) cbd.addEventListener('change',renderDomainMini);
    var cbs=$('cb-save'); if(cbs) cbs.addEventListener('click',saveProjectSettings);
  }
  // ==== トークン下辺グラフ ====
@@ -1583,39 +1662,109 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    clearTimeout(t._h); t._h=setTimeout(hide,5000);
  }
  var SPIN=['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+ // 進捗行を「高レベルのフェーズ（アイコン＋一言）」に翻訳する。何をしているか一目で分かるように。
+ function progPhase(line){ var t=(line||'').replace(/^[\s⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏└　▶]+/,'');
+   var map=[
+     [/要約|読み込み|設計を/, '📖','テスト設計を読み込んでいます'],
+     [/再レビュー/, '🔎','改善後を再レビューしています'],
+     [/合議|突き合わせ|総合評価/, '🤝','各観点を合議し総合評価をまとめています'],
+     [/並行レビュー|観点で/, '🧑‍⚖️','複数の観点で並行レビュー中'],
+     [/問い合わせ|レビュー中|評価/, '🧠','AIレビュアーが評価しています'],
+     [/バッチ|ケース生成|生成中|設計中/, '✍️','改善テストケースを生成しています'],
+     [/不足観点|augment|補強/, '➕','不足している観点を補っています'],
+     [/ラウンド/, '🔁','自動改善のラウンドを実行中'],
+     [/文章化|narrative|概要|仕様/, '📝','仕様を文章化しています'],
+     [/捜索|探索|ページ|遷移|クロール/, '🕸️','サイトを探索しています'],
+     [/スナップ|テーブル|DB|データベース/, '🗄️','データベースを検査しています'],
+     [/停止|中断/, '⏹️','停止処理中'],
+     [/失敗|エラー/, '⚠️','一部でエラーが発生しました']
+   ];
+   for(var i=0;i<map.length;i++){ if(map[i][0].test(t)) return {ico:map[i][1],label:map[i][2]}; }
+   return {ico:'⚙️',label:'処理を実行しています'};
+ }
+ // 完了した行か（チェック✓を付ける）
+ function progDone(line){ return /完了|→|＋|追加|生成しました|反映|✓|成功/.test(line||'')&&!/中…|中\.|しています|問い合わせ/.test(line||''); }
+ function progSub(line){ return /^[\s　]*(└|・|＋|　)/.test(line||''); }
+ // 観点チップ（fullレビュー時）：既知の観点ラベルの進捗を可視化
+ var PERSONA_KEYS=['網羅','リスク','利用者','敵対'];
  function poll(id,lg,onDone,btn){
    clearInterval(mtimer); clearInterval(window.__animTimer);
    window.__curRun=id;
-   // 途中停止ボタンをログの直前に差し込む（実行中のみ表示）
-   var stopBtn=null;
-   if(lg&&lg.parentNode){ stopBtn=document.createElement('button'); stopBtn.className='btn-sm btn-del'; stopBtn.type='button'; stopBtn.textContent='途中停止';
-     stopBtn.style.cssText='margin:0 0 6px;display:block'; stopBtn.onclick=function(){ stopBtn.disabled=true; stopBtn.textContent='停止要求中…'; fetch(withTok('/api/cancel?id='+id),{method:'POST'}).catch(function(){}); };
-     lg.parentNode.insertBefore(stopBtn,lg); }
-   function removeStop(){ if(stopBtn&&stopBtn.parentNode) stopBtn.parentNode.removeChild(stopBtn); stopBtn=null; }
-   var lines=[], running=true, spinI=0, t0=Date.now(), lastChangeT=Date.now(), prevLen=0;
-   function paint(){ if(!lg) return;
-     var atBottom=(lg.scrollHeight-lg.scrollTop-lg.clientHeight)<30;
-     var body=lines.join('\n');
-     if(running){ spinI=(spinI+1)%SPIN.length;
-       var sec=Math.floor((Date.now()-t0)/1000), wait=Math.floor((Date.now()-lastChangeT)/1000);
-       var cur=lines.length?lines[lines.length-1]:'開始しています';
-       body+='\n'+SPIN[spinI]+' 実行中… 経過 '+sec+'秒　▶ 現在: '+cur+(wait>=3?'（この工程 '+wait+'秒）':'');
-     }
-     lg.textContent=body;
-     if(atBottom) lg.scrollTop=lg.scrollHeight;
+   // リッチ進捗パネルを一度だけ組み立て（アニメ要素は使い回し）、以降は差分更新する。
+   var panel=null, stopBtn=null, els=null;
+   // 同じログ要素で再実行された場合、前回のパネルを畳んで lg を元の位置へ戻す（ネスト防止）
+   if(lg){ var oldP=lg.closest?lg.closest('.prog'):null; if(oldP&&oldP.parentNode){ oldP.parentNode.insertBefore(lg,oldP); oldP.parentNode.removeChild(oldP); } }
+   if(lg&&lg.parentNode){
+     panel=document.createElement('div'); panel.className='prog';
+     lg.parentNode.insertBefore(panel,lg);
+     lg.classList.remove('hidden'); lg.classList.add('rawlog');
+     stopBtn=document.createElement('button'); stopBtn.className='btn-sm btn-del'; stopBtn.type='button'; stopBtn.textContent='途中停止';
+     stopBtn.style.cssText='margin:8px 0 0'; stopBtn.onclick=function(){ stopBtn.disabled=true; stopBtn.textContent='停止要求中…'; fetch(withTok('/api/cancel?id='+id),{method:'POST'}).catch(function(){}); };
+     var det=document.createElement('details'); det.innerHTML='<summary>詳細ログ（テキスト）</summary>'; det.appendChild(lg);
+     panel.innerHTML='<div class="prog-head"><span class="prog-ico">⚙️</span><span class="prog-htxt"></span><span class="prog-dots"></span></div>'
+       +'<div class="prog-phase"></div><div class="prog-bar"><i></i></div><div class="prog-chips-slot"></div>'
+       +'<ul class="prog-steps"></ul><div class="prog-meta"></div>';
+     panel.appendChild(stopBtn); panel.appendChild(det);
+     els={ ico:panel.querySelector('.prog-ico'), htxt:panel.querySelector('.prog-htxt'), dots:panel.querySelector('.prog-dots'),
+       phase:panel.querySelector('.prog-phase'), chips:panel.querySelector('.prog-chips-slot'), steps:panel.querySelector('.prog-steps'), meta:panel.querySelector('.prog-meta') };
    }
-   // アニメーション（200ms）：進捗が無い待ち時間でもスピナー・経過秒で動きを見せる
-   window.__animTimer=setInterval(function(){ if(running) paint(); },200);
+   function removeStop(){ if(stopBtn&&stopBtn.parentNode) stopBtn.parentNode.removeChild(stopBtn); stopBtn=null; }
+   var lines=[], running=true, t0=Date.now(), lastChangeT=Date.now(), prevLen=0, lastChips='', lastSteps='', lastIco='';
+   function paint(){
+     if(lg){ var atBottom=(lg.scrollHeight-lg.scrollTop-lg.clientHeight)<30; lg.textContent=lines.join('\n'); if(atBottom) lg.scrollTop=lg.scrollHeight; }
+     if(!panel||!els) return;
+     var sec=Math.floor((Date.now()-t0)/1000), wait=Math.floor((Date.now()-lastChangeT)/1000);
+     var meaningful=lines.filter(function(l){return l&&!progSub(l);});
+     var curLine=lines.length?lines[lines.length-1]:'開始しています…';
+     var ph=progPhase(meaningful.length?meaningful[meaningful.length-1]:curLine);
+     var end=window.__progEnd;
+     // ヘッダ（アイコン・見出し・完了状態）
+     var cls='prog'+(running?'':(end==='error'?' fail':end==='stopped'?' stop':' done'));
+     if(panel.className!==cls) panel.className=cls;
+     var headIco=running?ph.ico:(end==='error'?'⚠️':end==='stopped'?'⏹️':'✅');
+     if(headIco!==lastIco){ els.ico.textContent=headIco; lastIco=headIco; }
+     els.htxt.textContent=running?ph.label:(end==='error'?'エラーで終了しました':end==='stopped'?'停止しました（ここまでを反映）':'完了しました');
+     els.dots.style.display=running?'':'none';
+     els.phase.textContent=running?('現在の作業：'+curLine):'';
+     // 観点チップ（fullレビューで観点名の進捗が出ていれば）—内容が変わった時だけ更新（アニメ維持）
+     var joined=lines.join('\n'); var chips='';
+     if(/観点/.test(joined)&&PERSONA_KEYS.some(function(k){return joined.indexOf(k)>=0;})){
+       chips='<div class="prog-chips">'+PERSONA_KEYS.map(function(k){
+         var done=new RegExp(k+'[^\n]*(完了|✓)').test(joined); var active=!done&&new RegExp(k).test(joined);
+         return '<span class="prog-chip '+(done?'ok':(active&&running?'on':''))+'">'+(done?'✓':(active&&running?'⏳':'•'))+' '+k+'</span>';
+       }).join('')+'<span class="prog-chip'+(/合議/.test(joined)?(running?' on':' ok'):'')+'">'+(/合議/.test(joined)?(running?'⏳':'✓'):'•')+' 合議</span></div>';
+     }
+     if(chips!==lastChips){ els.chips.innerHTML=chips; lastChips=chips; }
+     // ステップ一覧（直近6件）—内容が変わった時だけ更新
+     var tail=lines.slice(-6);
+     var steps=tail.map(function(l,i){ var isLast=(i===tail.length-1); var cls2=progSub(l)?'sub':''; var mk;
+       if(progDone(l)) mk='<span class="pk" style="color:#2e7d32">✓</span>';
+       else if(isLast&&running) mk='<span class="pk" style="color:#6a1b9a">▶</span>';
+       else mk='<span class="pk" style="color:#b0bccf">·</span>';
+       if(isLast&&running) cls2+=' cur';
+       return '<li class="'+cls2+'">'+mk+'<span>'+esc(l)+'</span></li>';
+     }).join('');
+     if(steps!==lastSteps){ els.steps.innerHTML=steps; lastSteps=steps; }
+     els.meta.innerHTML='<span>⏱ 経過 '+sec+' 秒</span>'+(running&&wait>=3?'<span>この工程 '+wait+' 秒</span>':'')+'<span>進捗 '+lines.length+' ステップ</span>';
+     if(stopBtn) stopBtn.style.display=running?'':'none';
+   }
+   window.__progEnd='';
+   // アニメーション（250ms）：進捗が無い待ち時間でも経過秒・スピナーで動きを見せる
+   window.__animTimer=setInterval(function(){ if(running) paint(); },250);
    mtimer=setInterval(async function(){
      var s=await fetch(withTok('/api/status?id='+id)).then(function(r){return r.json();}).catch(function(){return null;});
      if(!s)return;
      var nl=(s.progress||[]);
      if(nl.length!==prevLen){ prevLen=nl.length; lastChangeT=Date.now(); } // 新しい進捗が来たら待ち時間リセット
      lines=nl;
-     running=(s.status==='running'); paint();
-     if(!running){ clearInterval(mtimer); clearInterval(window.__animTimer); if(btn)btn.disabled=false; removeStop(); try{renderTokenBar();}catch(e){}
-       if(s.status==='error'){lg.textContent=lines.join('\n')+'\n[失敗] '+s.error;return;}
+     running=(s.status==='running');
+     window.__progEnd=running?'':(s.status==='error'?'error':s.status==='stopped'?'stopped':'done');
+     paint();
+     if(!running){ clearInterval(mtimer); clearInterval(window.__animTimer); if(btn)btn.disabled=false; removeStop();
+       if(s.status==='error'&&lg){ lines=lines.concat(['[失敗] '+(s.error||'')]); }
+       paint(); try{renderTokenBar();}catch(e){}
        if(s.status==='stopped'){ if(typeof toast==='function') toast('停止しました（ここまでの結果を反映します）','ok'); }
+       if(s.status==='error'){ return; }
        onDone(s); }
    },1000);
  }
