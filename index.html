@@ -391,6 +391,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -570,7 +571,9 @@ graph TD
    <button id="m-codePw" class="btn-sm btn-gray" title="Playwright の spec ファイルとして書き出し（CIで実行可能）">Playwrightコード出力</button>
    <button id="m-codeCy" class="btn-sm btn-gray" title="Cypress の spec ファイルとして書き出し">Cypressコード出力</button>
    <button id="m-approveAll" class="btn-sm btn-gray" title="1回目(N)取得済みのケースを一括で承認（ゴールデン化）。承認済みの差分だけが回帰NGになります">★ 全て承認（ゴールデン化）</button>
+   <button id="m-genAsserts" class="btn-sm btn-gray" title="読み込んだ仕様書の用語（画面名/機能名）を、観測ページに紐づけて肯定的アサーションを生成。N比較が無くても『あるべき文言/画面』を検証できます">仕様からアサーション生成</button>
    <span id="m-approveCount" class="muted" style="font-size:12px"></span>
+   <div id="m-assertMsg" class="muted" style="font-size:12px;margin-top:4px"></div>
    <div style="margin-top:10px;border-top:1px dashed #cfd6e0;padding-top:8px">
     <div class="muted" style="margin-bottom:4px">レビューや改善で<b>1回目に追加したケース</b>は、まだ「1回目(N)の結果」が無いため、テスト実行(⑤)の比較では対象外になります。下のボタンで<b>開始URL(1回目)に対して実行し、Nを取得＝比較対象</b>にできます。</div>
     <button id="m-captureBtn" class="btn-sm" style="background:#00695c">追加ケースの1回目(N)を実行して比較対象にする</button>
@@ -1823,6 +1826,18 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  var cpw=$('m-codePw'); if(cpw) cpw.addEventListener('click',function(){exportCode('playwright','e2e.spec.ts');});
  var ccy=$('m-codeCy'); if(ccy) ccy.addEventListener('click',function(){exportCode('cypress','e2e.cy.js');});
  function updateApproveCount(){ var el=$('m-approveCount'); if(!el||!mSuite) return; var scs=mSuite.scenarios||[]; var ap=scs.filter(function(s){return s.approved;}).length; var withN=scs.filter(function(s){return s.baseline;}).length; el.innerHTML='承認済み <b>'+ap+'</b> / '+scs.length+'件（回帰対象）'+(ap<withN?' ・ 未承認の差分は「開発中の変化」として回帰NGにしません':''); }
+ var genA=$('m-genAsserts'); if(genA) genA.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   if(!(window.__specTerms&&window.__specTerms.length)){ alert('仕様書ファイルが読み込まれていません。①探索カードの「仕様書ファイルを捜索の根拠にする」で読み込んでください。'); return; }
+   genA.disabled=true;
+   var r=await fetch(withTok('/api/gen-asserts'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,specTerms:window.__specTerms})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   genA.disabled=false;
+   if(!r||r.error){ alert('生成に失敗しました: '+((r&&r.error)||'不明')); return; }
+   if(r.suite){ mSuite=r.suite; markDirty(); renderCases(); }
+   var cov=r.coverage||{total:0,found:[],missing:[]};
+   var msg=$('m-assertMsg'); if(msg){ msg.innerHTML='仕様アサーションを生成: <b>'+r.added+'</b>件（'+r.cases+'ケース）／ 仕様用語の適合 <b>'+(cov.found?cov.found.length:0)+'/'+cov.total+'</b>'
+     +(cov.missing&&cov.missing.length?' ・ <span style="color:#c62828">未検出（未実装/未到達の可能性）'+cov.missing.length+'件: '+escHtml(cov.missing.slice(0,10).join(' / '))+(cov.missing.length>10?' …':'')+'</span>':''); }
+   if(typeof toast==='function') toast('仕様アサーションを生成しました（'+r.added+'件）。テスト実行でN+1に対し検証されます。','ok');
+ });
  var apAll=$('m-approveAll'); if(apAll) apAll.addEventListener('click',function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var scs=mSuite.scenarios||[]; var target=scs.filter(function(s){return s.baseline&&!s.approved;}).length;
    if(!target){ alert('新たに承認できるケースがありません（未取得のケースは先に1回目(N)を実行してください）。'); return; }
@@ -1879,6 +1894,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      else { var ngTitle = hasGolden ? ('回帰あり ── '+reg+' 件（承認済みからの逸脱）') : ('問題あり ── 要確認 '+su.diff+' 件');
        var ngSub = (hasGolden&&devChange>0)?('別に未承認 '+devChange+' 件の変化（開発中・回帰対象外）。'):'';
        vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">'+ngTitle+'</div><div class="vsub">'+ngSub+'詳細は下記または課題管理で確認。</div></div></div>'; }
+     // 仕様アサーション不合格があれば併記（あるべき文言/画面が出ていない）
+     var specNg=su.specFailures||0; if(specNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">仕</div><div><div class="vtxt">仕様アサーション不合格 '+specNg+' 件</div><div class="vsub">仕様書にある文言/画面がN+1で確認できませんでした（未実装/未到達の可能性）。</div></div></div>'; }
      // 比較したテストケースの内訳を「同列」で視覚化（完全一致／明確に異なる／差異の疑い／対象外）
      var okN=Math.max(0, (su.total||0)-clear-suspect-skip);
      function cmpChip(lbl,n,col,bg){ return '<div class="cmp-chip" style="border-color:'+col+';background:'+bg+'"><div class="cmp-n" style="color:'+col+'">'+n+'</div><div class="cmp-l">'+lbl+'</div></div>'; }
