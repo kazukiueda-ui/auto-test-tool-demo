@@ -392,6 +392,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -685,6 +686,13 @@ graph TD
  <!-- 設定（プロジェクト単位）：担当者マスタ・定期実行 -->
  <div id="view-settings" class="screen hidden">
   <div style="font-weight:700;color:#2a4b7c;margin:2px 0 10px">設定（このプロジェクト） <span class="muted" style="font-weight:400;font-size:12px">── プロジェクトごとに保存されます</span></div>
+  <div class="card">
+   <h3>カバレッジ推移（テストの成長）</h3>
+   <p class="muted" style="margin:0 0 8px">スイートを保存するたびに記録します。実装が進む＝テストケース・到達画面・仕様適合が増えていく様子を時系列で確認できます（早期E2Eの成長の見える化）。</p>
+   <div id="m-covLegend" style="font-size:12px;margin-bottom:4px"></div>
+   <div id="m-covChart" style="overflow-x:auto"></div>
+   <div id="m-covLatest" class="muted" style="font-size:12px;margin-top:6px"></div>
+  </div>
   <div class="card">
    <h3>担当者マスタ</h3>
    <p class="muted" style="margin:0 0 8px">課題の「担当」で選べる担当者を登録します（<b>1行に1名</b>）。ここで登録した人が、課題の担当ドロップダウンに表示されます（自由入力も可）。</p>
@@ -1120,7 +1128,41 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    $('nav-manage').classList.toggle('active',v==='manage'); $('nav-issues').classList.toggle('active',v==='issues'); if($('nav-settings')) $('nav-settings').classList.toggle('active',v==='settings'); if($('nav-admin')) $('nav-admin').classList.toggle('active',v==='admin');
    // 左サイドバーのサブタブ群は、アクティブなトップ画面のものだけ表示（ネスト表現）
    if($('subnav-manage')) $('subnav-manage').classList.toggle('hidden',v!=='manage'); if($('subnav-issues')) $('subnav-issues').classList.toggle('hidden',v!=='issues');
-   $('m-stepper').style.display=(v==='manage'&&curPhase!=='history')?'':'none'; }
+   $('m-stepper').style.display=(v==='manage'&&curPhase!=='history')?'':'none';
+   if(v==='settings'&&typeof renderCoverageChart==='function') renderCoverageChart(); }
+ // ---- カバレッジ推移グラフ（インラインSVG・自己完結）----
+ function renderCoverageChart(){ var chart=$('m-covChart'); if(!chart) return;
+   fetch(withTok('/api/coverage-history')).then(function(r){return r.json();}).then(function(r){
+     var pts=(r&&r.points)||[]; var leg=$('m-covLegend'), lat=$('m-covLatest');
+     if(pts.length<1){ chart.innerHTML='<span class="muted" style="font-size:12px">まだ記録がありません。スイートを保存すると推移が表示されます。</span>'; if(leg)leg.innerHTML=''; if(lat)lat.innerHTML=''; return; }
+     var series=[
+       {key:'cases',label:'ケース数',color:'#1565c0'},
+       {key:'withBaseline',label:'N観測あり',color:'#00897b'},
+       {key:'approved',label:'承認(ゴールデン)',color:'#c9a400'},
+       {key:'screens',label:'到達画面',color:'#2e7d32'},
+       {key:'viewpoint',label:'観点網羅%',color:'#ef6c00'},
+       {key:'spec',label:'仕様適合%',color:'#8e24aa'}
+     ];
+     // spec適合率を算出して各点に付与
+     pts.forEach(function(p){ p.spec = p.specTotal>0 ? Math.round(p.specFound/p.specTotal*100) : 0; });
+     var W=Math.max(560, pts.length*70), H=170, PL=34, PR=10, PT=10, PB=22, iw=W-PL-PR, ih=H-PT-PB;
+     var n=pts.length; function x(i){ return PL + (n<=1?iw/2:(i/(n-1))*iw); }
+     var svg='<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="max-width:100%">';
+     // 目盛（0/50/100 は%系、右側にカウント最大）
+     svg+='<line x1="'+PL+'" y1="'+(PT+ih)+'" x2="'+(W-PR)+'" y2="'+(PT+ih)+'" stroke="#ccc"/>';
+     series.forEach(function(s){ var vals=pts.map(function(p){return +(p[s.key]||0);}); var mx=Math.max.apply(null,vals.concat([1]));
+       var pts2=vals.map(function(v,i){ return x(i)+','+(PT+ih-(v/mx)*ih); }).join(' ');
+       svg+='<polyline points="'+pts2+'" fill="none" stroke="'+s.color+'" stroke-width="2"/>';
+       vals.forEach(function(v,i){ svg+='<circle cx="'+x(i)+'" cy="'+(PT+ih-(v/mx)*ih)+'" r="2.5" fill="'+s.color+'"><title>'+s.label+'='+v+'</title></circle>'; });
+     });
+     // x軸ラベル（最初と最後の日付）
+     function d(ts){ try{ return new Date(ts).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'}); }catch(e){ return ''; } }
+     svg+='<text x="'+PL+'" y="'+(H-6)+'" font-size="10" fill="#789">'+d(pts[0].ts)+'</text>';
+     if(n>1) svg+='<text x="'+(W-PR)+'" y="'+(H-6)+'" font-size="10" fill="#789" text-anchor="end">'+d(pts[n-1].ts)+'（'+n+'点）</text>';
+     svg+='</svg>'; chart.innerHTML=svg;
+     if(leg) leg.innerHTML=series.map(function(s){ return '<span style="margin-right:12px;white-space:nowrap"><span style="display:inline-block;width:10px;height:3px;background:'+s.color+';vertical-align:middle;margin-right:3px"></span>'+s.label+'</span>'; }).join('');
+     var L=pts[n-1]; if(lat) lat.innerHTML='最新：ケース <b>'+L.cases+'</b>／N観測 '+L.withBaseline+'／承認 '+L.approved+'／到達画面 '+L.screens+'／観点網羅 '+L.viewpoint+'%'+(L.specTotal>0?('／仕様適合 '+L.spec+'%（'+L.specFound+'/'+L.specTotal+'）'):'');
+   }).catch(function(){ chart.innerHTML='<span class="muted">読み込みに失敗しました</span>'; }); }
  // ---- 工程ステッパー（ジャンプ＋スクロール連動ハイライト） ----
  var mStepEls=[].slice.call(document.querySelectorAll('#m-stepper .step'));
  mStepEls.forEach(function(el){ el.addEventListener('click',function(){
