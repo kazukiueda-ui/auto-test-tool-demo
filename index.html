@@ -395,6 +395,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -583,6 +584,18 @@ graph TD
    <div id="m-assertMsg" class="muted" style="font-size:12px;margin-top:4px"></div>
    <div id="m-faultResult" style="margin-top:6px"></div>
    <div id="m-traceResult" style="margin-top:6px"></div>
+   <details class="editsec" style="margin-top:10px">
+    <summary>DBデータ更新の検証（任意・read-only SELECT）</summary>
+    <div class="muted" style="margin:6px 0">テスト実行後の<b>DB状態</b>を1回目(期待値)と比較します。接続は「設定」画面で保存してください。<b>各行に検証クエリ（SELECTのみ）</b>を書き、「期待値を取得」で現在のDB状態を1回目として保存→以降テスト実行のたびに自動で比較されます（無視列に id/created_at 等を入れると誤検知を防げます）。</div>
+    <div id="m-dbList"></div>
+    <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     <button id="m-dbAdd" class="btn-mini btn-gray" type="button">＋ 検証クエリを追加</button>
+     <button id="m-dbCapture" class="btn-sm" style="margin:0;background:#c9a400" type="button">現在のDB状態を期待値に取得</button>
+     <button id="m-dbCompare" class="btn-sm btn-gray" style="margin:0" type="button">今すぐDB比較</button>
+     <span id="m-dbMsg" class="muted" style="font-size:12px"></span>
+    </div>
+    <div id="m-dbResult" style="margin-top:6px"></div>
+   </details>
    <div style="margin-top:10px;border-top:1px dashed #cfd6e0;padding-top:8px">
     <div class="muted" style="margin-bottom:4px">レビューや改善で<b>1回目に追加したケース</b>は、まだ「1回目(N)の結果」が無いため、テスト実行(⑤)の比較では対象外になります。下のボタンで<b>開始URL(1回目)に対して実行し、Nを取得＝比較対象</b>にできます。</div>
     <button id="m-captureBtn" class="btn-sm" style="background:#00695c">追加ケースの1回目(N)を実行して比較対象にする</button>
@@ -700,6 +713,17 @@ graph TD
    <div id="m-covLegend" style="font-size:12px;margin-bottom:4px"></div>
    <div id="m-covChart" style="overflow-x:auto"></div>
    <div id="m-covLatest" class="muted" style="font-size:12px;margin-top:6px"></div>
+  </div>
+  <div class="card">
+   <h3>DBデータ更新の検証（接続設定）</h3>
+   <p class="muted" style="margin:0 0 8px">テスト実行後の<b>DBの状態</b>を、1回目(期待値)と比較して「データ更新が正しいか」を確認します。<b>認証情報は環境変数に置き、ここには参照名だけ</b>保存します（read-only運用を推奨）。検証クエリは③テストケース管理で設定します。</p>
+   <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px">
+    <label style="display:inline-flex;align-items:center;gap:6px">DB種別 <select id="set-dbDriver"><option value="">（未設定）</option><option value="mysql">MySQL</option><option value="postgres">PostgreSQL</option><option value="sqlite">SQLite</option></select></label>
+    <label id="set-dbUrlEnvWrap" style="display:inline-flex;align-items:center;gap:6px">接続文字列の環境変数名 <input id="set-dbUrlEnv" placeholder="例）ATT_DB_URL" style="width:180px"></label>
+    <label id="set-dbFileWrap" style="display:inline-flex;align-items:center;gap:6px">SQLiteファイル <input id="set-dbFile" placeholder="例）/path/to/app.db" style="width:220px"></label>
+   </div>
+   <div class="muted" style="font-size:12px;margin-top:4px">MySQLは <code>npm i mysql2</code>、PostgreSQLは <code>npm i pg</code> が必要です。接続文字列は例）<code>mysql://user:pass@host:3306/dbname</code> を環境変数に設定してください。</div>
+   <div style="margin-top:8px"><button id="set-dbTest" class="btn-sm btn-gray" style="margin:0">接続テスト</button> <button id="set-dbSave" class="btn-sm" style="margin:0">DB接続を保存</button> <span id="set-dbMsg" class="muted"></span></div>
   </div>
   <div class="card">
    <h3>担当者マスタ</h3>
@@ -904,6 +928,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
    if(Array.isArray(s.apiIgnore)&&$('m-apiIgnore')) $('m-apiIgnore').value=s.apiIgnore.join('\n');
    if(s.sensitivity&&$('m-sensitivity')){ $('m-sensitivity').value=s.sensitivity; try{ $('m-sensitivity').dispatchEvent(new Event('change')); }catch(e){} }
+   window.__dbConn=(s.dbConn&&typeof s.dbConn==='object')?s.dbConn:{}; if(typeof renderDbConn==='function') renderDbConn();
    window.__assignees=Array.isArray(s.assignees)?s.assignees:[]; renderAssigneeMaster(); renderAssigneeDatalist();
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
@@ -1205,6 +1230,15 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var uniq=[]; list.forEach(function(x){ if(uniq.indexOf(x)<0)uniq.push(x); }); window.__assignees=uniq;
    fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{assignees:uniq}})}).then(function(r){return r.json();}).then(function(){ $('set-assignees-msg').textContent='保存しました（'+uniq.length+'名）'; renderAssigneeDatalist(); if(typeof toast==='function')toast('担当者マスタを保存しました（'+uniq.length+'名）','ok'); }).catch(function(){ $('set-assignees-msg').textContent='保存に失敗しました'; }); }); })();
  function renderAssigneeDatalist(){ var dl=$('m-assigneeList'); if(!dl) return; dl.innerHTML=(window.__assignees||[]).map(function(a){return '<option value="'+esc(a)+'"></option>';}).join(''); }
+ // ==== DB接続設定（プロジェクト設定 dbConn・認証情報は環境変数参照）====
+ function dbConnFromUi(){ var drv=$('set-dbDriver')?$('set-dbDriver').value:''; if(!drv) return null; return { driver:drv, urlEnv:($('set-dbUrlEnv')?$('set-dbUrlEnv').value.trim():'')||undefined, file:($('set-dbFile')?$('set-dbFile').value.trim():'')||undefined }; }
+ function renderDbConn(){ var c=window.__dbConn||{}; if($('set-dbDriver'))$('set-dbDriver').value=c.driver||''; if($('set-dbUrlEnv'))$('set-dbUrlEnv').value=c.urlEnv||''; if($('set-dbFile'))$('set-dbFile').value=c.file||''; dbConnToggle(); }
+ function dbConnToggle(){ var drv=$('set-dbDriver')?$('set-dbDriver').value:''; var fw=$('set-dbFileWrap'),uw=$('set-dbUrlEnvWrap'); if(fw)fw.style.display=(drv==='sqlite')?'':'none'; if(uw)uw.style.display=(drv&&drv!=='sqlite')?'':'none'; }
+ (function(){ var sel=$('set-dbDriver'); if(sel) sel.addEventListener('change',dbConnToggle);
+   var tb=$('set-dbTest'); if(tb) tb.addEventListener('click',function(){ var c=dbConnFromUi(); if(!c){ $('set-dbMsg').textContent='DB種別を選んでください'; return; } $('set-dbMsg').textContent='接続テスト中…'; tb.disabled=true;
+     fetch(withTok('/api/db/test-conn'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}).then(function(r){return r.json();}).then(function(r){ tb.disabled=false; if(r.ok){ $('set-dbMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 接続OK</span>'; } else { $('set-dbMsg').innerHTML='<span style="color:#c62828">✕ '+esc(r.error||'接続失敗')+'</span>'; } }).catch(function(){ tb.disabled=false; $('set-dbMsg').textContent='接続テストに失敗しました'; }); });
+   var sv=$('set-dbSave'); if(sv) sv.addEventListener('click',function(){ var c=dbConnFromUi(); window.__dbConn=c||{};
+     fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{dbConn:c||undefined}})}).then(function(r){return r.json();}).then(function(){ $('set-dbMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 保存しました</span>'; if(typeof toast==='function')toast('DB接続を保存しました','ok'); }).catch(function(){ $('set-dbMsg').textContent='保存に失敗しました'; }); }); })();
  // ==== 課題管理サブタブ（一覧/集計/項目設定）====
  function showIssTab(t){
    $('iss-view-list').classList.toggle('hidden',t!=='list');
@@ -1510,6 +1544,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    $('m-editor').classList.remove('hidden'); $('m-save').classList.remove('hidden'); $('m-runner').classList.remove('hidden'); $('m-review').classList.remove('hidden');
    var emw=$('m-exploreModeWrap'); if(emw) emw.classList.toggle('hidden', !(mSuite&&mSuite.scenarios&&mSuite.scenarios.length)); // 再捜索の扱い選択は既存ケースがある時だけ表示
    if(typeof updateApproveCount==='function') updateApproveCount();
+   if(typeof renderDbChecks==='function') renderDbChecks();
    unlockSteps(); refreshStepMarks(); syncStepper();
    var scs=(mSuite.scenarios||[]);
    $('m-meta').textContent='開始URL: '+(mSuite.startUrl||'')+' ／ '+scs.length+'件（フォルダにドラッグ＆ドロップで移動できます）';
@@ -1950,6 +1985,45 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      +'</div>';
    if(typeof toast==='function') toast('仕様網羅 '+r.coverage+'%（'+r.coveredCount+'/'+r.total+'）','ok');
  });
+ // DBデータ更新の検証（クエリ管理・期待値取得・比較）
+ function renderDbChecks(){ var box=$('m-dbList'); if(!box) return; var checks=(mSuite&&mSuite.dbChecks)||[];
+   if(!checks.length){ box.innerHTML='<span class="muted" style="font-size:12px">検証クエリはまだありません。「＋ 検証クエリを追加」で作成します。</span>'; return; }
+   box.innerHTML=checks.map(function(c,i){ var has=c.baseline&&!c.baseline.error; return '<div style="border:1px solid #e2e7ee;border-radius:6px;padding:6px;margin:4px 0;background:#fafbfc">'
+     +'<div style="display:flex;gap:6px;align-items:center"><input data-i="'+i+'" data-k="name" class="db-f" value="'+escAttr(c.name||'')+'" placeholder="検証名（例：注文が1件増える）" style="flex:1;font-size:12px">'
+     +'<span style="font-size:11px;'+(has?'color:#2e7d32':'color:#c62828')+'">'+(has?'★期待値あり':'期待値なし')+'</span>'
+     +'<button data-del="'+i+'" class="btn-mini btn-del" type="button">削除</button></div>'
+     +'<textarea data-i="'+i+'" data-k="query" class="db-f" rows="2" placeholder="SELECT ... （参照専用）" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:12px;margin-top:4px">'+escHtml(c.query||'')+'</textarea>'
+     +'<input data-i="'+i+'" data-k="ignoreCols" class="db-f" value="'+escAttr((c.ignoreCols||[]).join(', '))+'" placeholder="無視する列（カンマ区切り。例：id, created_at, updated_at）" style="width:100%;box-sizing:border-box;font-size:12px;margin-top:3px">'
+     +'</div>'; }).join('');
+   box.querySelectorAll('.db-f').forEach(function(el){ el.addEventListener('input',function(){ var i=+el.getAttribute('data-i'),k=el.getAttribute('data-k'); var c=mSuite.dbChecks[i]; if(!c)return; if(k==='ignoreCols'){ c.ignoreCols=el.value.split(',').map(function(x){return x.trim();}).filter(Boolean); } else { c[k]=el.value; } markDirty(); }); });
+   box.querySelectorAll('button[data-del]').forEach(function(b){ b.addEventListener('click',function(){ mSuite.dbChecks.splice(+b.getAttribute('data-del'),1); markDirty(); renderDbChecks(); }); });
+ }
+ (function(){ var add=$('m-dbAdd'); if(add) add.addEventListener('click',function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;} mSuite.dbChecks=mSuite.dbChecks||[]; mSuite.dbChecks.push({id:'DB-'+(mSuite.dbChecks.length+1)+'-'+Math.floor(Math.random()*1000),name:'',query:'',ignoreCols:[]}); markDirty(); renderDbChecks(); });
+   var cap=$('m-dbCapture'); if(cap) cap.addEventListener('click',async function(){ if(!mSuite||!(mSuite.dbChecks&&mSuite.dbChecks.length)){alert('検証クエリを追加してください');return;}
+     $('m-dbMsg').textContent='現在のDB状態を取得中…'; cap.disabled=true;
+     var r=await fetch(withTok('/api/db/capture'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+     cap.disabled=false;
+     if(!r||r.error){ $('m-dbMsg').innerHTML='<span style="color:#c62828">取得失敗: '+esc((r&&r.error)||'不明')+'</span>'; return; }
+     if(r.suite){ mSuite=r.suite; markDirty(); renderDbChecks(); }
+     var errs=(r.snapshots||[]).filter(function(s){return s.error;});
+     $('m-dbMsg').innerHTML=errs.length?('<span style="color:#c62828">一部エラー: '+esc(errs.map(function(e){return e.error;}).join(' / '))+'</span>'):'<span style="color:#2e7d32;font-weight:700">✓ 期待値を取得しました（保存すると次回テストから自動比較）</span>';
+     if(typeof toast==='function')toast('DB期待値を取得しました','ok'); });
+   var cmp=$('m-dbCompare'); if(cmp) cmp.addEventListener('click',async function(){ if(!mSuite||!(mSuite.dbChecks&&mSuite.dbChecks.length)){alert('検証クエリを追加してください');return;}
+     $('m-dbResult').innerHTML='<span class="muted">現在のDB状態を期待値と比較中…</span>'; cmp.disabled=true;
+     var r=await fetch(withTok('/api/db/compare'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+     cmp.disabled=false;
+     if(!r||r.error){ $('m-dbResult').innerHTML='<span style="color:#c62828">比較失敗: '+esc((r&&r.error)||'不明')+'</span>'; return; }
+     $('m-dbResult').innerHTML=renderDbDiffs(r.diffs||[]); });
+ })();
+ function renderDbDiffs(diffs){ if(!diffs.length) return '<span class="muted">検証結果がありません</span>';
+   return '<div style="border:1px solid #e3e8f0;border-radius:8px;padding:8px;background:#fbfcfe">'+diffs.map(function(d){
+     var ic=d.same?'<span style="color:#2e7d32;font-weight:700">✓ 一致</span>':(d.error?'<span style="color:#ef6c00;font-weight:700">⚠ エラー</span>':'<span style="color:#c62828;font-weight:700">✕ 差分</span>');
+     var det='<div style="font-size:12px;margin-left:8px">'+esc(d.detail||'')+'</div>';
+     var rows='';
+     if((d.addedRows||[]).length) rows+='<div style="font-size:11px;color:#2e7d32;margin-left:8px">+ '+d.addedRows.map(esc).join('<br>+ ')+'</div>';
+     if((d.removedRows||[]).length) rows+='<div style="font-size:11px;color:#c62828;margin-left:8px">- '+d.removedRows.map(esc).join('<br>- ')+'</div>';
+     return '<div style="margin:2px 0">'+ic+' <b style="font-size:12px">'+esc(d.name||'')+'</b>'+det+rows+'</div>';
+   }).join('')+'</div>'; }
  var apAll=$('m-approveAll'); if(apAll) apAll.addEventListener('click',function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var scs=mSuite.scenarios||[]; var target=scs.filter(function(s){return s.baseline&&!s.approved;}).length;
    if(!target){ alert('新たに承認できるケースがありません（未取得のケースは先に1回目(N)を実行してください）。'); return; }
@@ -2008,6 +2082,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
        vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">'+ngTitle+'</div><div class="vsub">'+ngSub+'詳細は下記または課題管理で確認。</div></div></div>'; }
      // 仕様アサーション不合格があれば併記（あるべき文言/画面が出ていない）
      var specNg=su.specFailures||0; if(specNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">仕</div><div><div class="vtxt">仕様アサーション不合格 '+specNg+' 件</div><div class="vsub">仕様書にある文言/画面がN+1で確認できませんでした（未実装/未到達の可能性）。</div></div></div>'; }
+     // DBデータ更新の検証差分があれば併記
+     var dbNg=su.dbFailures||0; if(dbNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新に差分 '+dbNg+' 件</div><div class="vsub">実行後のDB状態が1回目(期待値)と一致しませんでした。詳細はダッシュボードで確認できます。</div></div></div>'; }
      // 比較したテストケースの内訳を「同列」で視覚化（完全一致／明確に異なる／差異の疑い／対象外）
      var okN=Math.max(0, (su.total||0)-clear-suspect-skip);
      function cmpChip(lbl,n,col,bg){ return '<div class="cmp-chip" style="border-color:'+col+';background:'+bg+'"><div class="cmp-n" style="color:'+col+'">'+n+'</div><div class="cmp-l">'+lbl+'</div></div>'; }
