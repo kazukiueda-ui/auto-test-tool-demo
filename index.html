@@ -301,6 +301,25 @@
  table.kh-tbl th{background:#f0f4fb;color:#33465f;font-weight:700}
  .scn-k{color:#fff;font-size:10px;border-radius:4px;padding:1px 5px;white-space:nowrap}
  .scn-k.normal{background:#2e7d32}.scn-k.boundary{background:#37507a}.scn-k.abnormal{background:#ef6c00}.scn-k.security{background:#c62828}
+ /* ===== 表示モード（かんたん/くわしく）===== */
+ /* かんたんモードでは .adv（上級者向け）を隠し、URL起点の最小フローに集中させる。既存要素はDOMに残す＝後方互換。 */
+ body[data-uimode="simple"] .adv{display:none !important}
+ body[data-uimode="simple"] .simple-only{display:block}
+ body[data-uimode="expert"] .simple-only{display:none}
+ .simple-only{display:none}
+ .uimode-seg{display:inline-flex;border:1px solid #cfd8e6;border-radius:999px;overflow:hidden;background:#eef2f8}
+ .uimode-btn{border:0;background:transparent;font-size:12.5px;font-weight:700;color:#5a6b86;padding:5px 14px;cursor:pointer}
+ .uimode-btn.on{background:#2456c9;color:#fff}
+ /* かんたんモード：探索カードのURL行を主役に。ヒントは1行に抑える。 */
+ body[data-uimode="simple"] #m-explore{border:1px solid #d7e0ee;box-shadow:0 6px 24px rgba(19,34,61,.07)}
+ body[data-uimode="simple"] #m-explore h3{font-size:20px}
+ body[data-uimode="simple"] #m-url{font-size:16px;padding:12px 14px}
+ body[data-uimode="simple"] #m-exploreBtn{font-size:16px;padding:12px 22px}
+ .simple-hint{font-size:13px;color:#5a6b86;margin:6px 0 2px}
+ .simple-hint b{color:#2456c9}
+ .next-cta{display:none;margin:10px 0;padding:12px 16px;border:1px solid #bcd3f5;background:#eef4fd;border-radius:10px;font-size:14px;color:#22406e;align-items:center;gap:12px}
+ body[data-uimode="simple"] .next-cta.show{display:flex}
+ .next-cta b{color:#2456c9}
 </style></head><body>
 <!-- ==== デモ(モック) shim：サーバAPIを canned データに差し替え、本物のUIをそのまま駆動 ==== -->
 <script>
@@ -484,14 +503,16 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
- <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
- <span class="cb-item"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
- <span class="cb-item"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">最適なモデルを自動選択（段階別）</option></select></span>
- <span class="cb-item"><b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
- <span class="cb-item"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
- <span class="cb-item" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
+ <span class="cb-item"><span class="uimode-seg" role="group" aria-label="表示モード"><button id="cb-uimode-simple" class="uimode-btn" type="button" title="URLを入れるだけの最小表示">かんたん</button><button id="cb-uimode-expert" class="uimode-btn" type="button" title="全機能・詳細設定を表示">くわしく</button></span></span>
+ <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
+ <span class="cb-item adv"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
+ <span class="cb-item adv"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">最適なモデルを自動選択（段階別）</option></select></span>
+ <span class="cb-item"><b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini adv" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
+ <span class="cb-item adv"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
+ <span class="cb-item adv" style="margin-left:auto"><button id="cb-save" class="cb-mini" type="button">この設定を保存</button></span>
 </div>
 <div id="cb-domain-kh" class="dom-kh-mini hidden"></div>
 <div class="wrap">
@@ -528,24 +549,26 @@
    <span class="step is-locked" data-target="m-save" data-phase="design">④ 保存</span>
    <span class="step is-locked" data-target="m-runner" data-phase="exec">⑤ 比較</span>
   </div>
+  <div id="m-nextCta" class="next-cta"></div>
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
    <h3>① 修正前(N)を捜索して、テストケースを生成</h3>
    <label>テストケース生成のターゲットURL（修正前 N）<span class="muted" style="font-weight:400">（過去に入力したURLは入力欄クリックで履歴から選べます）</span></label>
    <input id="m-url" type="url" placeholder="https://n.example.com/" list="m-urlHistory" autocomplete="off">
    <datalist id="m-urlHistory"></datalist>
+   <div class="simple-hint simple-only">URLを入れて<b>「捜索」</b>を押すだけ。業種は<b>自動判定</b>し、変更前の状態を基準に記録します。</div>
 
    <!-- 捜索の方針（表出スライダー） -->
-   <div class="slider main">
+   <div class="slider main adv">
     <div class="lab"><span>捜索の方針：<b>重要なものから</b> ⇔ <b>均等に</b></span><b id="m-priorityv">0.20</b></div>
     <input type="range" id="m-priority" min="0" max="1" step="0.01" value="0.2">
     <div class="muted">左＝認証/フォーム等の重要導線を優先 ／ 右＝優先度を無視して全リンクを均等に捜索</div>
    </div>
 
    <!-- 推定 -->
-   <div class="estimate">推定テストケース数：最大 <b id="m-estCases">30</b> 件 ／ 推定所要時間：約 <b id="m-estTime">3</b> 分 <span class="muted" id="m-estNote"></span></div>
+   <div class="estimate adv">推定テストケース数：最大 <b id="m-estCases">30</b> 件 ／ 推定所要時間：約 <b id="m-estTime">3</b> 分 <span class="muted" id="m-estNote"></span></div>
 
-   <details>
+   <details class="adv">
     <summary>詳細設定（捜索スライダー）</summary>
     <p class="muted">スライダー値が Playwright 捜索の行動に反映されます（広い/深い・メイン/例外）。</p>
     <div class="slider"><div class="lab"><span>捜索の深さ</span><b id="m-depthv">0.5</b></div><input type="range" id="m-depth" min="0" max="1" step="0.01" value="0.5"></div><div class="slider"><div class="lab"><span>捜索の広さ</span><b id="m-breadthv">0.5</b></div><input type="range" id="m-breadth" min="0" max="1" step="0.01" value="0.5"></div><div class="slider"><div class="lab"><span>メイン⇔例外</span><b id="m-exceptionv">0.3</b></div><input type="range" id="m-exception" min="0" max="1" step="0.01" value="0.3"></div>
@@ -557,13 +580,13 @@
    </details>
 
 
-   <details>
+   <details class="adv">
     <summary>仕様書ファイルを捜索の根拠にする（任意・複数可） ── 画面一覧/機能一覧など</summary>
     <p class="muted">お手元の <b>画面一覧・機能一覧などの仕様書ファイル</b> を読み込ませると、その内容（読み取れるテキスト）を <b>捜索の参考根拠</b> にします。フォーマットは不問（txt/csv/md/html/json 等はよく読めます。xlsx/pdf等は読み取れる範囲のみ）。記載された画面名・機能名に対応する導線を優先的に辿ります。<b>ファイルは複数追加できます。</b></p>
     <input type="file" id="m-specFiles" multiple style="font-size:13px">
     <div id="m-specFilesList" style="margin-top:8px"></div>
    </details>
-   <details>
+   <details class="adv">
     <summary>仕様の画面遷移図（Mermaid・任意） ── 1回目走査の遷移図と比較する</summary>
     <p class="muted">お手元の仕様の <b>画面遷移図（Mermaid記法）</b> を貼り付けると、1回目の走査で生成される遷移図と照合し、レビューで <b>画面(ノード)到達率・遷移(エッジ)再現率</b> を表示します（✓緑＝走査で再現／×赤破線＝未再現）。<b>遷移網羅モード</b>をONにすると、この図の遷移を優先的に踏破するよう捜索を誘導します。</p>
     <label class="excl" style="display:inline-flex;align-items:center;gap:6px;font-weight:600;margin:2px 0 8px"><input type="checkbox" id="m-specMode"> 遷移網羅モード（この遷移図の踏破を目標にする）</label>
@@ -579,7 +602,7 @@ graph TD
    <span class="muted" style="margin:0 8px">または</span>
    <select id="m-savedSel"><option value="">保存済みスイートを読み込む…</option></select>
    <button id="m-loadBtn" class="btn-gray">読み込む</button>
-   <div id="m-exploreModeWrap" class="hidden" style="margin-top:10px;padding:8px 10px;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px">
+   <div id="m-exploreModeWrap" class="hidden adv" style="margin-top:10px;padding:8px 10px;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px">
     <div style="font-weight:600;font-size:13px;margin-bottom:4px">既にテストケースがあります。スライダーを変えて再捜索した結果を…</div>
     <label style="display:inline-block;margin-right:14px;font-weight:400"><input type="radio" name="m-exploreMode" value="merge" checked> 差分を追加（新しい画面・操作だけ足す）</label>
     <label style="display:inline-block;font-weight:400"><input type="radio" name="m-exploreMode" value="overwrite"> 上書き（作り直す）</label>
@@ -1200,6 +1223,23 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var r=$('m-runner'); if(r){ r.style.display=(ph==='exec')?'':'none'; if(ph==='exec') r.classList.remove('hidden'); }
    var h=$('m-history'); if(h){ h.style.display=(ph==='history')?'':'none'; if(ph==='history') h.classList.remove('hidden'); }
  }
+ // ==== 表示モード（かんたん/くわしく）====
+ // かんたん＝URL起点の最小表示（.adv を隠す）。くわしく＝全機能。既定はかんたん。
+ var curUiMode='simple';
+ function applyUiMode(m){ curUiMode=(m==='expert')?'expert':'simple'; document.body.setAttribute('data-uimode',curUiMode);
+   var bs=$('cb-uimode-simple'), be=$('cb-uimode-expert');
+   if(bs) bs.classList.toggle('on',curUiMode==='simple'); if(be) be.classList.toggle('on',curUiMode==='expert');
+   try{ localStorage.setItem('att_uimode',curUiMode); }catch(e){}
+ }
+ function initUiMode(){ var saved='simple'; try{ saved=localStorage.getItem('att_uimode')||'simple'; }catch(e){}
+   applyUiMode(saved);
+   var bs=$('cb-uimode-simple'), be=$('cb-uimode-expert');
+   if(bs) bs.addEventListener('click',function(){ applyUiMode('simple'); saveUiModePref('simple'); });
+   if(be) be.addEventListener('click',function(){ applyUiMode('expert'); saveUiModePref('expert'); });
+ }
+ function saveUiModePref(m){ if(!curProject) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{uiMode:m}})}).catch(function(){}); }
+ // かんたんモード時、探索後に「次の一手」を1つだけ強調（保存→比較へ誘導）。
+ function showNextCta(html){ var el=$('m-nextCta'); if(!el) return; if(html){ el.innerHTML=html; el.classList.add('show'); } else { el.classList.remove('show'); el.innerHTML=''; } }
  (function(){ var d=$('sub-design'),e=$('sub-exec'),hh=$('sub-history');
    if(d) d.addEventListener('click',function(){ applyPhase('design'); });
    if(e) e.addEventListener('click',function(){ if(!confirmLeave())return; applyPhase('exec'); loadSavedList(); loadExecSuites(); });
@@ -1864,6 +1904,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      }
      // 自動判定モードで探索した場合、サーバが返した業種推定を反映（ノウハウ自動注入）。
      if(s.summary&&s.summary.detectedDomain){ applyDetectedDomain(s.summary.detectedDomain,false); }
+     // かんたんモード：次の一手を1つだけ提示（内容確認→保存→比較）。
+     showNextCta('<span>✅ テストケースができました。</span><b>次：</b>下でざっと確認したら、変更後URLと比べます。 <button id="m-nextToCompare" class="btn-sm" style="background:#2456c9;margin:0">④保存して比較へ進む</button>');
+     var nb=$('m-nextToCompare'); if(nb) nb.addEventListener('click',function(){ var c=$('m-save'); if(c){ c.scrollIntoView({behavior:'smooth'}); var nm=$('m-name'); if(nm) nm.focus(); } });
    },$('m-exploreBtn'));
  });
  $('m-loadBtn').addEventListener('click',async function(){
@@ -2618,5 +2661,5 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
  $('m-dashDetails').addEventListener('toggle',function(){ var f=$('m-frame'); if($('m-dashDetails').open && f.getAttribute('data-src') && f.src.indexOf('dashboard')<0){ f.src=f.getAttribute('data-src'); } });
  // ==== 初期化（全関数/変数定義後に実行）====
- initCtrlBar(); applyPhase('design'); renderUrlHist(); setInterval(renderTokenBar, 8000);
+ initCtrlBar(); initUiMode(); applyPhase('design'); renderUrlHist(); setInterval(renderTokenBar, 8000);
 </script></body></html>
