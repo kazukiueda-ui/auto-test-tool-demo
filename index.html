@@ -76,6 +76,9 @@
  .ai-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:640px){.ai-grid{grid-template-columns:1fr}}
  .ai-card{border:1px solid #e3e0ea;border-radius:8px;padding:10px;background:#fff}
  .ai-card h4{margin:0 0 4px;font-size:14px}.ai-card .ai-sc{float:right;font-weight:800}
+ .ai-think{margin:5px 0;background:#faf7ff;border:1px solid #e5d9f2;border-radius:6px;padding:3px 8px}
+ .ai-think>summary{cursor:pointer;font-size:12px;font-weight:700;color:#6a1b9a}
+ .ai-think>div{font-size:12.5px;line-height:1.6;margin-top:4px;color:#333}
  .ai-card ul{margin:4px 0;padding-left:16px;font-size:12.5px;line-height:1.6}
  .ai-sev{display:inline-block;color:#fff;border-radius:4px;font-size:10px;padding:0 5px;margin-right:4px}
  .ai-act{border-top:1px solid #eee;padding:6px 0;font-size:13px}.ai-act:first-child{border-top:0}
@@ -349,6 +352,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
@@ -1629,8 +1633,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var str=(p.strengths||[]).map(function(x){return '<li>'+esc2(x)+'</li>';}).join('');
      var imp=(p.improvements||[]).map(function(x){return '<li>'+esc2(x)+'</li>';}).join('');
      var col=p.score>=80?'#2e7d32':p.score>=60?'#ef6c00':'#c62828';
+     var reason=p.reasoning?'<details class="ai-think"><summary>思考内容（評価の理由・着眼点）</summary><div>'+esc2(p.reasoning)+'</div></details>':'';
      return '<div class="ai-card"><h4>'+(p.icon?esc2(p.icon)+' ':'')+esc2(p.label)+'<span class="ai-sc" style="color:'+col+'">'+p.score+'</span></h4>'
        +'<div class="muted">'+esc2(p.verdict)+'</div>'
+       +reason
        +(str?'<div><b style="font-size:12px">良い点</b><ul>'+str+'</ul></div>':'')
        +(issues?'<div><b style="font-size:12px">指摘</b><ul>'+issues+'</ul></div>':'')
        +(imp?'<div><b style="font-size:12px">改善提案</b><ul>'+imp+'</ul></div>':'')+'</div>';
@@ -1639,6 +1645,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var scol=sy.overallScore>=80?'#2e7d32':sy.overallScore>=60?'#ef6c00':'#c62828';
    el.innerHTML='<div class="ai-synth"><div><span class="ai-big" style="color:'+scol+'">合議 総合評価 '+(sy.overallScore||0)+'</span></div>'
      +'<div style="margin:4px 0">'+esc2(sy.verdict||'')+'</div><div class="muted">'+esc2(sy.consensus||'')+'</div>'
+     +(sy.deliberation?'<details class="ai-think" open style="margin-top:6px"><summary>合議の思考過程（各観点をどう突き合わせたか）</summary><div style="white-space:pre-wrap">'+esc2(sy.deliberation)+'</div></details>':'')
      +((sy.agreements||[]).length?'<div style="margin-top:6px"><b style="font-size:12px">一致点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.agreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
      +((sy.disagreements||[]).length?'<div><b style="font-size:12px">相違点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.disagreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
      +(acts?'<div style="margin-top:6px"><b style="font-size:12px">優先改善アクション</b>'+acts+'</div>':'')
