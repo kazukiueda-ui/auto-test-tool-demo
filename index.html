@@ -215,7 +215,9 @@
  #m-tokenbar .tb-axis{display:flex;justify-content:space-between;font-size:10px;color:#7f93b3;margin-top:1px;padding:0 64px}
  #m-tokenbar .tb-axis span{white-space:nowrap}
  #m-tokenbar .tb-toggle{cursor:pointer;color:#9fb6d8;font-size:11px}
- .sched-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;border:1px solid #e2e7ee;border-radius:8px;padding:10px;margin:8px 0;background:#fafbfc}
+ .sched-row{display:flex;gap:8px 14px;align-items:center;flex-wrap:wrap;border:1px solid #e2e7ee;border-radius:8px;padding:8px 10px;margin:8px 0;background:#fafbfc}
+ .sched-row label{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin:0;white-space:nowrap}
+ .sched-row input,.sched-row select{margin:0}
  .sched-list{margin-top:10px}
  .sched-item{border:1px solid #e2e7ee;border-radius:8px;padding:8px 10px;margin:6px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
  .sched-item .st{font-size:11px;padding:1px 7px;border-radius:10px;color:#fff}.sched-item .st.on{background:#2e7d32}.sched-item .st.off{background:#90a4ae}
@@ -379,6 +381,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -451,6 +454,12 @@
 
 
    <details>
+    <summary>仕様書ファイルを捜索の根拠にする（任意・複数可） ── 画面一覧/機能一覧など</summary>
+    <p class="muted">お手元の <b>画面一覧・機能一覧などの仕様書ファイル</b> を読み込ませると、その内容（読み取れるテキスト）を <b>捜索の参考根拠</b> にします。フォーマットは不問（txt/csv/md/html/json 等はよく読めます。xlsx/pdf等は読み取れる範囲のみ）。記載された画面名・機能名に対応する導線を優先的に辿ります。<b>ファイルは複数追加できます。</b></p>
+    <input type="file" id="m-specFiles" multiple style="font-size:13px">
+    <div id="m-specFilesList" style="margin-top:8px"></div>
+   </details>
+   <details>
     <summary>仕様の画面遷移図（Mermaid・任意） ── 1回目走査の遷移図と比較する</summary>
     <p class="muted">お手元の仕様の <b>画面遷移図（Mermaid記法）</b> を貼り付けると、1回目の走査で生成される遷移図と照合し、レビューで <b>画面(ノード)到達率・遷移(エッジ)再現率</b> を表示します（✓緑＝走査で再現／×赤破線＝未再現）。<b>遷移網羅モード</b>をONにすると、この図の遷移を優先的に踏破するよう捜索を誘導します。</p>
     <label class="excl" style="display:inline-flex;align-items:center;gap:6px;font-weight:600;margin:2px 0 8px"><input type="checkbox" id="m-specMode"> 遷移網羅モード（この遷移図の踏破を目標にする）</label>
@@ -466,6 +475,12 @@ graph TD
    <span class="muted" style="margin:0 8px">または</span>
    <select id="m-savedSel"><option value="">保存済みスイートを読み込む…</option></select>
    <button id="m-loadBtn" class="btn-gray">読み込む</button>
+   <div id="m-exploreModeWrap" class="hidden" style="margin-top:10px;padding:8px 10px;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px">
+    <div style="font-weight:600;font-size:13px;margin-bottom:4px">既にテストケースがあります。スライダーを変えて再捜索した結果を…</div>
+    <label style="display:inline-block;margin-right:14px;font-weight:400"><input type="radio" name="m-exploreMode" value="merge" checked> 差分を追加（新しい画面・操作だけ足す）</label>
+    <label style="display:inline-block;font-weight:400"><input type="radio" name="m-exploreMode" value="overwrite"> 上書き（作り直す）</label>
+    <div class="muted" style="font-size:12px;margin-top:3px">差分追加：既存ケースと重複しない新規ケースだけを取り込みます。ケースが増える＝<b>テスト信頼度</b>と<b>画面遷移図</b>が拡充されます（既存の1回目観測・編集は保持）。</div>
+   </div>
    <pre id="m-log" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:12px;font-size:12px;white-space:pre-wrap;max-height:160px;overflow:auto">…</pre>
   </div>
 
@@ -576,7 +591,7 @@ graph TD
    <label>修正後 URL（N+1）<span class="muted" style="font-weight:400">（既定は1回目のURL。変更後の環境なら書き換え。過去入力は履歴から選べます）</span></label><input id="m-after" type="url" placeholder="https://n1.example.com/" list="m-urlHistory" autocomplete="off">
    <div class="opts" style="margin-top:10px">
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
-    <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video"> 録画（動画を保存・結果画面で再生）</label>
+    <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video" checked> 録画（動画を保存・結果画面で再生）</label>
     <label style="display:inline;font-weight:400;margin-left:6px">判定感度
      <select id="m-sensitivity" style="font-size:13px">
       <option value="standard" selected>標準（日時/ID/UUID等の動的値は無視）</option>
@@ -663,12 +678,12 @@ graph TD
    <h3>定期実行（スケジュール）</h3>
    <p class="muted" style="margin:0 0 10px">保存済みスイートを、指定した<b>時刻（毎日）</b>または<b>間隔</b>で自動実行し、保存ベースライン(N)と対象URL(N+1)を比較します（再実行＋比較のみ・<b>LLM不使用＝トークン0</b>）。</p>
    <div class="sched-row">
-    <div><label>対象スイート</label><select id="sc-suite"><option value="">保存済みスイートを選択…</option></select></div>
-    <div style="flex:1;min-width:220px"><label>対象URL（N+1）</label><input id="sc-after" type="url" placeholder="https://n1.example.com/" style="width:100%"></div>
-    <div><label>方式</label><select id="sc-kind"><option value="daily">毎日（時刻指定）</option><option value="interval">一定間隔</option></select></div>
-    <div id="sc-timeWrap"><label>時刻</label><input id="sc-time" type="time" value="03:00"></div>
-    <div id="sc-intWrap" class="hidden"><label>間隔(分)</label><input id="sc-interval" type="number" min="1" value="60" style="width:90px"></div>
-    <div style="flex:0"><button id="sc-add" style="margin:0">＋ スケジュール追加</button></div>
+    <label>スイート <select id="sc-suite"><option value="">保存済みを選択…</option></select></label>
+    <label style="flex:1;min-width:200px">URL(N+1) <input id="sc-after" type="url" placeholder="https://n1.example.com/" style="flex:1;min-width:120px"></label>
+    <label>方式 <select id="sc-kind"><option value="daily">毎日</option><option value="interval">間隔</option></select></label>
+    <label id="sc-timeWrap">時刻 <input id="sc-time" type="time" value="03:00"></label>
+    <label id="sc-intWrap" class="hidden">間隔(分) <input id="sc-interval" type="number" min="1" value="60" style="width:70px"></label>
+    <button id="sc-add" style="margin:0">＋ 追加</button>
    </div>
    <div class="sched-list" id="sc-list"><span class="muted">登録されたスケジュールはありません。</span></div>
    <details style="margin-top:12px">
@@ -850,6 +865,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(typeof s.llmMode==='boolean'){ apiMode=s.llmMode&&ATT_ENV.llmAvailable; }
    if(s.knowhow&&$('m-knowhow')) $('m-knowhow').value=s.knowhow;
    if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
+   window.__specDocs=Array.isArray(s.specDocs)?s.specDocs:[]; window.__specTerms=Array.isArray(s.specTerms)?s.specTerms:[]; if(typeof renderSpecFiles==='function') renderSpecFiles();
    if(typeof s.specMode==='boolean'&&$('m-specMode')) $('m-specMode').checked=s.specMode;
    if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
    if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
@@ -859,7 +875,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
@@ -1057,7 +1073,30 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // ---- 仕様の画面遷移図（収集） ----
  // Mermaidは半角スペースのみ有効。NBSP・全角スペースを半角へ、ゼロ幅は除去してSyntaxエラーを防ぐ。
  function normMermaid(s){ return (s||"").replace(/[   -   　]/g," ").replace(/[​-‍﻿]/g,""); }
- function collectSpec(){ var mm=$('m-specMermaid')?normMermaid($('m-specMermaid').value):''; if($('m-specMermaid')&&$('m-specMermaid').value!==mm)$('m-specMermaid').value=mm; return { specMode:$('m-specMode')?$('m-specMode').checked:false, specMermaid:mm }; }
+ function collectSpec(){ var mm=$('m-specMermaid')?normMermaid($('m-specMermaid').value):''; if($('m-specMermaid')&&$('m-specMermaid').value!==mm)$('m-specMermaid').value=mm; return { specMode:$('m-specMode')?$('m-specMode').checked:false, specMermaid:mm, specDocs:window.__specDocs||[], specTerms:window.__specTerms||[] }; }
+ // ---- 仕様書ファイル（読込→抽出→捜索の根拠）----
+ function renderSpecFiles(){ var box=$('m-specFilesList'); if(!box) return; var docs=window.__specDocs||[], terms=window.__specTerms||[];
+   if(!docs.length){ box.innerHTML='<span class="muted" style="font-size:12px">まだファイルは読み込まれていません。</span>'; return; }
+   var html=docs.map(function(d,i){ var ok=d.text&&d.text.length; return '<div style="display:flex;align-items:center;gap:8px;padding:3px 0;font-size:13px"><span style="color:'+(ok?'#2e7d32':'#c62828')+'">'+(ok?'✓':'⚠')+'</span><b>'+escHtml(d.name)+'</b><span class="muted">'+(ok?(d.text.length+'字を抽出'):'読み取れる文字がありません（形式非対応の可能性）')+'</span><button type="button" class="btn-mini btn-del" data-i="'+i+'">削除</button></div>'; }).join('');
+   html+='<div class="muted" style="font-size:12px;margin-top:4px">抽出した画面/機能の候補語 '+terms.length+' 件を捜索の優先ヒントに使用'+(terms.length?'：'+escHtml(terms.slice(0,12).join(' / '))+(terms.length>12?' …':''):'')+'</div>';
+   box.innerHTML=html;
+   box.querySelectorAll('button[data-i]').forEach(function(b){ b.addEventListener('click',function(){ var i=+b.getAttribute('data-i'); (window.__specDocs||[]).splice(i,1); recomputeSpecTerms(); renderSpecFiles(); markDirty(); }); });
+ }
+ // 端末側で全docのtermsを持てないので、削除時はサーバ再抽出は行わず既存termsを維持（簡易）。
+ function recomputeSpecTerms(){ /* 削除後もtermsは概ね有効なため保持。必要なら再アップロードで更新。 */ }
+ (function(){ var inp=$('m-specFiles'); if(!inp) return;
+   inp.addEventListener('change',async function(){ var files=Array.from(inp.files||[]); if(!files.length) return;
+     var payload=[]; for(var k=0;k<files.length;k++){ var f=files[k]; var b64=await new Promise(function(res){ var r=new FileReader(); r.onload=function(){ var s=String(r.result||''); res(s.indexOf(',')>=0?s.slice(s.indexOf(',')+1):''); }; r.onerror=function(){res('');}; r.readAsDataURL(f); }); payload.push({name:f.name,base64:b64}); }
+     var box=$('m-specFilesList'); if(box) box.innerHTML='<span class="muted">読み込み中…</span>';
+     var r=await fetch(withTok('/api/spec-files'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({files:payload})}).then(function(r){return r.json();}).catch(function(){return null;});
+     if(!r){ if(box)box.innerHTML='<span style="color:#c62828">読み込みに失敗しました</span>'; return; }
+     window.__specDocs=(window.__specDocs||[]).concat(r.docs||[]);
+     var ts=window.__specTerms||[]; (r.terms||[]).forEach(function(t){ if(ts.indexOf(t)<0) ts.push(t); }); window.__specTerms=ts;
+     inp.value=''; renderSpecFiles(); markDirty();
+     if(typeof toast==='function') toast('仕様書ファイルを読み込みました（'+(r.docs||[]).length+'件・候補語'+(r.terms||[]).length+'件）','ok');
+   });
+   renderSpecFiles();
+ })();
  var ISS_STATUS=['未対応','対応中','確認中','完了','対象外'], ISS_PRI=['高','中','低'], mSelIssue=null;
  // ---- ビュー切替 ----
  function showView(v){ $('view-manage').classList.toggle('hidden',v!=='manage'); $('view-issues').classList.toggle('hidden',v!=='issues'); if($('view-settings')) $('view-settings').classList.toggle('hidden',v!=='settings'); if($('view-admin')) $('view-admin').classList.toggle('hidden',v!=='admin');
@@ -1231,14 +1270,19 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  }
  function issLogSec(title,arr){ return (arr&&arr.length)?'<details style="margin:4px 0"><summary>'+title+'（'+arr.length+'）</summary><pre style="background:#0f1620;color:#cfe3ff;padding:8px;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:220px;overflow:auto">'+arr.map(escHtml).join('\n')+'</pre></details>':''; }
  function issShot(cap,u){ return u?'<figure style="margin:0"><figcaption class="muted" style="font-size:11px">'+cap+'</figcaption><img src="'+withTok(u)+'" style="max-width:100%;border:1px solid #ddd;border-radius:6px;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')"></figure>':''; }
- function issEvidenceHtml(ev){
+ function issConcreteHtml(arr){ if(!arr||!arr.length) return ''; var rows=arr.map(function(c){ return '<tr><td style="font-weight:600;white-space:nowrap">'+escHtml(c.field)+'</td><td style="color:#c62828">'+escHtml(c.removed||'∅')+'</td><td style="color:#2e7d32">'+escHtml(c.added||'∅')+'</td></tr>'; }).join('');
+   return '<details open style="margin:4px 0"><summary>具体的な相違点（N→N+1・'+arr.length+'）</summary><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left">項目</th><th style="text-align:left">修正前(N)</th><th style="text-align:left">修正後(N+1)</th></tr></thead><tbody>'+rows+'</tbody></table></details>'; }
+ function issEvidenceHtml(ev,issue){
    ev=ev||{};
+   var link=(issue&&issue.dashboardUrl)?'<div style="margin-bottom:6px"><a href="'+withTok(issue.dashboardUrl)+'" target="_blank" style="font-weight:700;color:#1565c0">▶ 詳細ダッシュボードで全ログ・通信詳細を開く（ドリルダウン）</a></div>':'';
+   var expect=ev.expect?'<details style="margin:4px 0"><summary>期待結果（あるべき値／N観測）</summary><pre style="background:#f4f8ff;color:#20324d;padding:8px;border-radius:6px;font-size:12px;white-space:pre-wrap">'+escHtml(ev.expect)+'</pre></details>':'';
+   var concrete=issConcreteHtml(ev.concrete);
    var shots=(ev.nShot||ev.n1Shot||ev.diffShot)?'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">'+issShot('修正前(N)',ev.nShot)+issShot('修正後(N+1)',ev.n1Shot)+issShot('差分(赤=変化箇所)',ev.diffShot)+'</div>':'';
    var vid=ev.video?'<div style="margin-top:6px"><video controls preload="metadata" style="max-width:100%;max-height:320px;border-radius:6px;border:1px solid #ddd" src="'+withTok(ev.video)+'"></video></div>':'';
    var meta=(ev.visualRatio!=null||ev.screen)?'<div class="muted" style="font-size:12px;margin-bottom:4px">'+(ev.visualRatio!=null?'画素差 <b>'+(ev.visualRatio*100).toFixed(2)+'%</b> ／ ':'')+(ev.screen?'画面: '+escHtml(ev.screen)+' ':'')+(ev.loadMsN!=null||ev.loadMsN1!=null?' ／ 表示 N='+(ev.loadMsN||'-')+'ms / N+1='+(ev.loadMsN1||'-')+'ms':'')+'</div>':'';
-   var logs=issLogSec('実行ログ(コンソール)',ev.console)+issLogSec('API通信(N+1)',ev.api)+issLogSec('API差分',ev.apiDiffs)+issLogSec('操作手順(再現)',ev.trace)+issLogSec('入力値',ev.inputs);
-   if(!shots&&!vid&&!logs&&!meta) return '<span class="muted">証跡なし</span>';
-   return '<div style="border:1px solid #e3e8f0;border-radius:8px;padding:8px;background:#fbfcfe">'+meta+shots+vid+logs+'</div>';
+   var logs=issLogSec('差分の詳細',ev.details)+issLogSec('実行ログ(コンソール)',ev.console)+issLogSec('API通信(N+1)',ev.api)+issLogSec('API差分',ev.apiDiffs)+issLogSec('操作手順(再現)',ev.trace)+issLogSec('入力値',ev.inputs);
+   if(!link&&!shots&&!vid&&!logs&&!meta&&!concrete&&!expect) return '<span class="muted">証跡なし</span>';
+   return '<div style="border:1px solid #e3e8f0;border-radius:8px;padding:8px;background:#fbfcfe">'+link+meta+expect+concrete+shots+vid+logs+'</div>';
  }
  function issFieldInput(f,val){ val=(val==null?'':val); var fid=escAttr(f.id), id='issfv-'+f.id;
    if(f.type==='textarea') return '<textarea id="'+id+'" data-fid="'+fid+'" rows="2" style="width:100%;box-sizing:border-box">'+escHtml(val)+'</textarea>';
@@ -1262,7 +1306,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
     +'<dt>起票日時</dt><dd>'+fmtDT(i.createdAt)+'<span class="muted"> ／ 最終更新: '+fmtDT(i.updatedAt)+'</span></dd>'
     +'<dt>判定 / カテゴリ</dt><dd>'+escHtml(i.kindLabel)+' ／ '+escHtml((i.category||[]).join(' > '))+' ／ 対象: '+escHtml(i.target)+(i.occurrences>1?' ／ 再発 '+i.occurrences+'回':'')+'</dd>'
     +'<dt>具体的な相違点</dt><dd class="iss-diff">'+escHtml(i.diff)+'</dd>'
-    +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence)+'</dd>'
+    +'<dt>証跡（ドリルダウン）</dt><dd>'+issEvidenceHtml(i.evidence,i)+'</dd>'
     +'<dt>ステータス / 優先度</dt><dd>'+sel('status',ISS_STATUS)+' '+sel('priority',ISS_PRI)+'</dd>'
     +'<dt>担当</dt><dd><input id="issf-assignee" list="m-assigneeList" value="'+escAttr(i.assignee||'')+'" placeholder="担当者（設定の担当者マスタから選択・自由入力可）" style="width:240px"><datalist id="m-assigneeList">'+((window.__assignees||[]).map(function(a){return '<option value="'+escAttr(a)+'"></option>';}).join(''))+'</datalist></dd>'
     +'<dt>原因</dt><dd><textarea id="issf-cause" rows="2" style="width:100%;box-sizing:border-box" placeholder="不具合の原因（例: 記号除去でアポストロフィが消える等）">'+escHtml(i.cause||'')+'</textarea></dd>'
@@ -1341,18 +1385,43 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
        onDone(s); }
    },1000);
  }
+ // ケースの同一性キー（操作列＝種別/セレクタ/入力値の並び）。差分追加の重複判定に使う。
+ function caseSig(sc){ return (sc.actions||[]).map(function(a){ return a.kind+'|'+(a.selector||'')+'|'+(a.value||''); }).join(' >> '); }
+ // 既存スイートに新捜索の「差分だけ」を追加（重複ケースは取り込まない。既存の1回目観測・編集・フォルダは保持）。
+ function mergeSuites(base, add){
+   var out=JSON.parse(JSON.stringify(base));
+   var seen={}, ids={};
+   out.scenarios.forEach(function(sc){ seen[caseSig(sc)]=true; ids[sc.id]=true; });
+   var added=0;
+   (add.scenarios||[]).forEach(function(sc){
+     var sig=caseSig(sc); if(seen[sig]) return; seen[sig]=true;
+     var nid=sc.id, k=1; while(ids[nid]){ nid=sc.id+'-'+(k++); } ids[nid]=true;
+     var copy=JSON.parse(JSON.stringify(sc)); copy.id=nid; copy.origin=copy.origin||'再捜索';
+     out.scenarios.push(copy); added++;
+   });
+   out.__added=added; return out; // 遷移図/信頼度はケース列から導出されるため、追加だけで自動拡充
+ }
  $('m-exploreBtn').addEventListener('click',async function(){
    var u=$('m-url').value.trim();
    if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
    pushUrlHist(u);
    var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value};
    Object.assign(body,collectSpec()); Object.assign(body,collectLlm());
+   var had=!!(mSuite&&mSuite.scenarios&&mSuite.scenarios.length);
+   var modeEl=document.querySelector('input[name="m-exploreMode"]:checked'); var mode=(had&&modeEl)?modeEl.value:'overwrite';
    $('m-exploreBtn').disabled=true; var lg=$('m-log'); lg.classList.remove('hidden'); lg.textContent='捜索を開始しています…';
    var r=await fetch(withTok('/api/explore'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-exploreBtn').disabled=false;return;}
-   poll(r.runId,lg,function(s){ mSuite=s.suite; mSuiteId=null; mCompared=false; markDirty(); $('m-name').value=defaultSuiteName(); renderCases();
-     var n=(s.suite&&s.suite.scenarios?s.suite.scenarios.length:0);
-     toast('1回目（捜索）完了：テストケース '+n+' 件を生成しました。内容を確認してください。','ok');
+   poll(r.runId,lg,function(s){
+     if(mode==='merge'){
+       var merged=mergeSuites(mSuite,s.suite); var added=merged.__added; delete merged.__added;
+       mSuite=merged; mCompared=false; markDirty(); renderCases(); // mSuiteId は維持（同一スイートに再保存できる）
+       toast('差分を追加：新規 '+added+' 件を取り込み（合計 '+mSuite.scenarios.length+' 件）。信頼度・画面遷移図が拡充されます。','ok');
+     } else {
+       mSuite=s.suite; mSuiteId=null; mCompared=false; markDirty(); $('m-name').value=defaultSuiteName(); renderCases();
+       var n=(s.suite&&s.suite.scenarios?s.suite.scenarios.length:0);
+       toast('1回目（捜索）完了：テストケース '+n+' 件を生成しました。内容を確認してください。','ok');
+     }
    },$('m-exploreBtn'));
  });
  $('m-loadBtn').addEventListener('click',async function(){
@@ -1372,6 +1441,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
 
  function renderCases(){
    $('m-editor').classList.remove('hidden'); $('m-save').classList.remove('hidden'); $('m-runner').classList.remove('hidden'); $('m-review').classList.remove('hidden');
+   var emw=$('m-exploreModeWrap'); if(emw) emw.classList.toggle('hidden', !(mSuite&&mSuite.scenarios&&mSuite.scenarios.length)); // 再捜索の扱い選択は既存ケースがある時だけ表示
    unlockSteps(); refreshStepMarks(); syncStepper();
    var scs=(mSuite.scenarios||[]);
    $('m-meta').textContent='開始URL: '+(mSuite.startUrl||'')+' ／ '+scs.length+'件（フォルダにドラッグ＆ドロップで移動できます）';
