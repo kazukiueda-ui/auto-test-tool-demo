@@ -123,6 +123,30 @@
  @media(max-width:760px){.applayout{flex-direction:column;gap:8px}.sidebar{position:sticky;top:0;width:auto;flex:auto;z-index:1550;background:#eef2f8;padding:6px;border-radius:10px}.sidebar .nav{flex-direction:row;flex-wrap:wrap}}
  .navcount{background:#c62828;color:#fff;border-radius:10px;font-size:11px;padding:0 7px;margin-left:4px}
  .issbar{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+ /* カンバンボード（Jira風） */
+ .kanban{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;align-items:flex-start}
+ .kcol{flex:1 1 0;min-width:210px;background:#eef1f6;border-radius:10px;padding:8px;display:flex;flex-direction:column}
+ .kcolhd{display:flex;align-items:center;justify-content:space-between;font-size:13px;color:#37507a;padding:2px 4px 8px}
+ .kcolhd .kcount{background:#cdd8e8;color:#37507a;border-radius:10px;font-size:11px;padding:1px 8px;font-weight:700}
+ .kcards{min-height:40px;display:flex;flex-direction:column;gap:8px;border-radius:8px;transition:background .1s}
+ .kcards.kover{background:#dbe7fb;outline:2px dashed #9db8e8}
+ .kcard{background:#fff;border:1px solid #e2e8f2;border-radius:8px;padding:8px;cursor:grab;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+ .kcard:hover{border-color:#9db8e8}.kcard.kdrag{opacity:.5}
+ .kctop{display:flex;align-items:center;gap:6px;font-size:11px;color:#667}
+ .kctop .ktype{font-size:13px}.kctop .kkey{font-family:ui-monospace,monospace;color:#556}
+ .kctop .kpri{margin-left:auto;color:#fff;font-weight:700;border-radius:8px;padding:0 6px;font-size:10px}
+ .ktitle{font-size:13px;font-weight:600;margin:4px 0;line-height:1.35;color:#1a2733}
+ .klabels{display:flex;gap:4px;flex-wrap:wrap;margin:2px 0}
+ .klabel{background:#e7f0ff;color:#2456a6;border-radius:4px;font-size:10.5px;padding:0 6px}
+ .kbot{display:flex;align-items:center;justify-content:space-between;font-size:11px;margin-top:4px}
+ .kbot .krecur{background:#fce4ec;color:#c2185b;border-radius:8px;padding:0 6px;font-weight:700}
+ .kempty{padding:10px;text-align:center;font-size:12px}
+ .iss-labels{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+ .iss-label{background:#e7f0ff;color:#2456a6;border-radius:4px;font-size:12px;padding:1px 8px;display:inline-flex;gap:4px;align-items:center}
+ .iss-label b{cursor:pointer;color:#c62828}
+ .iss-activity{border-left:2px solid #e2e8f2;margin:4px 0;padding-left:10px}
+ .iss-act{font-size:12px;margin:4px 0}.iss-act .at{color:#889;font-size:11px}
+ .iss-act.comment{background:#f7faff;border:1px solid #e2ecf8;border-radius:6px;padding:6px 8px}
  /* 課題の集計：内訳＝円グラフ／時系列＝線グラフ */
  .pies{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
  .pcard{background:#fff;border:1px solid #e3e8f0;border-radius:8px;padding:10px 12px;flex:1;min-width:240px}
@@ -400,6 +424,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -422,7 +447,8 @@
    </div>
    <button id="nav-issues" class="navbtn" type="button">課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
    <div id="subnav-issues" class="subnav hidden">
-    <button id="iss-tab-list" class="subtab active" type="button">一覧・詳細</button>
+    <button id="iss-tab-board" class="subtab active" type="button">ボード</button>
+    <button id="iss-tab-list" class="subtab" type="button">一覧・詳細</button>
     <button id="iss-tab-stats" class="subtab" type="button">集計・分析</button>
     <button id="iss-tab-fields" class="subtab" type="button">カスタム項目の設定</button>
    </div>
@@ -683,7 +709,13 @@ graph TD
  <div id="view-issues" class="screen hidden">
   <!-- サブタブ（一覧/集計/設定）は左サイドバーへ移動 -->
   <div class="workspace">
-  <div id="iss-view-list" class="card">
+  <div id="iss-view-board" class="card">
+   <div class="issbar"><h3 style="margin:0">ボード</h3><span class="muted" style="margin-left:6px">カードをドラッグしてステータスを変更できます</span>
+    <input id="m-boardSearch" placeholder="検索（キー/タイトル/担当/ラベル）…" style="width:220px;padding:3px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px;margin-left:auto">
+   </div>
+   <div id="iss-board" class="kanban"></div>
+  </div>
+  <div id="iss-view-list" class="card hidden">
    <div class="issbar">
     <h3 style="margin:0">課題一覧</h3>
     <span class="muted" id="m-issMeta" style="margin-left:6px"></span>
@@ -1231,7 +1263,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  window.addEventListener('scroll',function(){ if(mStepTick) return; mStepTick=true;
    requestAnimationFrame(function(){ syncStepper(); mStepTick=false; }); },{passive:true});
  $('nav-manage').addEventListener('click',function(){ showView('manage'); });
- $('nav-issues').addEventListener('click',function(){ if(!confirmLeave())return; showView('issues'); if(mSelIssue) renderIssueDetail(mSelIssue); });
+ $('nav-issues').addEventListener('click',function(){ if(!confirmLeave())return; showView('issues'); showIssTab(mSelIssue?'list':'board'); if(mSelIssue) renderIssueDetail(mSelIssue); });
  (function(){ var s=$('nav-settings'); if(s) s.addEventListener('click',function(){ if(!confirmLeave())return; showView('settings'); loadSchedules&&loadSchedules(); renderAssigneeMaster(); }); })();
  (function(){ var a=$('nav-admin'); if(a) a.addEventListener('click',function(){ if(!confirmLeave())return; showView('admin'); }); })();
  // ==== 担当者マスタ（プロジェクト設定 assignees）====
@@ -1253,19 +1285,60 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{dbConn:c||undefined}})}).then(function(r){return r.json();}).then(function(){ $('set-dbMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 保存しました</span>'; if(typeof toast==='function')toast('DB接続を保存しました','ok'); }).catch(function(){ $('set-dbMsg').textContent='保存に失敗しました'; }); }); })();
  // ==== 課題管理サブタブ（一覧/集計/項目設定）====
  function showIssTab(t){
+   if($('iss-view-board'))$('iss-view-board').classList.toggle('hidden',t!=='board');
    $('iss-view-list').classList.toggle('hidden',t!=='list');
    $('iss-view-stats').classList.toggle('hidden',t!=='stats');
    $('iss-view-fields').classList.toggle('hidden',t!=='fields');
+   if($('iss-tab-board'))$('iss-tab-board').classList.toggle('active',t==='board');
    $('iss-tab-list').classList.toggle('active',t==='list');
    $('iss-tab-stats').classList.toggle('active',t==='stats');
    $('iss-tab-fields').classList.toggle('active',t==='fields');
+   if(t==='board') renderIssueBoard();
    if(t==='stats') renderIssueStats();
    if(t==='fields') renderIssueFields();
  }
- (function(){ var a=$('iss-tab-list'),b=$('iss-tab-stats'),c=$('iss-tab-fields');
+ (function(){ var bd=$('iss-tab-board'),a=$('iss-tab-list'),b=$('iss-tab-stats'),c=$('iss-tab-fields');
+   if(bd)bd.addEventListener('click',function(){showIssTab('board');});
    if(a)a.addEventListener('click',function(){showIssTab('list');});
    if(b)b.addEventListener('click',function(){showIssTab('stats');});
-   if(c)c.addEventListener('click',function(){showIssTab('fields');}); })();
+   if(c)c.addEventListener('click',function(){showIssTab('fields');});
+   var bs=$('m-boardSearch'); if(bs)bs.addEventListener('input',renderIssueBoard); })();
+ // ==== カンバンボード（Jira風・ステータス列＋ドラッグ&ドロップ）====
+ var ISS_TYPES=['バグ','タスク','改善','質問'];
+ var TYPE_ICON={'バグ':'🐞','タスク':'✓','改善':'⬆','質問':'?'};
+ var BOARD_COLS=['未対応','対応中','確認中','完了'];
+ function typeIcon(t){ return TYPE_ICON[t||'バグ']||'•'; }
+ function issKey(i){ return i.seq?('ISS-'+i.seq):('ISS-'+String(i.id||'').slice(-4)); }
+ function renderIssueBoard(){ var box=$('iss-board'); if(!box) return; var all=(window.__issues||[]);
+   var q=($('m-boardSearch')&&$('m-boardSearch').value||'').toLowerCase();
+   var items=all.slice();
+   if(q) items=items.filter(function(i){ return (issKey(i)+' '+(i.title||'')+' '+(i.assignee||'')+' '+((i.labels||[]).join(' '))).toLowerCase().indexOf(q)>=0; });
+   var pcol={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
+   box.innerHTML=BOARD_COLS.map(function(st){ var cards=items.filter(function(i){return i.status===st;});
+     var cardHtml=cards.map(function(i){ return '<div class="kcard" draggable="true" data-id="'+esc(i.id)+'">'
+       +'<div class="kctop"><span class="ktype" title="'+esc(i.type||'バグ')+'">'+typeIcon(i.type)+'</span><span class="kkey">'+esc(issKey(i))+'</span><span class="kpri" style="background:'+(pcol[i.priority]||'#888')+'">'+esc(i.priority)+'</span></div>'
+       +'<div class="ktitle">'+esc(i.title||'(無題)')+'</div>'
+       +((i.labels&&i.labels.length)?'<div class="klabels">'+i.labels.map(function(l){return '<span class="klabel">'+esc(l)+'</span>';}).join('')+'</div>':'')
+       +'<div class="kbot"><span class="muted">'+esc(i.assignee||'未割当')+'</span>'+(i.occurrences>1?'<span class="krecur" title="再発回数">×'+i.occurrences+'</span>':'')+'</div>'
+       +'</div>'; }).join('');
+     return '<div class="kcol" data-status="'+esc(st)+'"><div class="kcolhd"><b>'+esc(st)+'</b><span class="kcount">'+cards.length+'</span></div><div class="kcards" data-status="'+esc(st)+'">'+(cardHtml||'<div class="kempty muted">なし</div>')+'</div></div>';
+   }).join('');
+   // ドラッグ&ドロップ
+   var dragId=null;
+   box.querySelectorAll('.kcard').forEach(function(c){
+     c.addEventListener('dragstart',function(e){ dragId=c.getAttribute('data-id'); c.classList.add('kdrag'); try{e.dataTransfer.setData('text/plain',dragId);}catch(_){} });
+     c.addEventListener('dragend',function(){ c.classList.remove('kdrag'); });
+     c.addEventListener('click',function(){ mSelIssue=c.getAttribute('data-id'); showIssTab('list'); renderIssueList(); renderIssueDetail(mSelIssue); });
+   });
+   box.querySelectorAll('.kcards').forEach(function(zone){
+     zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.classList.add('kover'); });
+     zone.addEventListener('dragleave',function(){ zone.classList.remove('kover'); });
+     zone.addEventListener('drop',function(e){ e.preventDefault(); zone.classList.remove('kover'); var st=zone.getAttribute('data-status'); if(!dragId||!st) return;
+       var it=(window.__issues||[]).find(function(x){return x.id===dragId;}); if(!it||it.status===st) return;
+       it.status=st; renderIssueBoard();
+       fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:dragId,status:st})}).then(function(r){return r.json();}).then(function(){ loadIssues&&loadIssues(); if(typeof toast==='function')toast(issKey(it)+' を「'+st+'」に移動','ok'); }).catch(function(){}); });
+   });
+ }
  // ==== 集計・分析（ステータス/観点別＋時系列 発見数/修正数）====
  var STAT_COL={'未対応':'#c62828','対応中':'#1565c0','確認中':'#6a1b9a','完了':'#2e7d32','対象外':'#90a4ae'};
  var PIE_PAL=['#4a6cf7','#ef6c00','#2e7d32','#6a1b9a','#00838f','#c62828','#5d4037','#7cb342','#1565c0','#ad1457'];
@@ -1342,7 +1415,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function issuesForCase(scid){ return (window.__issues||[]).filter(function(i){return i.caseId===scid;}); }
  function loadIssues(){
    fetch(withTok('/api/issues')).then(function(r){return r.json();}).catch(function(){return null;}).then(function(r){
-     window.__issues=(r&&r.issues)||[]; renderIssueList(); updateNavCount(); if(mSuite) renderCases();
+     window.__issues=(r&&r.issues)||[]; renderIssueList(); if(typeof renderIssueBoard==='function')renderIssueBoard(); updateNavCount(); if(mSuite) renderCases();
    });
  }
  function updateNavCount(){ var openN=(window.__issues||[]).filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
@@ -1365,22 +1438,29 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var w=$('m-issList');
    if(!shown.length){ w.innerHTML='<div class="muted" style="padding:12px">課題はありません（テスト実行の結果画面から「起票」ボタンで登録します）。</div>'; return; }
    function arrow(k){ return issSort.key===k?(issSort.dir<0?' ▾':' ▲'):''; }
+   var pcol={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
    var rows=shown.map(function(i){
      return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+'" data-id="'+i.id+'">'
+       +'<td class="imono">'+escHtml(issKey(i))+'</td>'
+       +'<td title="'+escAttr(i.type||'バグ')+'">'+typeIcon(i.type)+'</td>'
        +'<td><span class="stchip sc-'+i.status+'">'+i.status+'</span></td>'
-       +'<td class="imono" title="'+escAttr(i.id)+'">'+escHtml(i.id.slice(-6))+'</td>'
+       +'<td><span style="color:'+(pcol[i.priority]||'#888')+';font-weight:700">'+escHtml(i.priority)+'</span></td>'
        +'<td class="imono">'+fmtDT(i.createdAt)+'</td>'
-       +'<td><b>'+escHtml(i.title)+'</b><div class="muted">'+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+(i.suite&&(i.suite.name||i.suite.id)?' ／ '+escHtml(i.suite.name||i.suite.id):'')+'</div></td></tr>';
+       +'<td><b>'+escHtml(i.title)+'</b>'+((i.labels&&i.labels.length)?' '+i.labels.map(function(l){return '<span class="klabel">'+escHtml(l)+'</span>';}).join(''):'')+'<div class="muted">'+escHtml(i.assignee||'未割当')+' ／ '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+(i.suite&&(i.suite.name||i.suite.id)?' ／ '+escHtml(i.suite.name||i.suite.id):'')+'</div></td></tr>';
    }).join('');
    w.innerHTML='<table class="iss"><thead><tr>'
+     +'<th class="isort" data-k="id" style="width:70px">キー'+arrow('id')+'</th>'
+     +'<th style="width:34px">種別</th>'
      +'<th class="isort" data-k="status" style="width:64px">状態'+arrow('status')+'</th>'
-     +'<th class="isort" data-k="id" style="width:66px">ID'+arrow('id')+'</th>'
+     +'<th style="width:44px">優先</th>'
      +'<th class="isort" data-k="createdAt" style="width:104px">起票時間'+arrow('createdAt')+'</th>'
      +'<th class="isort" data-k="title">課題（クリックで詳細）'+arrow('title')+'</th>'
      +'</tr></thead><tbody>'+rows+'</tbody></table>';
    w.querySelectorAll('th.isort').forEach(function(th){ th.addEventListener('click',function(){ var k=th.getAttribute('data-k'); if(issSort.key===k)issSort.dir*=-1; else {issSort.key=k; issSort.dir=(k==='createdAt'||k==='status')?-1:1;} renderIssueList(); }); });
    w.querySelectorAll('tr.irow').forEach(function(tr){ tr.addEventListener('click',function(){ mSelIssue=tr.getAttribute('data-id'); renderIssueList(); renderIssueDetail(mSelIssue); }); });
  }
+ function renderActivity(acts){ acts=acts||[]; if(!acts.length) return '<span class="muted" style="font-size:12px">履歴はありません</span>';
+   return acts.slice().reverse().map(function(a){ var isC=a.kind==='comment'; return '<div class="iss-act'+(isC?' comment':'')+'"><span class="at">'+fmtDT(a.ts)+'</span> '+(isC?'💬 ':'')+escHtml(a.text||'')+'</div>'; }).join(''); }
  function issLogSec(title,arr){ return (arr&&arr.length)?'<details style="margin:4px 0"><summary>'+title+'（'+arr.length+'）</summary><pre style="background:#0f1620;color:#cfe3ff;padding:8px;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:220px;overflow:auto">'+arr.map(escHtml).join('\n')+'</pre></details>':''; }
  function issShot(cap,u){ return u?'<figure style="margin:0"><figcaption class="muted" style="font-size:11px">'+cap+'</figcaption><img src="'+withTok(u)+'" style="max-width:100%;border:1px solid #ddd;border-radius:6px;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')"></figure>':''; }
  function issConcreteHtml(arr){ if(!arr||!arr.length) return ''; var rows=arr.map(function(c){ return '<tr><td style="font-weight:600;white-space:nowrap">'+escHtml(c.field)+'</td><td style="color:#c62828">'+escHtml(c.removed||'∅')+'</td><td style="color:#2e7d32">'+escHtml(c.added||'∅')+'</td></tr>'; }).join('');
@@ -1410,8 +1490,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var customSection=fdefs.length
      ? fdefs.map(function(f){ return '<dt>'+escHtml(f.name)+'</dt><dd>'+issFieldInput(f,cv[f.id])+'</dd>'; }).join('')
      : '<dt>カスタム項目</dt><dd><span class="muted">未定義です。「カスタム項目の設定」タブで、このプロジェクト共通の項目（名前・型）を追加できます。</span></dd>';
-   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="stchip sc-'+i.status+'" id="issf-chip">'+i.status+'</span><b style="font-size:15px">'+escHtml(i.title)+'</b></div>'
+   var typeSel='<select id="issf-type">'+ISS_TYPES.map(function(t){return '<option'+((i.type||'バグ')===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select>';
+   d.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="imono" style="color:#556;font-weight:700">'+escHtml(issKey(i))+'</span><span title="'+escAttr(i.type||'バグ')+'" style="font-size:16px">'+typeIcon(i.type)+'</span><span class="stchip sc-'+i.status+'" id="issf-chip">'+i.status+'</span><b style="font-size:15px">'+escHtml(i.title)+'</b></div>'
     +'<dl class="idl">'
+    +'<dt>種別 / ラベル</dt><dd>'+typeSel+' <span class="iss-labels" id="issf-labels"></span> <input id="issf-labelIn" placeholder="ラベルを追加してEnter" style="width:180px;font-size:12px"></dd>'
     +'<dt>課題ID</dt><dd>'+i.id+(i.external?' / 連携: '+escHtml(i.external.system)+' '+escHtml(i.external.key):'')+'</dd>'
     +'<dt>対象テストケース</dt><dd><b>'+escHtml(i.caseId)+'</b> '+escHtml(i.caseName)+' <button id="m-issGoCase" class="btn-mini" style="background:#37507a">このテストケースを開く</button></dd>'
     +'<dt>実行スイート</dt><dd>'+((i.suite&&(i.suite.name||i.suite.id))?escHtml(i.suite.name||i.suite.id):'<span class="muted">（不明）</span>')+'</dd>'
@@ -1427,8 +1509,21 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
     +'<dt>メモ</dt><dd><textarea id="issf-note" rows="2" style="width:100%;box-sizing:border-box">'+escHtml(i.note||'')+'</textarea></dd>'
     +customSection
     +'</dl>'
-    +'<div style="margin-top:6px"><button type="button" id="issf-save" style="margin:0">更新（確定）</button> <span id="issf-msg" class="muted"></span></div>';
+    +'<div style="margin-top:6px"><button type="button" id="issf-save" style="margin:0">更新（確定）</button> <span id="issf-msg" class="muted"></span></div>'
+    +'<h4 style="margin:14px 0 4px;font-size:13px">コメント・履歴</h4>'
+    +'<div style="display:flex;gap:6px;margin-bottom:6px"><input id="issf-comment" placeholder="コメントを追加…" style="flex:1"><button type="button" id="issf-comAdd" class="btn-sm" style="margin:0">送信</button></div>'
+    +'<div class="iss-activity" id="issf-activity">'+renderActivity(i.activity)+'</div>';
    var gc=$('m-issGoCase'); if(gc) gc.addEventListener('click',function(){ openCaseById(i.caseId); });
+   // ラベル編集
+   var labels=(i.labels||[]).slice();
+   function drawLabels(){ var el=$('issf-labels'); if(!el)return; el.innerHTML=labels.map(function(l,li){return '<span class="iss-label">'+escHtml(l)+' <b data-li="'+li+'" title="削除">×</b></span>';}).join('');
+     el.querySelectorAll('b[data-li]').forEach(function(x){ x.addEventListener('click',function(){ labels.splice(+x.getAttribute('data-li'),1); drawLabels(); saveLabels(); }); }); }
+   function saveLabels(){ fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:i.id,labels:labels})}).then(function(r){return r.json();}).then(function(r){ if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue; renderIssueList(); renderIssueBoard&&renderIssueBoard(); } }); }
+   drawLabels();
+   var lin=$('issf-labelIn'); if(lin) lin.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); var v=lin.value.trim(); if(v&&labels.indexOf(v)<0){ labels.push(v); drawLabels(); saveLabels(); } lin.value=''; } });
+   var tsel=$('issf-type'); if(tsel) tsel.addEventListener('change',function(){ fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:i.id,type:tsel.value})}).then(function(r){return r.json();}).then(function(r){ if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue; renderIssueList(); renderIssueBoard&&renderIssueBoard(); if(typeof toast==='function')toast('種別を「'+tsel.value+'」に変更','ok'); } }); });
+   var ca=$('issf-comAdd'); if(ca) ca.addEventListener('click',function(){ var t=$('issf-comment').value.trim(); if(!t)return; ca.disabled=true;
+     fetch(withTok('/api/issue-comment'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:i.id,text:t})}).then(function(r){return r.json();}).then(function(r){ ca.disabled=false; if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue; $('issf-comment').value=''; $('issf-activity').innerHTML=renderActivity(r.issue.activity); } }).catch(function(){ca.disabled=false;}); });
    $('issf-save').addEventListener('click',function(){
      var customValues={}; d.querySelectorAll('[data-fid]').forEach(function(el){ customValues[el.getAttribute('data-fid')]=el.value; });
      var patch={ id:i.id, status:$('issf-status').value, priority:$('issf-priority').value, assignee:$('issf-assignee').value, cause:$('issf-cause').value, fix:$('issf-fix').value, note:$('issf-note').value, customValues:customValues };
@@ -1436,7 +1531,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})
       .then(function(r){return r.json();}).then(function(r){ btn.disabled=false;
         if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue;
-          renderIssueList(); updateNavCount(); if(mSuite)renderCases(); renderIssueDetail(i.id); // 詳細も再描画（状態チップを更新）
+          renderIssueList(); if(typeof renderIssueBoard==='function')renderIssueBoard(); updateNavCount(); if(mSuite)renderCases(); renderIssueDetail(i.id); // 詳細も再描画（状態チップを更新）
           if(typeof toast==='function') toast('課題を更新しました（'+r.issue.status+'）','ok');
         } else { $('issf-msg').textContent='更新に失敗しました'; }
       }).catch(function(){ btn.disabled=false; $('issf-msg').textContent='通信エラー'; });
