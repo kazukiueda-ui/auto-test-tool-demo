@@ -425,6 +425,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -604,6 +605,8 @@ graph TD
    <button id="m-xlsx" class="btn-sm btn-gray">テストケースをExcel出力</button>
    <button id="m-codePw" class="btn-sm btn-gray" title="Playwright の spec ファイルとして書き出し（CIで実行可能）">Playwrightコード出力</button>
    <button id="m-codeCy" class="btn-sm btn-gray" title="Cypress の spec ファイルとして書き出し">Cypressコード出力</button>
+   <button id="m-specHtml" class="btn-sm btn-gray" title="観測から仕様書をリバース生成（画面一覧/遷移図/機能/操作フロー/API）。HTML">仕様書を生成（HTML）</button>
+   <button id="m-specMd" class="btn-sm btn-gray" title="仕様書をMarkdownで出力">仕様書(Markdown)</button>
    <button id="m-approveAll" class="btn-sm btn-gray" title="1回目(N)取得済みのケースを一括で承認（ゴールデン化）。承認済みの差分だけが回帰NGになります">★ 全て承認（ゴールデン化）</button>
    <button id="m-genAsserts" class="btn-sm btn-gray" title="読み込んだ仕様書の用語（画面名/機能名）を、観測ページに紐づけて肯定的アサーションを生成。N比較が無くても『あるべき文言/画面』を検証できます">仕様からアサーション生成</button>
    <button id="m-faultCheck" class="btn-sm btn-gray" title="N観測に典型欠陥を注入し、このテストが実際に検知できるかを測ります（検出力）">検出力チェック（フォールト注入）</button>
@@ -2017,6 +2020,14 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  }
  var cpw=$('m-codePw'); if(cpw) cpw.addEventListener('click',function(){exportCode('playwright','e2e.spec.ts');});
  var ccy=$('m-codeCy'); if(ccy) ccy.addEventListener('click',function(){exportCode('cypress','e2e.cy.js');});
+ async function exportSpec(kind,fname){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var r=await fetch(withTok('/api/export-spec'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,kind:kind})}).catch(function(){return null;});
+   if(!r||!r.ok){alert('仕様書の生成に失敗しました');return;}
+   var blob=await r.blob(); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+   if(typeof toast==='function') toast('仕様書を生成しました（'+(kind==='html'?'HTML':'Markdown')+'）','ok');
+ }
+ var sph=$('m-specHtml'); if(sph) sph.addEventListener('click',function(){exportSpec('html','spec.html');});
+ var spm=$('m-specMd'); if(spm) spm.addEventListener('click',function(){exportSpec('md','spec.md');});
  function updateApproveCount(){ var el=$('m-approveCount'); if(!el||!mSuite) return; var scs=mSuite.scenarios||[]; var ap=scs.filter(function(s){return s.approved;}).length; var withN=scs.filter(function(s){return s.baseline;}).length; el.innerHTML='承認済み <b>'+ap+'</b> / '+scs.length+'件（回帰対象）'+(ap<withN?' ・ 未承認の差分は「開発中の変化」として回帰NGにしません':''); }
  var genA=$('m-genAsserts'); if(genA) genA.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    if(!(window.__specTerms&&window.__specTerms.length)){ alert('仕様書ファイルが読み込まれていません。①探索カードの「仕様書ファイルを捜索の根拠にする」で読み込んでください。'); return; }
