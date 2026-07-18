@@ -428,6 +428,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -1165,7 +1166,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function applyRounds(){ var r=$('m-aiRounds'); if(!r)return; var n=+r.value;
    var lbl=$('m-aiRoundsv'); if(lbl) lbl.textContent=(n===0)?'0回（レビューのみ）':(n+'回（目標まで自動改善）');
    var tw=$('m-targetWrap'); if(tw) tw.classList.toggle('hidden', n===0);
-   var note=$('m-aiRunNote'); if(note) note.textContent=(n===0)?'※現在は「レビューのみ」（スイートは変更しません）。ラウンド数を1以上にすると自動改善まで実行します。':('※レビュー→改善を最大 '+n+' ラウンド自動反復し、目標点まで改善します（従量課金）。');
+   var note=$('m-aiRunNote'); if(note) note.textContent=(n===0)?'※「レビューのみ」（スイートは変更しません）。レビュー結果の下の「このレビューを反映」ボタンで手動反映できます。ラウンド数を1以上にすると自動で反復改善します。':('※レビュー→改善を最大 '+n+' ラウンド自動反復し、目標点まで改善します（従量課金）。');
    var btn=$('m-aiReviewBtn'); if(btn) btn.textContent=(n===0)?'AIレビューを実行':'AIレビュー＋自動改善を実行'; }
  function aiDepth(){ var d=$('m-aiDepth'); return d?+d.value:0.6; }
  function mEstimate(){
@@ -1878,7 +1879,20 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      +((sy.agreements||[]).length?'<div style="margin-top:6px"><b style="font-size:12px">一致点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.agreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
      +((sy.disagreements||[]).length?'<div><b style="font-size:12px">相違点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.disagreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
      +(acts?'<div style="margin-top:6px"><b style="font-size:12px">優先改善アクション</b>'+acts+'</div>':'')
+     +'<div style="margin-top:10px;border-top:1px dashed #d6bdea;padding-top:8px"><button id="m-aiApply" class="btn-sm" style="margin:0;background:#6a1b9a">▶ このレビューをテストに反映（不足観点＋AI改善ケースを1ラウンド追加）</button> <span id="m-aiApplyMsg" class="muted" style="font-size:12px"></span><div class="muted" style="font-size:11px;margin-top:3px">レビューの指摘に沿って、不足観点の追加（無料）＋AIによる改善ケース生成（Claude API・従量課金）を1回だけ実行します。上部で「改善ラウンド数」を上げると自動で反復します。</div></div>'
      +'</div><div class="ai-grid">'+cards+'</div><div class="ai-disc">'+esc2(r.disclaimer||'')+'</div>';
+   var ab=$('m-aiApply'); if(ab) ab.addEventListener('click',function(){ if(!mSuite)return;
+     if(!apiMode){ alert('AI改善ケース生成にはAPI利用ONとANTHROPIC_API_KEYが必要です（上部でAPI利用に切替）。※不足観点の追加のみなら「② 推奨アクションを反映」で無料実行できます'); return; }
+     if(!confirm('このレビュー結果に沿って、不足観点＋AI改善ケースを1ラウンド追加します（Claude API・従量課金）。実行しますか？')) return;
+     ab.disabled=true; $('m-aiApplyMsg').textContent='反映中…（レビュー→改善を1ラウンド）'; var lg=$('m-aiLog'); if(lg){lg.classList.remove('hidden');}
+     fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:100,maxRounds:1,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+      .then(function(r){ if(r.error){ ab.disabled=false; $('m-aiApplyMsg').innerHTML='<span style="color:#c62828">'+esc2(r.error)+'</span>'; return; }
+        poll(r.runId,lg||document.createElement('pre'),function(s){ ab.disabled=false;
+          if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } renderCases();
+            var added=(s.summary&&s.summary.added)||0; $('m-aiApplyMsg') && ($('m-aiApplyMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 反映しました</span>'+(added?'（+'+added+'件）':''));
+            if(typeof toast==='function') toast('レビュー結果を反映しました'+(added?'（テストケース +'+added+'件）':''),'ok');
+          } },ab);
+      }); });
  }
  function renderSuf(suf){
    var el=$('m-suf'); if(!el) return;
