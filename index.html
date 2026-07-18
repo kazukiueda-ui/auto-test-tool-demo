@@ -429,6 +429,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -930,6 +931,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var llmChk=$('m-llm'); if(llmChk){ llmChk.checked=apiMode; }
    // APIオフ時はAI系ボタンを不活性化
    ['m-aiReviewBtn','m-applyRecBtn'].forEach(function(id){ var e=$(id); if(e) e.disabled=!apiMode; });
+   if(typeof updateSpecButtons==='function') updateSpecButtons();
    if(typeof mEstimate==='function') mEstimate();
  }
  function updateBadge(){
@@ -1647,10 +1649,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    poll(r.runId,lg,function(s){
      if(mode==='merge'){
        var merged=mergeSuites(mSuite,s.suite); var added=merged.__added; delete merged.__added;
-       mSuite=merged; mCompared=false; markDirty(); renderCases(); // mSuiteId は維持（同一スイートに再保存できる）
+       mSuite=merged; mCompared=false; markDirty(); clearNarrative(); renderCases(); // mSuiteId は維持（同一スイートに再保存できる）
        toast('差分を追加：新規 '+added+' 件を取り込み（合計 '+mSuite.scenarios.length+' 件）。信頼度・画面遷移図が拡充されます。','ok');
      } else {
-       mSuite=s.suite; mSuiteId=null; mCompared=false; markDirty(); $('m-name').value=defaultSuiteName(); renderCases();
+       mSuite=s.suite; mSuiteId=null; mCompared=false; markDirty(); clearNarrative(); $('m-name').value=defaultSuiteName(); renderCases();
        var n=(s.suite&&s.suite.scenarios?s.suite.scenarios.length:0);
        toast('1回目（捜索）完了：テストケース '+n+' 件を生成しました。内容を確認してください。','ok');
      }
@@ -1660,7 +1662,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var id=$('m-savedSel').value; if(!id){alert('スイートを選択してください');return;}
    var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(id))).then(function(r){return r.json();}).catch(function(){return null;});
    if(!rec||!rec.suite){alert('読み込みに失敗しました');return;}
-   mSuite=rec.suite; mSuiteId=rec.id; mCompared=false; markClean(); $('m-name').value=rec.name||''; renderCases();
+   mSuite=rec.suite; mSuiteId=rec.id; mCompared=false; markClean(); clearNarrative(); $('m-name').value=rec.name||''; renderCases();
  });
  var mSelFolder=null; // 選択中フォルダ（パス配列）。null/[]=すべて
  var mExpanded=new Set(), mTreeRoot=null, mTreeItems=null; // 展開中のフォルダ（既定は折り畳み）
@@ -1675,6 +1677,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    $('m-editor').classList.remove('hidden'); $('m-save').classList.remove('hidden'); $('m-runner').classList.remove('hidden'); $('m-review').classList.remove('hidden');
    var emw=$('m-exploreModeWrap'); if(emw) emw.classList.toggle('hidden', !(mSuite&&mSuite.scenarios&&mSuite.scenarios.length)); // 再捜索の扱い選択は既存ケースがある時だけ表示
    if(typeof updateApproveCount==='function') updateApproveCount();
+   if(typeof updateSpecButtons==='function') updateSpecButtons();
    if(typeof renderDbChecks==='function') renderDbChecks();
    unlockSteps(); refreshStepMarks(); syncStepper();
    var scs=(mSuite.scenarios||[]);
@@ -2064,6 +2067,17 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  var sph=$('m-specHtml'); if(sph) sph.addEventListener('click',function(){exportSpec('html','spec.html');});
  var spm=$('m-specMd'); if(spm) spm.addEventListener('click',function(){exportSpec('md','spec.md');});
  var spx=$('m-specXlsx'); if(spx) spx.addEventListener('click',function(){exportSpec('xlsx','spec.xlsx');});
+ // 文章入り仕様書(HTML/Markdown)は、LLM文章化した内容を追記するため「LLM実行後のみ」出力可。
+ // ただしAPIオフ（LLM不可）のときは構造版として出せるようにする。Excelは常時可。
+ function updateSpecButtons(){ var has=!!(window.__specNarrative); var bs=[$('m-specHtml'),$('m-specMd')];
+   bs.forEach(function(b){ if(!b) return;
+     if(has){ b.disabled=false; b.title='LLM文章＋構造の仕様書を出力'; b.textContent=(b.id==='m-specHtml')?'仕様書を生成（HTML・文章入り）':'仕様書(Markdown・文章入り)'; }
+     else if(apiMode){ b.disabled=true; b.title='先に「LLMで文章化」を実行してください（文章入り仕様書を出力します）'; b.textContent=(b.id==='m-specHtml')?'仕様書を生成（HTML）※要LLM文章化':'仕様書(Markdown)※要LLM文章化'; }
+     else { b.disabled=false; b.title='構造版の仕様書を出力（LLM文章化はAPI利用時のみ）'; b.textContent=(b.id==='m-specHtml')?'仕様書を生成（HTML・構造版）':'仕様書(Markdown・構造版)'; }
+   });
+ }
+ // スイートが新しくなった（捜索/差分追加/読み込み）＝以前の文章化は内容とずれるので破棄し、再文章化を促す。
+ function clearNarrative(){ window.__specNarrative=null; var m=$('m-specLlmMsg'); if(m) m.textContent=''; updateSpecButtons(); }
  var spl=$('m-specLlm'); if(spl) spl.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    if(!apiMode){ alert('LLM文章化にはAPI利用がONで、ANTHROPIC_API_KEYが必要です（上部でAPI利用に切替）'); return; }
    spl.disabled=true; $('m-specLlmMsg').textContent='LLMで文章化中…';
@@ -2072,7 +2086,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(r.error){ spl.disabled=false; $('m-specLlmMsg').innerHTML='<span style="color:#c62828">'+esc(r.error)+'</span>'; return; }
    var lgEl=document.createElement('pre'); lgEl.style.display='none';
    poll(r.runId,lgEl,function(s){ spl.disabled=false;
-     var n=s.summary&&s.summary.narrative; if(n){ window.__specNarrative=n; $('m-specLlmMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 文章化しました</span>（以降の「仕様書(HTML/Markdown)」に概要・画面説明・業務フローが織り込まれます）';
+     var n=s.summary&&s.summary.narrative; if(n){ window.__specNarrative=n; updateSpecButtons(); $('m-specLlmMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 文章化しました</span>（「仕様書(HTML/Markdown)」が出力可能になりました。概要・画面説明・業務フローが織り込まれます）';
        if(typeof toast==='function')toast('仕様書をLLMで文章化しました','ok'); try{renderTokenBar&&renderTokenBar();}catch(e){}
      } else { $('m-specLlmMsg').textContent='文章化できませんでした（APIキー/モデルを確認）'; }
    }); });
@@ -2115,22 +2129,45 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      +'</div>';
    if(typeof toast==='function') toast('リリース確度 '+r.index+'/100（'+r.label+'）','ok');
  });
- // 検出力チェック（フォールト注入）
+ // 検出力チェック（フォールト注入）。各欠陥種の「具体的に何を壊すか」「見逃した時の対処」を人が読める言葉で持つ。
+ var FAULT_INFO={
+   text:{what:'画面の本文テキストを書き換える（表示内容の破損を模擬）',fix:'感度を上げる／期待値(あるべき文言)を設定する'},
+   heading:{what:'見出し(H1等)を書き換える',fix:'感度を上げる／見出しの期待値を設定する'},
+   title:{what:'ページのタイトルを書き換える',fix:'感度を上げる／タイトルの期待値を設定する'},
+   form:{what:'入力フォームの数を1つ増やす（画面構造の破損を模擬）',fix:'感度を上げて構造差分を拾う'},
+   http:{what:'HTTP応答を500エラーにする（サーバ障害を模擬）',fix:'通常は検知されます。未検知なら比較対象の観測を確認'},
+   'api-status':{what:'APIの応答を500エラーにする（バックエンド障害を模擬）',fix:'APIを観測できるケースを増やす'},
+   'api-missing':{what:'呼ばれるはずのAPIを消す（通信欠落を模擬）',fix:'APIを観測できるケースを増やす'},
+   console:{what:'実行時のコンソールエラーを発生させる（JS例外を模擬）',fix:'「非機能チェック」をONにすると検知対象になります'}
+ };
  var fc=$('m-faultCheck'); if(fc) fc.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
-   var box=$('m-faultResult'); box.innerHTML='<span class="muted">欠陥を注入して検知力を測定中…</span>'; fc.disabled=true;
+   var box=$('m-faultResult'); box.innerHTML='<span class="muted">🧪 保存済みのN観測に人工バグを埋め込み、いまのテストが気づけるか試しています…</span>'; fc.disabled=true;
    var r=await fetch(withTok('/api/fault-check'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
    fc.disabled=false;
    if(!r||r.error){ box.innerHTML='<span style="color:#c62828">測定失敗: '+esc((r&&r.error)||'不明')+'</span>'; return; }
    if(!r.overall.total){ box.innerHTML='<span class="muted">測定できる観測(N)がありません。先に捜索または1回目(N)取得を行ってください。</span>'; return; }
    var col=r.overall.rate>=90?'#2e7d32':r.overall.rate>=70?'#ef6c00':'#c62828';
-   var bars=(r.byType||[]).map(function(t){ var p=t.total?Math.round(t.detected/t.total*100):0; return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:1px 0"><span style="width:150px">'+esc(t.label)+'</span><span style="flex:1;background:#eef;height:8px;border-radius:4px;overflow:hidden;max-width:180px"><span style="display:block;height:8px;width:'+p+'%;background:'+(p>=90?'#2e7d32':p>=70?'#ef6c00':'#c62828')+'"></span></span><span>'+t.detected+'/'+t.total+'</span></div>'; }).join('');
+   var verdict=r.overall.rate>=90?'このテストは実際のバグをよく捕まえます。安心して回帰に使えます。':r.overall.rate>=70?'おおむね検知できますが、一部の欠陥を見逃します。下の「見逃した欠陥」を補強しましょう。':'見逃しが多く、実バグを取りこぼす恐れがあります。感度・期待値・観点を見直してください。';
+   // 種別バー：検知=緑/見逃し=赤。ホバーで「何を壊すか」を表示。
+   var bars=(r.byType||[]).map(function(t){ var p=t.total?Math.round(t.detected/t.total*100):0; var info=FAULT_INFO[t.key]||{what:'',fix:''}; var miss=t.total-t.detected;
+     return '<div title="'+escAttr(info.what)+'" style="display:flex;align-items:center;gap:6px;font-size:12px;margin:2px 0">'
+       +'<span style="width:150px">'+esc(t.label)+'</span>'
+       +'<span style="flex:1;background:#eef;height:8px;border-radius:4px;overflow:hidden;max-width:160px"><span style="display:block;height:8px;width:'+p+'%;background:'+(p>=90?'#2e7d32':p>=70?'#ef6c00':'#c62828')+'"></span></span>'
+       +'<span style="width:46px;text-align:right">'+t.detected+'/'+t.total+'</span>'
+       +'<span style="width:64px">'+(miss>0?'<span style="color:#c62828">✕見逃し'+miss+'</span>':'<span style="color:#2e7d32">✓全検知</span>')+'</span></div>'; }).join('');
+   // 見逃した欠陥種→対処（次にやること）
+   var missTypes=(r.byType||[]).filter(function(t){return t.detected<t.total;});
+   var actions=missTypes.map(function(t){ var info=FAULT_INFO[t.key]||{fix:''}; return '<li><b>'+esc(t.label)+'</b> の見逃し → '+esc(info.fix)+'</li>'; }).join('');
    var weak=(r.weakCases||[]).slice(0,8).map(function(c){ return '<li>'+esc(c.id)+' '+esc(c.name)+' — 見逃し: '+esc(c.missed.join('・'))+'</li>'; }).join('');
    box.innerHTML='<div style="border:1px solid #e3e8f0;border-radius:8px;padding:10px;background:#fbfcfe">'
-     +'<div style="font-size:14px"><b>検出力 <span style="color:'+col+';font-size:20px">'+r.overall.rate+'%</span></b> <span class="muted">（注入した欠陥 '+r.overall.total+' 種のうち '+r.overall.detected+' 種を検知）</span></div>'
-     +'<div style="margin:6px 0">'+bars+'</div>'
-     +(weak?'<details><summary style="font-size:12px;color:#c62828">見逃しのあるケース（'+r.weakCases.length+'）</summary><ul style="font-size:12px;margin:4px 0;padding-left:18px">'+weak+'</ul></details>':'<div class="muted" style="font-size:12px">全ケースで注入欠陥を検知できました。</div>')
+     +'<div style="font-size:14px"><b>検出力 <span style="color:'+col+';font-size:20px">'+r.overall.rate+'%</span></b> <span class="muted">（人工バグ '+r.overall.total+' 種のうち '+r.overall.detected+' 種を検知）</span></div>'
+     +'<div style="font-size:12.5px;color:'+col+';margin:2px 0 6px">'+esc(verdict)+'</div>'
+     +'<div style="font-size:11px;color:#667;margin-bottom:2px">▼ どの種類のバグに気づけたか（バーにカーソルを乗せると「何を壊したか」を表示）</div>'
+     +'<div style="margin:2px 0 6px">'+bars+'</div>'
+     +(actions?'<div style="background:#fff8e1;border:1px solid #ffe0a3;border-radius:6px;padding:6px 8px;margin:4px 0"><b style="font-size:12px">次にやること（検出力を上げる）</b><ul style="font-size:12px;margin:3px 0;padding-left:18px">'+actions+'</ul></div>':'<div style="background:#e9f7ef;border:1px solid #bfe6cf;border-radius:6px;padding:6px 8px;margin:4px 0;font-size:12px;color:#1b5e20">✓ 注入した全種のバグを検知できました。追加の対処は不要です。</div>')
+     +(weak?'<details><summary style="font-size:12px;color:#c62828">見逃しのあるケース（'+r.weakCases.length+'）</summary><ul style="font-size:12px;margin:4px 0;padding-left:18px">'+weak+'</ul></details>':'')
      +(r.note?'<div class="muted" style="font-size:11px;margin-top:4px">※'+esc(r.note)+'</div>':'')
-     +'<div class="muted" style="font-size:11px;margin-top:4px">この数値は保存済みのN観測に人工欠陥を注入し、現在の比較設定（感度）で検知できるかを機械的に検査した結果です。</div></div>';
+     +'<div class="muted" style="font-size:11px;margin-top:6px;border-top:1px solid #eef1f6;padding-top:4px"><b>この検査の仕組み</b>：保存済みのN観測のコピーに典型バグ（文言破損・API障害・HTTP 500 等）を1つずつ埋め込み、いまの比較設定（感度）でそれを差分として検知できるかを機械的に試します。ブラウザは使わず一瞬で終わり、実データは変更しません。数値が高いほど「実際のバグを取りこぼさないテスト」です。</div></div>';
    if(typeof toast==='function') toast('検出力 '+r.overall.rate+'%（'+r.overall.detected+'/'+r.overall.total+'）','ok');
  });
  // 要件トレーサビリティ
