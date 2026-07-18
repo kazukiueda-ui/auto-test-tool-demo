@@ -399,6 +399,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -727,6 +728,11 @@ graph TD
     <label id="set-dbUrlEnvWrap" style="display:inline-flex;align-items:center;gap:6px">接続文字列の環境変数名 <input id="set-dbUrlEnv" placeholder="例）ATT_DB_URL" style="width:180px"></label>
     <label id="set-dbFileWrap" style="display:inline-flex;align-items:center;gap:6px">SQLiteファイル <input id="set-dbFile" placeholder="例）/path/to/app.db" style="width:220px"></label>
    </div>
+   <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:13px">
+    <label style="display:inline-flex;align-items:center;gap:6px">対象テーブル（任意・空=全部） <input id="set-dbInclude" placeholder="例）orders, order_items（カンマ区切り）" style="width:260px"></label>
+    <label style="display:inline-flex;align-items:center;gap:6px">除外テーブル（任意） <input id="set-dbExclude" placeholder="例）sessions, audit_log" style="width:220px"></label>
+   </div>
+   <div class="muted" style="font-size:12px;margin-top:2px">対象を指定するとそのテーブルだけ、除外は常に無視します（ログ/セッション等のノイズ用）。承認後の「更新テーブルのみ」絞り込みは、この範囲内でさらに効きます。</div>
    <div class="muted" style="font-size:12px;margin-top:4px">MySQLは <code>npm i mysql2</code>、PostgreSQLは <code>npm i pg</code> が必要です。接続文字列は例）<code>mysql://user:pass@host:3306/dbname</code> を環境変数に設定してください。</div>
    <div style="margin-top:8px"><button id="set-dbTest" class="btn-sm btn-gray" style="margin:0">接続テスト</button> <button id="set-dbSave" class="btn-sm" style="margin:0">DB接続を保存</button> <span id="set-dbMsg" class="muted"></span></div>
   </div>
@@ -1236,8 +1242,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{assignees:uniq}})}).then(function(r){return r.json();}).then(function(){ $('set-assignees-msg').textContent='保存しました（'+uniq.length+'名）'; renderAssigneeDatalist(); if(typeof toast==='function')toast('担当者マスタを保存しました（'+uniq.length+'名）','ok'); }).catch(function(){ $('set-assignees-msg').textContent='保存に失敗しました'; }); }); })();
  function renderAssigneeDatalist(){ var dl=$('m-assigneeList'); if(!dl) return; dl.innerHTML=(window.__assignees||[]).map(function(a){return '<option value="'+esc(a)+'"></option>';}).join(''); }
  // ==== DB接続設定（プロジェクト設定 dbConn・認証情報は環境変数参照）====
- function dbConnFromUi(){ var drv=$('set-dbDriver')?$('set-dbDriver').value:''; if(!drv) return null; return { driver:drv, urlEnv:($('set-dbUrlEnv')?$('set-dbUrlEnv').value.trim():'')||undefined, file:($('set-dbFile')?$('set-dbFile').value.trim():'')||undefined }; }
- function renderDbConn(){ var c=window.__dbConn||{}; if($('set-dbDriver'))$('set-dbDriver').value=c.driver||''; if($('set-dbUrlEnv'))$('set-dbUrlEnv').value=c.urlEnv||''; if($('set-dbFile'))$('set-dbFile').value=c.file||''; dbConnToggle(); }
+ function dbTableList(id){ var v=($(id)?$(id).value:'')||''; var a=v.split(/[,\n]/).map(function(x){return x.trim();}).filter(Boolean); return a.length?a:undefined; }
+ function dbConnFromUi(){ var drv=$('set-dbDriver')?$('set-dbDriver').value:''; if(!drv) return null; return { driver:drv, urlEnv:($('set-dbUrlEnv')?$('set-dbUrlEnv').value.trim():'')||undefined, file:($('set-dbFile')?$('set-dbFile').value.trim():'')||undefined, includeTables:dbTableList('set-dbInclude'), excludeTables:dbTableList('set-dbExclude') }; }
+ function renderDbConn(){ var c=window.__dbConn||{}; if($('set-dbDriver'))$('set-dbDriver').value=c.driver||''; if($('set-dbUrlEnv'))$('set-dbUrlEnv').value=c.urlEnv||''; if($('set-dbFile'))$('set-dbFile').value=c.file||''; if($('set-dbInclude'))$('set-dbInclude').value=(c.includeTables||[]).join(', '); if($('set-dbExclude'))$('set-dbExclude').value=(c.excludeTables||[]).join(', '); dbConnToggle(); }
  function dbConnToggle(){ var drv=$('set-dbDriver')?$('set-dbDriver').value:''; var fw=$('set-dbFileWrap'),uw=$('set-dbUrlEnvWrap'); if(fw)fw.style.display=(drv==='sqlite')?'':'none'; if(uw)uw.style.display=(drv&&drv!=='sqlite')?'':'none'; }
  (function(){ var sel=$('set-dbDriver'); if(sel) sel.addEventListener('change',dbConnToggle);
    var tb=$('set-dbTest'); if(tb) tb.addEventListener('click',function(){ var c=dbConnFromUi(); if(!c){ $('set-dbMsg').textContent='DB種別を選んでください'; return; } $('set-dbMsg').textContent='接続テスト中…'; tb.disabled=true;
