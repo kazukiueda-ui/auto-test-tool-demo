@@ -396,6 +396,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -585,8 +586,9 @@ graph TD
    <div id="m-faultResult" style="margin-top:6px"></div>
    <div id="m-traceResult" style="margin-top:6px"></div>
    <details class="editsec" style="margin-top:10px">
-    <summary>DBデータ更新の検証（任意・read-only SELECT）</summary>
-    <div class="muted" style="margin:6px 0">テスト実行後の<b>DB状態</b>を1回目(期待値)と比較します。接続は「設定」画面で保存してください。<b>各行に検証クエリ（SELECTのみ）</b>を書き、「期待値を取得」で現在のDB状態を1回目として保存→以降テスト実行のたびに自動で比較されます（無視列に id/created_at 等を入れると誤検知を防げます）。</div>
+    <summary>DBデータ更新の検証（設定は接続だけ・クエリ任意）</summary>
+    <div style="margin:6px 0;padding:6px 8px;background:#eef6ee;border:1px solid #cfe0cf;border-radius:6px;font-size:12px"><b>自動発見モード（既定）</b>：「設定」画面でDB接続を保存しておくと、<b>テスト実行の前後でDBを丸ごとスナップショットし、変化したテーブル・行を自動で検出</b>します。クエリやテーブルの指定は不要です（read-only・動的値は正規化）。結果は実行後のダッシュボードに表示されます。</div>
+    <div class="muted" style="margin:6px 0">下の<b>検証クエリ（任意・上級者向け）</b>は、特定の行だけを期待値化して毎回チェックしたい場合に使います。通常は不要です。無視列に id/created_at 等を入れると誤検知を防げます。</div>
     <div id="m-dbList"></div>
     <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
      <button id="m-dbAdd" class="btn-mini btn-gray" type="button">＋ 検証クエリを追加</button>
@@ -2084,6 +2086,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var specNg=su.specFailures||0; if(specNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">仕</div><div><div class="vtxt">仕様アサーション不合格 '+specNg+' 件</div><div class="vsub">仕様書にある文言/画面がN+1で確認できませんでした（未実装/未到達の可能性）。</div></div></div>'; }
      // DBデータ更新の検証差分があれば併記
      var dbNg=su.dbFailures||0; if(dbNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新に差分 '+dbNg+' 件</div><div class="vsub">実行後のDB状態が1回目(期待値)と一致しませんでした。詳細はダッシュボードで確認できます。</div></div></div>'; }
+     // DB自動発見：このテスト実行で更新されたテーブル（情報表示）
+     var dbUp=su.dbUpdated||0; if(dbUp>0){ vh+='<div class="verdict big v-ok" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新を自動検出：'+dbUp+' テーブル</div><div class="vsub">このテスト実行で変化したテーブル・行をダッシュボードに表示しています（クエリ指定不要）。</div></div></div>'; }
      // 比較したテストケースの内訳を「同列」で視覚化（完全一致／明確に異なる／差異の疑い／対象外）
      var okN=Math.max(0, (su.total||0)-clear-suspect-skip);
      function cmpChip(lbl,n,col,bg){ return '<div class="cmp-chip" style="border-color:'+col+';background:'+bg+'"><div class="cmp-n" style="color:'+col+'">'+n+'</div><div class="cmp-l">'+lbl+'</div></div>'; }
