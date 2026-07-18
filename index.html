@@ -79,6 +79,9 @@
  .ai-think{margin:5px 0;background:#faf7ff;border:1px solid #e5d9f2;border-radius:6px;padding:3px 8px}
  .ai-think>summary{cursor:pointer;font-size:12px;font-weight:700;color:#6a1b9a}
  .ai-think>div{font-size:12.5px;line-height:1.6;margin-top:4px;color:#333}
+ .goldbadge{font-size:11px;font-weight:700;border:1px solid #d9c47a;background:#fbf6e6;color:#8a6d00;border-radius:10px;padding:1px 8px;margin-left:6px;cursor:pointer}
+ .goldbadge.on{background:#f6c800;border-color:#c9a400;color:#4a3a00}
+ .goldbadge:hover{filter:brightness(.97)}
  .ai-card ul{margin:4px 0;padding-left:16px;font-size:12.5px;line-height:1.6}
  .ai-sev{display:inline-block;color:#fff;border-radius:4px;font-size:10px;padding:0 5px;margin-right:4px}
  .ai-act{border-top:1px solid #eee;padding:6px 0;font-size:13px}.ai-act:first-child{border-top:0}
@@ -386,6 +389,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -562,6 +566,10 @@ graph TD
    <div id="m-ctx" class="ctxmenu hidden"></div>
    <button id="m-addCase" class="btn-sm" style="background:#2e7d32">＋ 空のテストケースを追加</button>
    <button id="m-xlsx" class="btn-sm btn-gray">テストケースをExcel出力</button>
+   <button id="m-codePw" class="btn-sm btn-gray" title="Playwright の spec ファイルとして書き出し（CIで実行可能）">Playwrightコード出力</button>
+   <button id="m-codeCy" class="btn-sm btn-gray" title="Cypress の spec ファイルとして書き出し">Cypressコード出力</button>
+   <button id="m-approveAll" class="btn-sm btn-gray" title="1回目(N)取得済みのケースを一括で承認（ゴールデン化）。承認済みの差分だけが回帰NGになります">★ 全て承認（ゴールデン化）</button>
+   <span id="m-approveCount" class="muted" style="font-size:12px"></span>
    <div style="margin-top:10px;border-top:1px dashed #cfd6e0;padding-top:8px">
     <div class="muted" style="margin-bottom:4px">レビューや改善で<b>1回目に追加したケース</b>は、まだ「1回目(N)の結果」が無いため、テスト実行(⑤)の比較では対象外になります。下のボタンで<b>開始URL(1回目)に対して実行し、Nを取得＝比較対象</b>にできます。</div>
     <button id="m-captureBtn" class="btn-sm" style="background:#00695c">追加ケースの1回目(N)を実行して比較対象にする</button>
@@ -1446,6 +1454,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function renderCases(){
    $('m-editor').classList.remove('hidden'); $('m-save').classList.remove('hidden'); $('m-runner').classList.remove('hidden'); $('m-review').classList.remove('hidden');
    var emw=$('m-exploreModeWrap'); if(emw) emw.classList.toggle('hidden', !(mSuite&&mSuite.scenarios&&mSuite.scenarios.length)); // 再捜索の扱い選択は既存ケースがある時だけ表示
+   if(typeof updateApproveCount==='function') updateApproveCount();
    unlockSteps(); refreshStepMarks(); syncStepper();
    var scs=(mSuite.scenarios||[]);
    $('m-meta').textContent='開始URL: '+(mSuite.startUrl||'')+' ／ '+scs.length+'件（フォルダにドラッグ＆ドロップで移動できます）';
@@ -1750,6 +1759,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var sm=document.createElement('summary'); sm.className='csum';
    var tc=document.createElement('b'); tc.textContent='TC-'+String(ci+1).padStart(2,'0'); sm.appendChild(tc);
    var ob=document.createElement('span'); ob.className='obadge o-'+(sc.origin||'捜索'); ob.textContent=(sc.origin||'捜索'); sm.appendChild(ob);
+   // 承認（ゴールデン）バッジ＝クリックで承認/解除。承認済みの差分のみ回帰NG。未承認は「開発中」。
+   var gb=document.createElement('button'); gb.type='button'; gb.className='goldbadge'+(sc.approved?' on':''); gb.textContent=sc.approved?'★ 承認済':'☆ 未承認';
+   gb.title=sc.approved?'この挙動を「正」として承認済み（回帰対象）。クリックで解除':'未承認（開発中扱い・差分は回帰NGにしない）。クリックで現挙動を承認';
+   gb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); if(!sc.approved&&!sc.baseline){ alert('このケースは1回目(N)未取得です。先に「追加ケースの1回目(N)を実行」してから承認してください。'); return; } sc.approved=!sc.approved; sc.approvedAt=sc.approved?new Date().toISOString():undefined; markDirty(); gb.className='goldbadge'+(sc.approved?' on':''); gb.textContent=sc.approved?'★ 承認済':'☆ 未承認'; gb.title=sc.approved?'承認済み（回帰対象）。クリックで解除':'未承認。クリックで承認'; updateApproveCount&&updateApproveCount(); }; sm.appendChild(gb);
    var iss=issuesForCase(sc.id); if(iss.length){ var openN=iss.filter(function(x){return x.status!=='完了'&&x.status!=='対象外';}).length; var ib=document.createElement('span'); ib.className='issbadge'; ib.textContent=''+iss.length; ib.title='このケースの課題 '+iss.length+'件（未完了'+openN+'）。クリックで課題管理へ'; ib.onclick=function(e){ e.preventDefault(); e.stopPropagation(); mSelIssue=iss[0].id; showView('issues'); renderIssueList(); renderIssueDetail(mSelIssue); }; sm.appendChild(ib); }
    var nmspan=document.createElement('span'); nmspan.className='cname'; nmspan.textContent=' '+(sc.name||'(無題)'); sm.appendChild(nmspan);
    if(meta&&meta.tags&&meta.tags.length){ var ch=document.createElement('span'); ch.className='chips'; ch.innerHTML=' '+meta.tags.map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join(''); sm.appendChild(ch); }
@@ -1799,6 +1812,20 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(!r||!r.ok){alert('Excel出力に失敗しました');return;}
    var blob=await r.blob(); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='testcases.xlsx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
  });
+ async function exportCode(kind,fname){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var r=await fetch(withTok('/api/export-code'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,kind:kind})}).catch(function(){return null;});
+   if(!r||!r.ok){alert('コード出力に失敗しました');return;}
+   var blob=await r.blob(); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+   if(typeof toast==='function') toast(kind==='cypress'?'Cypressコードを出力しました':'Playwrightコードを出力しました','ok');
+ }
+ var cpw=$('m-codePw'); if(cpw) cpw.addEventListener('click',function(){exportCode('playwright','e2e.spec.ts');});
+ var ccy=$('m-codeCy'); if(ccy) ccy.addEventListener('click',function(){exportCode('cypress','e2e.cy.js');});
+ function updateApproveCount(){ var el=$('m-approveCount'); if(!el||!mSuite) return; var scs=mSuite.scenarios||[]; var ap=scs.filter(function(s){return s.approved;}).length; var withN=scs.filter(function(s){return s.baseline;}).length; el.innerHTML='承認済み <b>'+ap+'</b> / '+scs.length+'件（回帰対象）'+(ap<withN?' ・ 未承認の差分は「開発中の変化」として回帰NGにしません':''); }
+ var apAll=$('m-approveAll'); if(apAll) apAll.addEventListener('click',function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var scs=mSuite.scenarios||[]; var target=scs.filter(function(s){return s.baseline&&!s.approved;}).length;
+   if(!target){ alert('新たに承認できるケースがありません（未取得のケースは先に1回目(N)を実行してください）。'); return; }
+   if(!confirm('1回目(N)取得済みの未承認ケース '+target+'件を承認（ゴールデン化）します。\n承認済みの差分だけが「回帰NG」になります。よろしいですか？')) return;
+   var now=new Date().toISOString(); scs.forEach(function(s){ if(s.baseline&&!s.approved){ s.approved=true; s.approvedAt=now; } }); markDirty(); renderCases(); updateApproveCount(); if(typeof toast==='function') toast(target+'件を承認しました（ゴールデン化）','ok'); });
  $('m-saveBtn').addEventListener('click',async function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var body={name:$('m-name').value.trim()||'無題スイート',suite:mSuite}; if(mSuiteId)body.id=mSuiteId;
@@ -1839,11 +1866,17 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      // 明確に異なる(構造/通信/API/表示)と 差異の疑い(非機能/到達不能) に集約
      var clear=(bk['diff-structure']||0)+(bk['diff-network']||0)+(bk['diff-api']||0)+(bk['diff-visual']||0);
      var suspect=(bk['diff-nonfunctional']||0)+(bk['missing']||0);
-     var problem=(su.diff||0)>0;
-     // まず「問題ある/なし」を大きく表示
+     // 承認（ゴールデン）運用：承認済みケースがある場合は「回帰(regression)」を問題の基準にする。
+     // 未承認ケースの差分は「開発中の変化」とみなし回帰NGにしない（早期E2E向け）。
+     var approved=su.approved||0, reg=su.regressions||0, hasGolden=approved>0;
+     var problem = hasGolden ? (reg>0) : ((su.diff||0)>0);
+     var devChange = Math.max(0, (su.diff||0)-reg); // 未承認ケースの差分（開発中の変化）
      var vh;
-     if(!problem){ vh='<div class="verdict big v-ok"><div class="vico">✓</div><div><div class="vtxt">問題なし</div><div class="vsub">テスト前後で相違ありません（比較 '+su.total+' ケース／回帰なし）</div></div></div>'; }
-     else { vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">問題あり ── 要確認 '+su.diff+' 件</div><div class="vsub">詳細は下記または課題管理で確認。</div></div></div>'; }
+     if(!problem){ var okSub = hasGolden ? ('承認済み '+approved+'件に回帰なし'+(devChange>0?(' ／ 未承認で '+devChange+' 件の変化（開発中）'):'')) : ('テスト前後で相違ありません（比較 '+su.total+' ケース／回帰なし）');
+       vh='<div class="verdict big v-ok"><div class="vico">✓</div><div><div class="vtxt">'+(hasGolden?'回帰なし':'問題なし')+'</div><div class="vsub">'+okSub+'</div></div></div>'; }
+     else { var ngTitle = hasGolden ? ('回帰あり ── '+reg+' 件（承認済みからの逸脱）') : ('問題あり ── 要確認 '+su.diff+' 件');
+       var ngSub = (hasGolden&&devChange>0)?('別に未承認 '+devChange+' 件の変化（開発中・回帰対象外）。'):'';
+       vh='<div class="verdict big v-ng"><div class="vico">⚠</div><div><div class="vtxt">'+ngTitle+'</div><div class="vsub">'+ngSub+'詳細は下記または課題管理で確認。</div></div></div>'; }
      // 比較したテストケースの内訳を「同列」で視覚化（完全一致／明確に異なる／差異の疑い／対象外）
      var okN=Math.max(0, (su.total||0)-clear-suspect-skip);
      function cmpChip(lbl,n,col,bg){ return '<div class="cmp-chip" style="border-color:'+col+';background:'+bg+'"><div class="cmp-n" style="color:'+col+'">'+n+'</div><div class="cmp-l">'+lbl+'</div></div>'; }
@@ -1863,7 +1896,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var fb=$('m-fileIssueBtn'); if(fb) fb.classList.toggle('hidden',!problem);
      $('m-issueDraft').classList.add('hidden'); $('m-issueDraft').innerHTML='';
      $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues(); loadRunHistory();
-     toast(problem?('問題あり：要確認 '+su.diff+' 件。内容を確認して「起票」してください。'):'問題なし：テスト前後で相違なし', problem?'ng':'ok');
+     toast(problem?((hasGolden?('回帰あり：'+reg+' 件（承認済みからの逸脱）'):'問題あり：要確認 '+su.diff+' 件')+'。内容を確認して「起票」してください。'):(hasGolden?'回帰なし：承認済みケースに逸脱なし':'問題なし：テスト前後で相違なし'), problem?'ng':'ok');
    },$('m-runBtn'));
  });
  // ==== 起票フロー：結果のNGからドラフトを取得→確認・編集→課題管理へ登録 ====
