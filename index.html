@@ -364,11 +364,25 @@
    var path=url.split('?')[0];
    var has=function(s){ return path.indexOf(s)>=0; };
    // --- 新機能（モデル/プロジェクト/トークン/スケジュール）のデモ用モック ---
-   if(has('/api/env')) return J({llmAvailable:false,localLlm:false,defaultModel:'claude-sonnet-4-6',jpyPerUsd:150,
-     models:[{id:'claude-haiku-4-5',label:'Haiku 4.5（最安・高速）',inPerM:1,outPerM:5},{id:'claude-sonnet-4-6',label:'Sonnet 4.6（既定・バランス）',inPerM:3,outPerM:15},{id:'claude-sonnet-5',label:'Sonnet 5（新・高性能）',inPerM:3,outPerM:15},{id:'claude-opus-4-8',label:'Opus 4.8（最高精度）',inPerM:5,outPerM:25},{id:'claude-fable-5',label:'Fable 5（最上位）',inPerM:10,outPerM:50}],
-     domains:[{key:'none',label:'（業務指定なし）',defaultPrompt:''},{key:'finance',label:'金融',defaultPrompt:'金融業務の重点観点: 与信・残高整合・端数処理・監査証跡…'},{key:'sales',label:'販売管理',defaultPrompt:'販売管理: 受注→出荷→請求の整合・在庫引当・与信…'},{key:'inventory',label:'在庫管理',defaultPrompt:'在庫: 入出庫・棚卸差異・引当・有効期限…'}]});
+   if(has('/api/env')){ var mkD=function(key,label,category,summary,vp,bd,ab,da,scn){ return {key:key,label:label,category:category,summary:summary,viewpoints:vp,boundaries:bd,abnormal:ab,data:da,scenarios:scn||[],defaultPrompt:label+'のテスト設計ノウハウ。'+summary}; };
+     var SC=function(t,p,s,e,k){ return {title:t,precond:p,steps:s,expect:e,kind:k}; };
+     var DM=[
+       mkD('none','（業務指定なし）','none','',[],[],[],[],[]),
+       mkD('web-auth','認証・ログイン','common','本人確認の入口。入れてはいけないを重点的に。',[{area:'ログイン失敗/ロック',points:['連続失敗でロック','曖昧メッセージで存在を漏らさない']},{area:'セッション',points:['ログイン時ID再発行','ログアウトで無効化']}],['ロック閾値ちょうど/+1','セッション期限直前/直後'],['リセットトークン再利用','ログアウト後の戻る'],['有効/ロック/退会アカウント'],[SC('失敗ロック境界','閾値5回','誤PW4→5→6回目正PW','5回目でロック・6回目も不可','boundary'),SC('セッション固定化','ログイン前ID取得','ログイン後にID比較','IDが再発行される','security')]),
+       mkD('web-payment','決済・課金','common','一円も間違えない。二重決済・失敗整合・端数を徹底。',[{area:'金額計算',points:['小計/税/送料/割引の整合','端数丸めの一貫性']},{area:'決済フロー',points:['二重決済防止(冪等)','失敗時の在庫/ポイント戻し']}],['金額0/上限/超過','割引で0円・マイナス防止'],['二重決済','コールバック改ざん'],['成功/失敗/保留応答','境界金額'],[SC('二重決済防止','確定画面','確定を連打','1回だけ決済・二重課金なし','abnormal'),SC('割引0円クランプ','500円商品＋600円クーポン','適用計算','合計0円・マイナスなし','boundary')]),
+       mkD('finance','金融','enterprise','残高整合・二重計上防止・監査証跡を限度額と異常系で。',[{area:'残高・計算',points:['入出金後の残高整合','端数丸めの一貫性']},{area:'取引制御',points:['与信限度','二重計上防止(冪等)']}],['限度額ちょうど/超過','残高0/最小/上限'],['残高不足の出金','締め後の遡及'],['限度ちょうど/超過口座','締め前後の取引'],[SC('残高不足の出金','残高1,000円','1,000/1,001円出金','1,000可・1,001は拒否','boundary'),SC('職務分掌','起票者＝承認者','自分の起票を承認','自己承認を禁止','security')]),
+       mkD('inventory','在庫管理','enterprise','理論在庫と実在庫の一致。マイナス在庫と棚卸差異で確認。',[{area:'在庫整合',points:['入出庫・移動の整合','引当と実在庫の区別']},{area:'ロット/期限',points:['FIFO/FEFO','有効期限']}],['在庫0/発注点ちょうど','期限切れ直前/当日'],['マイナス在庫','期限切れロット引当'],['在庫0/僅少/大量','期限違いロット'],[SC('マイナス在庫防止','在庫1','同一在庫を2件出庫','2件目は不可','abnormal'),SC('FEFO引当','期限違いロット','出庫引当','期限の近い順で引当','normal')]),
+       mkD('ec','EC/小売','industry','カート〜決済〜出荷の体験と整合を境界と異常系で。',[{area:'商品・カート',points:['在庫連動','売切れ確定タイミング']},{area:'価格計算',points:['クーポン/ポイント併用','送料・税・合計']}],['在庫1点の同時購入','クーポン期限直前/切れ'],['在庫切れ後の購入','決済失敗で在庫/ポイント戻し'],['在庫僅少商品','会員/ゲスト'],[SC('在庫1点の同時購入','在庫1','2人が同時に購入確定','1人成功・もう1人は売切れ','abnormal'),SC('ポイント全額充当','合計3,000・保有3,000pt','全額ポイント払い','支払0円で成立・残0','boundary')]),
+       mkD('medical','医療・ヘルスケア','industry','患者安全と要配慮情報の保護。重複・禁忌・権限・単位。',[{area:'患者安全',points:['重複・禁忌チェック','投与量・単位']},{area:'権限・記録',points:['職種別権限','記録の改ざん防止']}],['投与量の上限/下限','年齢しきい値'],['禁忌の組合せ','権限外の患者参照'],['禁忌組合せ','権限別スタッフ'],[SC('禁忌の組合せ','相互禁忌の薬A・B','A処方中にBをオーダ','禁忌アラートで警告','abnormal'),SC('記録の改ざん防止','確定済み記録','遡及して書換え','追記履歴で残り上書き不可','security')])
+     ];
+     var CATS=[{key:'common',label:'共通（一般的なWebシステム）',note:'業種を問わず必要な基盤観点。'},{key:'enterprise',label:'業務システム',note:'基幹系。データ整合と業務ルールが要。'},{key:'industry',label:'業界・分野別',note:'業界特有の規制・商習慣・リスク。'}];
+     var TREE=CATS.map(function(c){return {category:c,domains:DM.filter(function(d){return d.category===c.key;})};}).filter(function(g){return g.domains.length;});
+     return J({llmAvailable:false,localLlm:false,defaultModel:'claude-sonnet-4-6',jpyPerUsd:150,
+       models:[{id:'claude-haiku-4-5',label:'Haiku 4.5（最安・高速）',inPerM:1,outPerM:5},{id:'claude-sonnet-4-6',label:'Sonnet 4.6（既定・バランス）',inPerM:3,outPerM:15},{id:'claude-sonnet-5',label:'Sonnet 5（新・高性能）',inPerM:3,outPerM:15},{id:'claude-opus-4-8',label:'Opus 4.8（最高精度）',inPerM:5,outPerM:25},{id:'claude-fable-5',label:'Fable 5（最上位）',inPerM:10,outPerM:50}],
+       domains:DM,domainCategories:CATS,domainTree:TREE}); }
+   if(has('/api/classify-domain')) return J({key:'none',label:'（自動判定：該当なし）',confidence:'low',score:2,matched:['タスク','ToDo'],candidates:[{key:'ec',label:'EC/小売',score:2},{key:'inventory',label:'在庫管理',score:1}]});
    if(has('/api/projects')&&method==='GET') return J({projects:[{id:'default',name:'ToDo回帰デモ',createdAt:'',updatedAt:'',suites:1}],current:'default'});
-   if(has('/api/project')&&method==='GET') return J({id:'default',name:'ToDo回帰デモ',settings:{model:'auto',domain:'none'}});
+   if(has('/api/project')&&method==='GET') return J({id:'default',name:'ToDo回帰デモ',settings:{model:'auto',domain:'auto'}});
    if(has('/api/project')||has('/api/projects')) return J({id:'default',name:'ToDo回帰デモ',settings:{}});
    if(has('/api/token-usage')){ var series=[],cum=0,cu=0,ph=['explore','explore','review','regen','review'];
      for(var i=0;i<5;i++){ cum+=1800+i*900; cu+=0.006+i*0.004; series.push({ts:'2026-07-16T0'+i+':00:00Z',cumTokens:cum,cumUsd:cu,phase:ph[i],model:'claude-sonnet-4-6'}); }
@@ -429,6 +443,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
@@ -1008,11 +1023,11 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function currentDomainPrompt(){ var key=$('cb-domain')?$('cb-domain').value:'none'; if(key==='none')return ''; var m=window.__domainPrompts||{}; return (m[key]!=null&&m[key]!=='')?m[key]:domainPromptFor(key); }
  // ヘッダの業務ドメイン選択：分類ごとに optgroup でツリー表示。
  function renderDomainSelect(){ var dom=$('cb-domain'); if(!dom)return; var cur=dom.value;
-   var tree=ATT_ENV.domainTree||[]; var html='<option value="none">（業務指定なし）</option>';
+   var tree=ATT_ENV.domainTree||[]; var html='<option value="auto">🔎 自動判定（探索して業種を推定）</option><option value="none">（業務指定なし）</option>';
    if(tree.length){ tree.forEach(function(g){ html+='<optgroup label="'+escHtml(g.category.label)+'">'+(g.domains||[]).map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>'; }); }
    else { html+=allDomains().filter(function(d){return d.key!=='none';}).map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join(''); }
    var cust=(window.__customDomains||[]); if(cust.length) html+='<optgroup label="利用者追加">'+cust.map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>';
-   dom.innerHTML=html; if(cur&&(cur==='none'||allDomains().some(function(d){return d.key===cur;})))dom.value=cur; }
+   dom.innerHTML=html; if(cur&&(cur==='none'||cur==='auto'||allDomains().some(function(d){return d.key===cur;})))dom.value=cur; }
  // 構造化ノウハウ（観点/境界値/異常系/データ）を読みやすいカードに。
  var SCN_KIND={normal:'正常',boundary:'境界',abnormal:'異常',security:'セキュ'};
  function domainScnTable(scns){ if(!scns||!scns.length) return '';
@@ -1041,6 +1056,11 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    box.innerHTML=html; }
  // ヘッダ下：選択中業務の重点観点をコンパクトに表示（何が注入されるか可視化）。
  function renderDomainMini(){ var box=$('cb-domain-kh'); if(!box)return; var key=$('cb-domain')?$('cb-domain').value:'none';
+   if(key==='auto'){ box.classList.remove('hidden');
+     var dd=window.__detectedDomain;
+     if(dd&&dd.key&&dd.key!=='none'){ box.innerHTML='<b>🔎 自動判定</b>：「'+escHtml(dd.label)+'」と推定（信頼度'+(dd.confidence==='high'?'高':dd.confidence==='medium'?'中':'低')+'）→ この業務のノウハウを自動注入します。 <a href="#" id="cb-domain-use" style="font-size:11px">この業種で固定</a>'; var u=$('cb-domain-use'); if(u)u.addEventListener('click',function(e){e.preventDefault(); if($('cb-domain')){$('cb-domain').value=dd.key;} renderDomainMini(); if(typeof toast==='function')toast('業種を「'+dd.label+'」に固定しました','ok');}); }
+     else { box.innerHTML='<b>🔎 自動判定モード</b>：探索すると画面・操作・APIから<b>近い業種を推定</b>し、その業務ノウハウを自動で注入します（選択不要）。 <a href="#" id="cb-domain-now" style="font-size:11px">今すぐ判定</a>'; var nw=$('cb-domain-now'); if(nw)nw.addEventListener('click',function(e){e.preventDefault(); classifyNow();}); }
+     return; }
    if(!key||key==='none'){ box.classList.add('hidden'); box.innerHTML=''; return; }
    var d=allDomains().find(function(x){return x.key===key;}); if(!d){ box.classList.add('hidden'); return; }
    box.classList.remove('hidden');
@@ -1063,6 +1083,23 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      d.scenarios.forEach(function(s){ L.push('| '+(K[s.kind]||'')+' | '+s.title+' | '+s.precond+' | '+s.steps+' | '+s.expect+' | ☐ |'); }); }
    var blob=new Blob([L.join('\n')],{type:'text/markdown'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(d.key||'domain')+'-test-scenarios.md'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
    if(typeof toast==='function') toast(d.label+'のテストシナリオ（'+(d.scenarios||[]).length+'件）をMarkdownで出力しました','ok'); }
+ // 現在のスイートから業種を即判定（手動）。探索前は促す。
+ function classifyNow(){ if(!mSuite||!(mSuite.scenarios||[]).length){ alert('先に「捜索」を実行してください（画面・操作・APIから業種を判定します）'); return; }
+   fetch(withTok('/api/classify-domain'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(r){return r.json();}).then(function(det){
+     applyDetectedDomain(det,true);
+   }).catch(function(){ if(typeof toast==='function')toast('判定に失敗しました','warn'); }); }
+ // 判定結果を反映：autoモードならミニ表示を更新、確度が高ければ業種を自動セット。
+ function applyDetectedDomain(det,manual){ if(!det) return; window.__detectedDomain=det;
+   var sel=$('cb-domain'); var inAuto=sel&&sel.value==='auto';
+   if(det.key&&det.key!=='none'){
+     // 自動判定モードのまま（notなら固定しない）→ ノウハウはサーバが auto で注入。手動判定時のみ業種を確定表示。
+     if(manual&&sel){ sel.value=det.key; }
+     renderDomainMini();
+     if(typeof toast==='function') toast('業種を自動判定：「'+det.label+'」（信頼度'+(det.confidence==='high'?'高':det.confidence==='medium'?'中':'低')+'）'+(manual?'に設定':'。ノウハウを注入します'),'ok');
+   } else {
+     renderDomainMini();
+     if(typeof toast==='function') toast('明確な業種は検出されませんでした（共通観点で継続）','warn');
+   } }
  (function(){ var add=$('adm-domain-add'); if(add) add.addEventListener('click',function(){ var name=prompt('追加する業務名（例：物流管理）'); if(!name)return; name=name.trim(); if(!name)return;
      var base=name.toLowerCase().replace(/[^\w\u3040-\u30ff\u4e00-\u9faf-]/g,'').slice(0,16)||'biz'; var key='custom-'+base+'-'+((window.__customDomains||[]).length+1);
      window.__customDomains=(window.__customDomains||[]).concat([{key:key,label:name,defaultPrompt:''}]); renderDomainSelect(); renderDomainPrompts(); if($('cb-domain'))$('cb-domain').value=key; if(typeof toast==='function')toast('業務「'+name+'」を追加しました（ヘッダの業務ドメインにも反映）','ok'); });
@@ -1078,7 +1115,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(s.model&&$('cb-model')) $('cb-model').value=s.model;
    window.__customDomains=Array.isArray(s.customDomains)?s.customDomains:[]; window.__domainPrompts=(s.domainPrompts&&typeof s.domainPrompts==='object')?s.domainPrompts:{};
    renderDomainSelect(); renderDomainPrompts();
-   if(s.domain&&$('cb-domain')&&allDomains().some(function(d){return d.key===s.domain;})) $('cb-domain').value=s.domain;
+   if(s.domain&&$('cb-domain')&&(s.domain==='auto'||s.domain==='none'||allDomains().some(function(d){return d.key===s.domain;}))) $('cb-domain').value=s.domain;
+   else if(!s.domain&&$('cb-domain')) $('cb-domain').value='auto'; // 未設定は「自動判定」を既定に（選択不要）
    renderDomainMini();
    if(typeof s.llmMode==='boolean'){ apiMode=s.llmMode&&ATT_ENV.llmAvailable; }
    if(s.knowhow&&$('m-knowhow')) $('m-knowhow').value=s.knowhow;
@@ -1110,6 +1148,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var cbda=$('cb-domain-apply'); if(cbda) cbda.addEventListener('click',function(){
      var key=$('cb-domain')?$('cb-domain').value:'none'; var label=domainLabelFor(key);
      renderDomainMini();
+     if(key==='auto'){ if(typeof toast==='function') toast('自動判定モード：探索して近い業種を推定し、ノウハウを自動注入します','ok'); if(mSuite&&(mSuite.scenarios||[]).length) classifyNow(); return; }
      var d=allDomains().find(function(x){return x.key===key;}); var vpn=d&&d.viewpoints?d.viewpoints.length:0;
      if(typeof toast==='function') toast(key==='none'?'業務指定を解除しました':'業務ドメイン「'+label+'」を反映（重点観点 '+vpn+' 群を探索/AIレビューへ注入）','ok');
    });
@@ -1836,6 +1875,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
        var n=(s.suite&&s.suite.scenarios?s.suite.scenarios.length:0);
        toast('1回目（捜索）完了：テストケース '+n+' 件を生成しました。内容を確認してください。','ok');
      }
+     // 自動判定モードで探索した場合、サーバが返した業種推定を反映（ノウハウ自動注入）。
+     if(s.summary&&s.summary.detectedDomain){ applyDetectedDomain(s.summary.detectedDomain,false); }
    },$('m-exploreBtn'));
  });
  $('m-loadBtn').addEventListener('click',async function(){
