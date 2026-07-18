@@ -393,6 +393,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -573,8 +574,12 @@ graph TD
    <button id="m-codeCy" class="btn-sm btn-gray" title="Cypress の spec ファイルとして書き出し">Cypressコード出力</button>
    <button id="m-approveAll" class="btn-sm btn-gray" title="1回目(N)取得済みのケースを一括で承認（ゴールデン化）。承認済みの差分だけが回帰NGになります">★ 全て承認（ゴールデン化）</button>
    <button id="m-genAsserts" class="btn-sm btn-gray" title="読み込んだ仕様書の用語（画面名/機能名）を、観測ページに紐づけて肯定的アサーションを生成。N比較が無くても『あるべき文言/画面』を検証できます">仕様からアサーション生成</button>
+   <button id="m-faultCheck" class="btn-sm btn-gray" title="N観測に典型欠陥を注入し、このテストが実際に検知できるかを測ります（検出力）">検出力チェック（フォールト注入）</button>
+   <button id="m-traceBtn" class="btn-sm btn-gray" title="仕様の画面/機能とテストケースの対応表を作ります（要件トレーサビリティ）">要件トレーサビリティ</button>
    <span id="m-approveCount" class="muted" style="font-size:12px"></span>
    <div id="m-assertMsg" class="muted" style="font-size:12px;margin-top:4px"></div>
+   <div id="m-faultResult" style="margin-top:6px"></div>
+   <div id="m-traceResult" style="margin-top:6px"></div>
    <div style="margin-top:10px;border-top:1px dashed #cfd6e0;padding-top:8px">
     <div class="muted" style="margin-bottom:4px">レビューや改善で<b>1回目に追加したケース</b>は、まだ「1回目(N)の結果」が無いため、テスト実行(⑤)の比較では対象外になります。下のボタンで<b>開始URL(1回目)に対して実行し、Nを取得＝比較対象</b>にできます。</div>
     <button id="m-captureBtn" class="btn-sm" style="background:#00695c">追加ケースの1回目(N)を実行して比較対象にする</button>
@@ -1879,6 +1884,42 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var msg=$('m-assertMsg'); if(msg){ msg.innerHTML='仕様アサーションを生成: <b>'+r.added+'</b>件（'+r.cases+'ケース）／ 仕様用語の適合 <b>'+(cov.found?cov.found.length:0)+'/'+cov.total+'</b>'
      +(cov.missing&&cov.missing.length?' ・ <span style="color:#c62828">未検出（未実装/未到達の可能性）'+cov.missing.length+'件: '+escHtml(cov.missing.slice(0,10).join(' / '))+(cov.missing.length>10?' …':'')+'</span>':''); }
    if(typeof toast==='function') toast('仕様アサーションを生成しました（'+r.added+'件）。テスト実行でN+1に対し検証されます。','ok');
+ });
+ // 検出力チェック（フォールト注入）
+ var fc=$('m-faultCheck'); if(fc) fc.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var box=$('m-faultResult'); box.innerHTML='<span class="muted">欠陥を注入して検知力を測定中…</span>'; fc.disabled=true;
+   var r=await fetch(withTok('/api/fault-check'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   fc.disabled=false;
+   if(!r||r.error){ box.innerHTML='<span style="color:#c62828">測定失敗: '+esc((r&&r.error)||'不明')+'</span>'; return; }
+   if(!r.overall.total){ box.innerHTML='<span class="muted">測定できる観測(N)がありません。先に捜索または1回目(N)取得を行ってください。</span>'; return; }
+   var col=r.overall.rate>=90?'#2e7d32':r.overall.rate>=70?'#ef6c00':'#c62828';
+   var bars=(r.byType||[]).map(function(t){ var p=t.total?Math.round(t.detected/t.total*100):0; return '<div style="display:flex;align-items:center;gap:6px;font-size:12px;margin:1px 0"><span style="width:150px">'+esc(t.label)+'</span><span style="flex:1;background:#eef;height:8px;border-radius:4px;overflow:hidden;max-width:180px"><span style="display:block;height:8px;width:'+p+'%;background:'+(p>=90?'#2e7d32':p>=70?'#ef6c00':'#c62828')+'"></span></span><span>'+t.detected+'/'+t.total+'</span></div>'; }).join('');
+   var weak=(r.weakCases||[]).slice(0,8).map(function(c){ return '<li>'+esc(c.id)+' '+esc(c.name)+' — 見逃し: '+esc(c.missed.join('・'))+'</li>'; }).join('');
+   box.innerHTML='<div style="border:1px solid #e3e8f0;border-radius:8px;padding:10px;background:#fbfcfe">'
+     +'<div style="font-size:14px"><b>検出力 <span style="color:'+col+';font-size:20px">'+r.overall.rate+'%</span></b> <span class="muted">（注入した欠陥 '+r.overall.total+' 種のうち '+r.overall.detected+' 種を検知）</span></div>'
+     +'<div style="margin:6px 0">'+bars+'</div>'
+     +(weak?'<details><summary style="font-size:12px;color:#c62828">見逃しのあるケース（'+r.weakCases.length+'）</summary><ul style="font-size:12px;margin:4px 0;padding-left:18px">'+weak+'</ul></details>':'<div class="muted" style="font-size:12px">全ケースで注入欠陥を検知できました。</div>')
+     +(r.note?'<div class="muted" style="font-size:11px;margin-top:4px">※'+esc(r.note)+'</div>':'')
+     +'<div class="muted" style="font-size:11px;margin-top:4px">この数値は保存済みのN観測に人工欠陥を注入し、現在の比較設定（感度）で検知できるかを機械的に検査した結果です。</div></div>';
+   if(typeof toast==='function') toast('検出力 '+r.overall.rate+'%（'+r.overall.detected+'/'+r.overall.total+'）','ok');
+ });
+ // 要件トレーサビリティ
+ var tb=$('m-traceBtn'); if(tb) tb.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   if(!(window.__specTerms&&window.__specTerms.length)){ alert('仕様書ファイルが読み込まれていません。①探索カードの「仕様書ファイルを捜索の根拠にする」で読み込んでください。'); return; }
+   var box=$('m-traceResult'); box.innerHTML='<span class="muted">対応表を作成中…</span>'; tb.disabled=true;
+   var r=await fetch(withTok('/api/trace-matrix'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,specTerms:window.__specTerms})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   tb.disabled=false;
+   if(!r||r.error){ box.innerHTML='<span style="color:#c62828">作成失敗: '+esc((r&&r.error)||'不明')+'</span>'; return; }
+   var col=r.coverage>=90?'#2e7d32':r.coverage>=67?'#ef6c00':'#c62828';
+   var rows=(r.items||[]).map(function(it){ return '<tr><td>'+(it.covered?'<span style="color:#2e7d32;font-weight:700">✓</span>':'<span style="color:#c62828;font-weight:700">✕</span>')+'</td><td>'+esc(it.term)+'</td><td style="font-size:12px">'+(it.cases.length?it.cases.map(function(c){return esc(c.id);}).join(', '):'<span style="color:#c62828">未カバー</span>')+'</td></tr>'; }).join('');
+   var unlinked=(r.unlinkedCases||[]).map(function(c){return esc(c.id)+' '+esc(c.name);});
+   box.innerHTML='<div style="border:1px solid #e3e8f0;border-radius:8px;padding:10px;background:#fbfcfe">'
+     +'<div style="font-size:14px"><b>仕様網羅 <span style="color:'+col+';font-size:20px">'+r.coverage+'%</span></b> <span class="muted">（'+r.coveredCount+'/'+r.total+' 項目にテストが紐付く）</span></div>'
+     +'<details style="margin-top:6px"><summary style="font-size:12px">対応表（仕様項目 ↔ テストケース）</summary><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:4px"><thead><tr><th style="width:24px"></th><th style="text-align:left">仕様項目</th><th style="text-align:left">担保するケース</th></tr></thead><tbody>'+rows+'</tbody></table></details>'
+     +(r.uncovered&&r.uncovered.length?'<div style="font-size:12px;margin-top:4px;color:#c62828">未カバー '+r.uncovered.length+'件（未実装/未到達の可能性）: '+esc(r.uncovered.slice(0,12).join(' / '))+(r.uncovered.length>12?' …':'')+'</div>':'')
+     +(unlinked.length?'<details style="margin-top:4px"><summary style="font-size:12px">仕様に紐付かないケース（'+unlinked.length+'）＝仕様外の追加テスト</summary><div style="font-size:12px;margin-top:2px">'+unlinked.slice(0,20).join('<br>')+'</div></details>':'')
+     +'</div>';
+   if(typeof toast==='function') toast('仕様網羅 '+r.coverage+'%（'+r.coveredCount+'/'+r.total+'）','ok');
  });
  var apAll=$('m-approveAll'); if(apAll) apAll.addEventListener('click',function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
    var scs=mSuite.scenarios||[]; var target=scs.filter(function(s){return s.baseline&&!s.approved;}).length;
