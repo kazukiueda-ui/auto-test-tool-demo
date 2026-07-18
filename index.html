@@ -397,6 +397,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -652,6 +653,7 @@ graph TD
     <div id="m-resultActions" style="margin:10px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
      <button id="m-fileIssueBtn" class="btn-sm hidden" style="background:#c62828">起票する（内容を確認して登録）</button>
      <button id="m-approveChangesBtn" class="btn-sm hidden" style="background:#c9a400" title="この差分が意図した変更なら、N+1の挙動を新しい「正（ゴールデン）」として承認し、次回からの基準にします">★ 変化を承認（新挙動を次回の基準に）</button>
+     <button id="m-dbApproveBtn" class="btn-sm hidden" style="background:#c9a400" title="このテスト実行で起きたDBデータ更新パターンを期待値として承認。次回から更新パターンの回帰を判定します">★ DBデータ更新を期待値に承認</button>
      <a id="m-reportLink" href="#" target="_blank" style="font-weight:600">総合テスト報告書 ↗</a>
      <a id="m-xlsxLink" href="#" style="font-weight:600">テストケースExcel ⬇</a>
      <a id="m-issuesLink" href="#" class="hidden" style="font-weight:600;color:#c62828">課題管理で確認</a>
@@ -2086,8 +2088,11 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var specNg=su.specFailures||0; if(specNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">仕</div><div><div class="vtxt">仕様アサーション不合格 '+specNg+' 件</div><div class="vsub">仕様書にある文言/画面がN+1で確認できませんでした（未実装/未到達の可能性）。</div></div></div>'; }
      // DBデータ更新の検証差分があれば併記
      var dbNg=su.dbFailures||0; if(dbNg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新に差分 '+dbNg+' 件</div><div class="vsub">実行後のDB状態が1回目(期待値)と一致しませんでした。詳細はダッシュボードで確認できます。</div></div></div>'; }
-     // DB自動発見：このテスト実行で更新されたテーブル（情報表示）
-     var dbUp=su.dbUpdated||0; if(dbUp>0){ vh+='<div class="verdict big v-ok" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新を自動検出：'+dbUp+' テーブル</div><div class="vsub">このテスト実行で変化したテーブル・行をダッシュボードに表示しています（クエリ指定不要）。</div></div></div>'; }
+     // DB自動発見：回帰があればNG、無ければ情報表示
+     var dbReg=su.dbRegressions; var dbUp=su.dbUpdated||0;
+     if(dbReg>0){ vh+='<div class="verdict big v-ng" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新の回帰 '+dbReg+' テーブル</div><div class="vsub">1回目(期待値)と更新パターンが異なります。詳細はダッシュボードで確認できます。</div></div></div>'; }
+     else if(dbReg===0){ vh+='<div class="verdict big v-ok" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新：回帰なし</div><div class="vsub">1回目(期待値)と同じ更新パターンでした（更新テーブル '+dbUp+'）。</div></div></div>'; }
+     else if(dbUp>0){ vh+='<div class="verdict big v-ok" style="margin-top:8px"><div class="vico">DB</div><div><div class="vtxt">DBデータ更新を自動検出：'+dbUp+' テーブル</div><div class="vsub">変化したテーブル・行をダッシュボードに表示。「★ DBデータ更新を期待値に承認」で次回から回帰判定できます。</div></div></div>'; }
      // 比較したテストケースの内訳を「同列」で視覚化（完全一致／明確に異なる／差異の疑い／対象外）
      var okN=Math.max(0, (su.total||0)-clear-suspect-skip);
      function cmpChip(lbl,n,col,bg){ return '<div class="cmp-chip" style="border-color:'+col+';background:'+bg+'"><div class="cmp-n" style="color:'+col+'">'+n+'</div><div class="cmp-l">'+lbl+'</div></div>'; }
@@ -2108,6 +2113,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      // 差分（明確に異なる）があり、保存済みスイートなら「変化を承認」ボタンを出す。
      var hasClearDiff=((bk['diff-structure']||0)+(bk['diff-network']||0)+(bk['diff-api']||0)+(bk['diff-visual']||0))>0;
      var ab=$('m-approveChangesBtn'); if(ab) ab.classList.toggle('hidden', !(hasClearDiff&&mSuiteId));
+     var dba=$('m-dbApproveBtn'); if(dba) dba.classList.toggle('hidden', !((su.dbUpdated||0)>0&&mSuiteId));
      $('m-issueDraft').classList.add('hidden'); $('m-issueDraft').innerHTML='';
      $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues(); loadRunHistory();
      toast(problem?((hasGolden?('回帰あり：'+reg+' 件（承認済みからの逸脱）'):'問題あり：要確認 '+su.diff+' 件')+'。内容を確認して「起票」してください。'):(hasGolden?'回帰なし：承認済みケースに逸脱なし':'問題なし：テスト前後で相違なし'), problem?'ng':'ok');
@@ -2115,6 +2121,20 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  });
  // ==== 起票フロー：結果のNGからドラフトを取得→確認・編集→課題管理へ登録 ====
  var mLastRunId=null, mDrafts=[];
+ // DBデータ更新を期待値に承認：今回のデータ更新パターンをゴールデン化し、次回から回帰判定。
+ (function(){ var b=$('m-dbApproveBtn'); if(!b) return; b.addEventListener('click',async function(){
+   if(!mLastRunId){ alert('先にN+1比較を実行してください'); return; }
+   if(!mSuiteId){ alert('先にスイートを保存してください'); return; }
+   if(!confirm('このテスト実行で起きたDBデータ更新パターンを「期待値」として承認します。\n次回からはこの更新パターンと違えば回帰として検出します。よろしいですか？')) return;
+   b.disabled=true;
+   var r=await fetch(withTok('/api/db/approve-auto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:mLastRunId,suiteId:mSuiteId})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   b.disabled=false;
+   if(!r||r.error){ alert('承認に失敗しました: '+((r&&r.error)||'不明')); return; }
+   var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(mSuiteId))).then(function(x){return x.json();}).catch(function(){return null;});
+   if(rec&&rec.suite){ mSuite=rec.suite; markClean(); }
+   b.classList.add('hidden');
+   if(typeof toast==='function') toast('DBデータ更新パターンを期待値として承認しました（'+r.approved+'テーブル・次回から回帰判定）','ok');
+ }); })();
  // 変化を承認：差分ケースのbaselineをN+1観測に更新＆承認（新しいゴールデン）。スイートを再読込。
  (function(){ var b=$('m-approveChangesBtn'); if(!b) return; b.addEventListener('click',async function(){
    if(!mLastRunId){ alert('先にN+1比較を実行してください'); return; }
