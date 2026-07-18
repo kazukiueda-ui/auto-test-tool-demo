@@ -390,6 +390,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -623,6 +624,7 @@ graph TD
     <div id="m-verdict"></div>
     <div id="m-resultActions" style="margin:10px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
      <button id="m-fileIssueBtn" class="btn-sm hidden" style="background:#c62828">起票する（内容を確認して登録）</button>
+     <button id="m-approveChangesBtn" class="btn-sm hidden" style="background:#c9a400" title="この差分が意図した変更なら、N+1の挙動を新しい「正（ゴールデン）」として承認し、次回からの基準にします">★ 変化を承認（新挙動を次回の基準に）</button>
      <a id="m-reportLink" href="#" target="_blank" style="font-weight:600">総合テスト報告書 ↗</a>
      <a id="m-xlsxLink" href="#" style="font-weight:600">テストケースExcel ⬇</a>
      <a id="m-issuesLink" href="#" class="hidden" style="font-weight:600;color:#c62828">課題管理で確認</a>
@@ -1894,6 +1896,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var il=$('m-issuesLink'); il.classList.toggle('hidden',!problem); il.onclick=function(e){ e.preventDefault(); showView('issues'); loadIssues(); };
      // 自動起票はしない。問題ありなら「起票」ボタンを出し、確認画面から登録する。
      var fb=$('m-fileIssueBtn'); if(fb) fb.classList.toggle('hidden',!problem);
+     // 差分（明確に異なる）があり、保存済みスイートなら「変化を承認」ボタンを出す。
+     var hasClearDiff=((bk['diff-structure']||0)+(bk['diff-network']||0)+(bk['diff-api']||0)+(bk['diff-visual']||0))>0;
+     var ab=$('m-approveChangesBtn'); if(ab) ab.classList.toggle('hidden', !(hasClearDiff&&mSuiteId));
      $('m-issueDraft').classList.add('hidden'); $('m-issueDraft').innerHTML='';
      $('m-resultCard').classList.remove('hidden'); mCompared=true; refreshStepMarks(); loadIssues(); loadRunHistory();
      toast(problem?((hasGolden?('回帰あり：'+reg+' 件（承認済みからの逸脱）'):'問題あり：要確認 '+su.diff+' 件')+'。内容を確認して「起票」してください。'):(hasGolden?'回帰なし：承認済みケースに逸脱なし':'問題なし：テスト前後で相違なし'), problem?'ng':'ok');
@@ -1901,6 +1906,21 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  });
  // ==== 起票フロー：結果のNGからドラフトを取得→確認・編集→課題管理へ登録 ====
  var mLastRunId=null, mDrafts=[];
+ // 変化を承認：差分ケースのbaselineをN+1観測に更新＆承認（新しいゴールデン）。スイートを再読込。
+ (function(){ var b=$('m-approveChangesBtn'); if(!b) return; b.addEventListener('click',async function(){
+   if(!mLastRunId){ alert('先にN+1比較を実行してください'); return; }
+   if(!mSuiteId){ alert('先にスイートを保存してください（承認先の特定に必要です）'); return; }
+   if(!confirm('この差分（明確に異なる箇所）を「意図した変更」として承認します。\nN+1の挙動を新しい「正（ゴールデン）」にして、次回からの基準にします。よろしいですか？')) return;
+   b.disabled=true;
+   var r=await fetch(withTok('/api/approve-changes'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({runId:mLastRunId,suiteId:mSuiteId})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   b.disabled=false;
+   if(!r||r.error){ alert('承認に失敗しました: '+((r&&r.error)||'不明')); return; }
+   // 更新済みスイートを再読込して画面反映
+   var rec=await fetch(withTok('/api/suite?id='+encodeURIComponent(mSuiteId))).then(function(x){return x.json();}).catch(function(){return null;});
+   if(rec&&rec.suite){ mSuite=rec.suite; markClean(); renderCases(); }
+   b.classList.add('hidden');
+   if(typeof toast==='function') toast(r.updated+' 件の変化を承認しました（新しいゴールデンとして次回の基準になります）','ok');
+ }); })();
  (function(){ var b=$('m-fileIssueBtn'); if(!b) return; b.addEventListener('click',async function(){
    if(!mLastRunId){ alert('先にN+1比較を実行してください'); return; }
    b.disabled=true; var box=$('m-issueDraft'); box.classList.remove('hidden'); box.innerHTML='起票内容を準備中…';
