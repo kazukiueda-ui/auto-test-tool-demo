@@ -294,6 +294,13 @@
  .kh-tag{color:#fff;font-size:10.5px;border-radius:4px;padding:1px 6px;margin-right:5px;white-space:nowrap}
  .dom-kh-mini{font-size:12px;color:#44566f;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px;padding:7px 10px;margin-top:6px}
  .dom-kh-mini b{color:#2a4b7c}
+ .kh-scn{margin-top:7px}
+ .kh-scn-hd{font-weight:700;font-size:12px;color:#2a4b7c;margin:4px 0 2px}
+ table.kh-tbl{border-collapse:collapse;width:100%;font-size:11.5px;table-layout:fixed}
+ table.kh-tbl th,table.kh-tbl td{border:1px solid #e6ecf5;padding:3px 6px;vertical-align:top;text-align:left;word-break:break-word}
+ table.kh-tbl th{background:#f0f4fb;color:#33465f;font-weight:700}
+ .scn-k{color:#fff;font-size:10px;border-radius:4px;padding:1px 5px;white-space:nowrap}
+ .scn-k.normal{background:#2e7d32}.scn-k.boundary{background:#37507a}.scn-k.abnormal{background:#ef6c00}.scn-k.security{background:#c62828}
 </style></head><body>
 <!-- ==== デモ(モック) shim：サーバAPIを canned データに差し替え、本物のUIをそのまま駆動 ==== -->
 <script>
@@ -422,6 +429,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
@@ -1006,11 +1014,18 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var cust=(window.__customDomains||[]); if(cust.length) html+='<optgroup label="利用者追加">'+cust.map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>';
    dom.innerHTML=html; if(cur&&(cur==='none'||allDomains().some(function(d){return d.key===cur;})))dom.value=cur; }
  // 構造化ノウハウ（観点/境界値/異常系/データ）を読みやすいカードに。
+ var SCN_KIND={normal:'正常',boundary:'境界',abnormal:'異常',security:'セキュ'};
+ function domainScnTable(scns){ if(!scns||!scns.length) return '';
+   var rows=scns.map(function(s){ return '<tr><td style="width:15%"><span class="scn-k '+(s.kind||'normal')+'">'+(SCN_KIND[s.kind]||'—')+'</span> '+escHtml(s.title)+'</td>'
+     +'<td style="width:24%">'+escHtml(s.precond)+'</td><td style="width:30%">'+escHtml(s.steps)+'</td><td style="width:31%">'+escHtml(s.expect)+'</td></tr>'; }).join('');
+   return '<div class="kh-scn"><div class="kh-scn-hd">具体テストシナリオ（'+scns.length+'件・前提→操作→期待結果）</div>'
+     +'<table class="kh-tbl"><thead><tr><th>シナリオ</th><th>前提</th><th>操作</th><th>期待結果</th></tr></thead><tbody>'+rows+'</tbody></table></div>'; }
  function domainKhCard(d){ if(!d||!d.viewpoints||!d.viewpoints.length) return d&&d.summary?('<div class="muted" style="font-size:12px">'+escHtml(d.summary)+'</div>'):'<div class="muted" style="font-size:12px">（利用者追加の業務。下欄に重点観点を記述してください）</div>';
    var vp=d.viewpoints.map(function(v){return '<li><b>'+escHtml(v.area)+'</b>：'+escHtml((v.points||[]).join('／'))+'</li>';}).join('');
    var chip=function(label,arr,col){ return (arr&&arr.length)?'<div class="kh-line"><span class="kh-tag" style="background:'+col+'">'+label+'</span>'+escHtml(arr.join('／'))+'</div>':''; };
    return '<div class="kh">'+(d.summary?'<div class="muted" style="font-size:12px;margin-bottom:3px">'+escHtml(d.summary)+'</div>':'')
-     +'<ul class="kh-vp">'+vp+'</ul>'+chip('境界値',d.boundaries,'#37507a')+chip('異常系',d.abnormal,'#c62828')+chip('データ',d.data,'#2e7d32')+'</div>'; }
+     +'<ul class="kh-vp">'+vp+'</ul>'+chip('境界値',d.boundaries,'#37507a')+chip('異常系',d.abnormal,'#c62828')+chip('データ',d.data,'#2e7d32')
+     +domainScnTable(d.scenarios)+'</div>'; }
  // 1業務の行（ノウハウ＋上書きプロンプト欄）。
  function domainRow(d,m){ var v=(m[d.key]!=null)?m[d.key]:(d.defaultPrompt||''); var ov=(m[d.key]!=null&&m[d.key]!=='');
    return '<details class="dom-row"'+(ov?' open':'')+'><summary><b>'+escHtml(d.label)+'</b> <span class="muted" style="font-size:11px">('+escHtml(d.key)+')</span>'+(ov?'<span class="dom-ov">上書き中</span>':'')+'</summary>'
@@ -1030,8 +1045,24 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var d=allDomains().find(function(x){return x.key===key;}); if(!d){ box.classList.add('hidden'); return; }
    box.classList.remove('hidden');
    var vp=(d.viewpoints||[]).map(function(v){return escHtml(v.area);}).join('・');
-   box.innerHTML='<b>この業務の重点観点</b>：'+(vp||escHtml(d.summary||'—'))+' <a href="#" id="cb-domain-more" style="font-size:11px">詳しく</a>';
-   var more=$('cb-domain-more'); if(more) more.addEventListener('click',function(e){ e.preventDefault(); showView('admin'); setTimeout(function(){ var c=$('adm-domain-card'); if(c)c.scrollIntoView({behavior:'smooth'}); },60); }); }
+   var scn=(d.scenarios||[]).length;
+   box.innerHTML='<b>この業務の重点観点</b>：'+(vp||escHtml(d.summary||'—'))
+     +(scn?' <span class="muted">／ 具体シナリオ '+scn+'件</span>':'')
+     +' <a href="#" id="cb-domain-more" style="font-size:11px">詳しく</a>'
+     +(scn?' <a href="#" id="cb-domain-md" style="font-size:11px">シナリオをMarkdown出力</a>':'');
+   var more=$('cb-domain-more'); if(more) more.addEventListener('click',function(e){ e.preventDefault(); showView('admin'); setTimeout(function(){ var c=$('adm-domain-card'); if(c)c.scrollIntoView({behavior:'smooth'}); },60); });
+   var md=$('cb-domain-md'); if(md) md.addEventListener('click',function(e){ e.preventDefault(); downloadDomainMd(d); }); }
+ // 選択業務のノウハウ＋具体シナリオを、そのまま使えるMarkdownチェックリストで保存。
+ function downloadDomainMd(d){ var K={normal:'正常',boundary:'境界',abnormal:'異常',security:'セキュリティ'};
+   var L=['# '+d.label+' テスト設計ノウハウ','', d.summary||'', '', '## 重点観点'];
+   (d.viewpoints||[]).forEach(function(v){ L.push('- **'+v.area+'**：'+(v.points||[]).join('／')); });
+   if((d.boundaries||[]).length){ L.push('','## 境界値の狙いどころ'); d.boundaries.forEach(function(x){L.push('- '+x);}); }
+   if((d.abnormal||[]).length){ L.push('','## 必ず試す異常系'); d.abnormal.forEach(function(x){L.push('- '+x);}); }
+   if((d.data||[]).length){ L.push('','## テストデータ設計'); d.data.forEach(function(x){L.push('- '+x);}); }
+   if((d.scenarios||[]).length){ L.push('','## 具体テストシナリオ','','| 種別 | シナリオ | 前提 | 操作 | 期待結果 | 判定 |','|---|---|---|---|---|---|');
+     d.scenarios.forEach(function(s){ L.push('| '+(K[s.kind]||'')+' | '+s.title+' | '+s.precond+' | '+s.steps+' | '+s.expect+' | ☐ |'); }); }
+   var blob=new Blob([L.join('\n')],{type:'text/markdown'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(d.key||'domain')+'-test-scenarios.md'; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(a.href);
+   if(typeof toast==='function') toast(d.label+'のテストシナリオ（'+(d.scenarios||[]).length+'件）をMarkdownで出力しました','ok'); }
  (function(){ var add=$('adm-domain-add'); if(add) add.addEventListener('click',function(){ var name=prompt('追加する業務名（例：物流管理）'); if(!name)return; name=name.trim(); if(!name)return;
      var base=name.toLowerCase().replace(/[^\w\u3040-\u30ff\u4e00-\u9faf-]/g,'').slice(0,16)||'biz'; var key='custom-'+base+'-'+((window.__customDomains||[]).length+1);
      window.__customDomains=(window.__customDomains||[]).concat([{key:key,label:name,defaultPrompt:''}]); renderDomainSelect(); renderDomainPrompts(); if($('cb-domain'))$('cb-domain').value=key; if(typeof toast==='function')toast('業務「'+name+'」を追加しました（ヘッダの業務ドメインにも反映）','ok'); });
