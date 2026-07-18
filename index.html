@@ -394,6 +394,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -576,7 +577,9 @@ graph TD
    <button id="m-genAsserts" class="btn-sm btn-gray" title="読み込んだ仕様書の用語（画面名/機能名）を、観測ページに紐づけて肯定的アサーションを生成。N比較が無くても『あるべき文言/画面』を検証できます">仕様からアサーション生成</button>
    <button id="m-faultCheck" class="btn-sm btn-gray" title="N観測に典型欠陥を注入し、このテストが実際に検知できるかを測ります（検出力）">検出力チェック（フォールト注入）</button>
    <button id="m-traceBtn" class="btn-sm btn-gray" title="仕様の画面/機能とテストケースの対応表を作ります（要件トレーサビリティ）">要件トレーサビリティ</button>
+   <button id="m-confBtn" class="btn-sm" style="background:#37507a" title="検出力・網羅・信頼度・仕様担保・安定性を束ね、リスク重み付けした総合『リリース確度』を評価します">◎ リリース確度を評価</button>
    <span id="m-approveCount" class="muted" style="font-size:12px"></span>
+   <div id="m-confResult" style="margin-top:6px"></div>
    <div id="m-assertMsg" class="muted" style="font-size:12px;margin-top:4px"></div>
    <div id="m-faultResult" style="margin-top:6px"></div>
    <div id="m-traceResult" style="margin-top:6px"></div>
@@ -1884,6 +1887,32 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var msg=$('m-assertMsg'); if(msg){ msg.innerHTML='仕様アサーションを生成: <b>'+r.added+'</b>件（'+r.cases+'ケース）／ 仕様用語の適合 <b>'+(cov.found?cov.found.length:0)+'/'+cov.total+'</b>'
      +(cov.missing&&cov.missing.length?' ・ <span style="color:#c62828">未検出（未実装/未到達の可能性）'+cov.missing.length+'件: '+escHtml(cov.missing.slice(0,10).join(' / '))+(cov.missing.length>10?' …':'')+'</span>':''); }
    if(typeof toast==='function') toast('仕様アサーションを生成しました（'+r.added+'件）。テスト実行でN+1に対し検証されます。','ok');
+ });
+ // リリース確度（Confidence Index）スコアカード
+ var cfb=$('m-confBtn'); if(cfb) cfb.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
+   var box=$('m-confResult'); box.innerHTML='<span class="muted">確度を評価中…（検出力の測定を含むため数秒かかることがあります）</span>'; cfb.disabled=true;
+   var r=await fetch(withTok('/api/confidence'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite,specTerms:window.__specTerms||[]})}).then(function(x){return x.json();}).catch(function(e){return {error:String(e)};});
+   cfb.disabled=false;
+   if(!r||r.error){ box.innerHTML='<span style="color:#c62828">評価失敗: '+esc((r&&r.error)||'不明')+'</span>'; return; }
+   var col=r.index>=80?'#2e7d32':r.index>=60?'#ef6c00':'#c62828';
+   var comps=(r.components||[]).map(function(c){ if(c.score==null){ return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0"><span style="width:200px">'+esc(c.label)+'</span><span class="muted">対象外'+(c.note?'（'+esc(c.note)+'）':'')+'</span></div>'; }
+     var cc=c.score>=80?'#2e7d32':c.score>=60?'#ef6c00':'#c62828';
+     return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:2px 0"><span style="width:200px">'+esc(c.label)+'</span><span style="flex:1;background:#eef;height:9px;border-radius:5px;overflow:hidden;max-width:220px"><span style="display:block;height:9px;width:'+c.score+'%;background:'+cc+'"></span></span><b style="color:'+cc+';width:38px;text-align:right">'+c.score+'</b><span class="muted" style="width:26px">×'+c.weight+'</span></div>'; }).join('');
+   var risk=r.risk||{high:0,medium:0,low:0,highWeak:[]};
+   var weak=(risk.highWeak||[]).slice(0,8).map(function(w){ return '<li>'+esc(w.id)+' '+esc(w.name)+' — '+esc(w.reason)+'</li>'; }).join('');
+   var strengths=(r.strengths||[]).map(function(x){return '<li>'+esc(x)+'</li>';}).join('');
+   var gaps=(r.gaps||[]).map(function(x){return '<li>'+esc(x)+'</li>';}).join('');
+   box.innerHTML='<div style="border:2px solid '+col+';border-radius:10px;padding:14px;background:#fbfcff">'
+     +'<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><div style="font-size:13px;color:#456">リリース確度<br><span style="font-size:40px;font-weight:800;color:'+col+'">'+r.index+'</span><span style="font-size:16px;color:'+col+'"> / 100（'+esc(r.label)+'）</span></div>'
+     +'<div style="flex:1;min-width:220px;font-size:13px;color:#334">'+esc(r.verdict)+'</div></div>'
+     +'<div style="margin:10px 0 4px;font-weight:600;font-size:12px">構成要素（リスク重み付け・測定不可は自動で再配分）</div>'+comps
+     +'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">'
+     +'<div style="font-size:12px"><b>リスク構成</b>：高 <b style="color:#c62828">'+risk.high+'</b> ／ 中 '+risk.medium+' ／ 低 '+risk.low+'</div></div>'
+     +(strengths?'<div style="margin-top:8px"><b style="font-size:12px;color:#2e7d32">確度の根拠（強み）</b><ul style="font-size:12px;margin:2px 0;padding-left:18px">'+strengths+'</ul></div>':'')
+     +(gaps?'<div style="margin-top:4px"><b style="font-size:12px;color:#c62828">確度を上げるには（不足）</b><ul style="font-size:12px;margin:2px 0;padding-left:18px">'+gaps+'</ul></div>':'')
+     +(weak?'<details style="margin-top:4px"><summary style="font-size:12px;color:#c62828">重要領域(高リスク)で弱いケース（'+risk.highWeak.length+'）</summary><ul style="font-size:12px;margin:4px 0;padding-left:18px">'+weak+'</ul></details>':'')
+     +'</div>';
+   if(typeof toast==='function') toast('リリース確度 '+r.index+'/100（'+r.label+'）','ok');
  });
  // 検出力チェック（フォールト注入）
  var fc=$('m-faultCheck'); if(fc) fc.addEventListener('click',async function(){ if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
