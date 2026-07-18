@@ -427,6 +427,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini" type="button">名称変更</button></span>
@@ -1578,8 +1579,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    t.innerHTML=''; t.appendChild(m); t.appendChild(x);
    clearTimeout(t._h); t._h=setTimeout(hide,5000);
  }
+ var SPIN=['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
  function poll(id,lg,onDone,btn){
-   clearInterval(mtimer);
+   clearInterval(mtimer); clearInterval(window.__animTimer);
    window.__curRun=id;
    // 途中停止ボタンをログの直前に差し込む（実行中のみ表示）
    var stopBtn=null;
@@ -1587,15 +1589,29 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      stopBtn.style.cssText='margin:0 0 6px;display:block'; stopBtn.onclick=function(){ stopBtn.disabled=true; stopBtn.textContent='停止要求中…'; fetch(withTok('/api/cancel?id='+id),{method:'POST'}).catch(function(){}); };
      lg.parentNode.insertBefore(stopBtn,lg); }
    function removeStop(){ if(stopBtn&&stopBtn.parentNode) stopBtn.parentNode.removeChild(stopBtn); stopBtn=null; }
+   var lines=[], running=true, spinI=0, t0=Date.now(), lastChangeT=Date.now(), prevLen=0;
+   function paint(){ if(!lg) return;
+     var atBottom=(lg.scrollHeight-lg.scrollTop-lg.clientHeight)<30;
+     var body=lines.join('\n');
+     if(running){ spinI=(spinI+1)%SPIN.length;
+       var sec=Math.floor((Date.now()-t0)/1000), wait=Math.floor((Date.now()-lastChangeT)/1000);
+       var cur=lines.length?lines[lines.length-1]:'開始しています';
+       body+='\n'+SPIN[spinI]+' 実行中… 経過 '+sec+'秒　▶ 現在: '+cur+(wait>=3?'（この工程 '+wait+'秒）':'');
+     }
+     lg.textContent=body;
+     if(atBottom) lg.scrollTop=lg.scrollHeight;
+   }
+   // アニメーション（200ms）：進捗が無い待ち時間でもスピナー・経過秒で動きを見せる
+   window.__animTimer=setInterval(function(){ if(running) paint(); },200);
    mtimer=setInterval(async function(){
      var s=await fetch(withTok('/api/status?id='+id)).then(function(r){return r.json();}).catch(function(){return null;});
      if(!s)return;
-     var lines=(s.progress||[]);
-     var atBottom=(lg.scrollHeight-lg.scrollTop-lg.clientHeight)<30; // 末尾付近にいる時だけ追従
-     lg.textContent=lines.join('\n')+(s.status==='running'?'\n… 処理中':'');
-     if(atBottom) lg.scrollTop=lg.scrollHeight; // 上へスクロール中は戻さない（最初のログも読める）
-     if(s.status!=='running'){ clearInterval(mtimer); if(btn)btn.disabled=false; removeStop(); try{renderTokenBar();}catch(e){}
-       if(s.status==='error'){lg.textContent+='\n[失敗] '+s.error;return;}
+     var nl=(s.progress||[]);
+     if(nl.length!==prevLen){ prevLen=nl.length; lastChangeT=Date.now(); } // 新しい進捗が来たら待ち時間リセット
+     lines=nl;
+     running=(s.status==='running'); paint();
+     if(!running){ clearInterval(mtimer); clearInterval(window.__animTimer); if(btn)btn.disabled=false; removeStop(); try{renderTokenBar();}catch(e){}
+       if(s.status==='error'){lg.textContent=lines.join('\n')+'\n[失敗] '+s.error;return;}
        if(s.status==='stopped'){ if(typeof toast==='function') toast('停止しました（ここまでの結果を反映します）','ok'); }
        onDone(s); }
    },1000);
