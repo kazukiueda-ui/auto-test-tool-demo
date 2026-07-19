@@ -525,6 +525,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <!-- かんたん/くわしくモード切替は一時無効化（差が小さいため）。復活時はこのコメントを外し initUiMode を戻す。
@@ -895,6 +896,11 @@ graph TD
    <label style="display:block;font-size:13px">ログイン状態ファイル（storageState JSON）のパス</label>
    <input id="set-authState" type="text" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:12.5px" placeholder="例）C:\work\auth.json（空欄＝未ログインで探索）" autocomplete="off">
    <div style="margin-top:8px"><button id="set-authSave" class="btn-sm" style="margin:0">認証状態のパスを保存</button> <span id="set-authMsg" class="muted"></span></div>
+  </div>
+  <div class="card">
+   <h3>監査レポート（ガバナンス）</h3>
+   <p class="muted" style="margin:0 0 8px"><b>承認（ゴールデン化）・課題対応・テスト実行</b>の「いつ・誰が・何を」を時系列で1枚に出力します（自己完結HTML）。金融・公共等の品質統制の提示に。</p>
+   <div><button id="set-auditBtn" class="btn-sm" style="margin:0">監査レポートを出力（HTML）</button> <span class="muted" style="font-size:12px">※承認・実行の実施者は現状未記録のため「—」表示（課題は入力者を表示）</span></div>
   </div>
   <div class="card">
    <h3>担当者マスタ</h3>
@@ -1558,6 +1564,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      fetch(withTok('/api/notify-test'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})}).then(function(r){return r.json();}).then(function(r){ tb.disabled=false;
        $('set-notifyMsg').innerHTML=r.ok?'<span style="color:#2e7d32;font-weight:700">✓ 送信しました（チャンネルを確認）</span>':'<span style="color:#c62828">送信失敗：URL/権限を確認してください</span>'; }).catch(function(){ tb.disabled=false; $('set-notifyMsg').textContent='送信失敗'; }); });
  })();
+ // 監査レポート出力（HTMLダウンロード）
+ (function(){ var b=$('set-auditBtn'); if(b) b.addEventListener('click',function(){ var a=document.createElement('a'); a.href=withTok('/api/audit'); a.download='audit-report.html'; document.body.appendChild(a); a.click(); document.body.removeChild(a); if(typeof toast==='function')toast('監査レポートを出力しました','ok'); }); })();
  // ログイン状態ファイルのパス保存
  (function(){ var sv=$('set-authSave'); if(sv) sv.addEventListener('click',function(){
    var p=($('set-authState')?$('set-authState').value:'').trim();
