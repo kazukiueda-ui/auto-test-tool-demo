@@ -27,6 +27,9 @@
  .opts{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px}
  button{background:#1f3864;color:#fff;border:0;border-radius:8px;padding:11px 22px;font-size:15px;cursor:pointer;margin-top:14px}
  button:disabled{opacity:.5;cursor:not-allowed}
+ /* キーボード操作時のフォーカス可視化（WCAG 2.4.7）。マウスクリックでは出さない(:focus-visible)。 */
+ :focus-visible{outline:3px solid #0097d7;outline-offset:2px;border-radius:4px}
+ .ctrlbar :focus-visible{outline-color:#7fd0f5}
  pre#log{background:#0f1620;color:#cfe3ff;padding:12px;border-radius:8px;min-height:60px;max-height:220px;overflow:auto;font-size:12px;white-space:pre-wrap}
  .muted{color:#77808c;font-size:12px}
  iframe{width:100%;height:720px;border:1px solid #cfd6e0;border-radius:8px;background:#fff}
@@ -457,6 +460,7 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
 
 
 
