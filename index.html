@@ -520,6 +520,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><span class="uimode-seg" role="group" aria-label="表示モード"><button id="cb-uimode-simple" class="uimode-btn" type="button" title="URLを入れるだけの最小表示">かんたん</button><button id="cb-uimode-expert" class="uimode-btn" type="button" title="全機能・詳細設定を表示">くわしく</button></span></span>
@@ -535,7 +536,7 @@
  <div class="applayout">
  <!-- 左サイドバー：画面切替（スクロールしても常時表示）。現在地を明示 -->
  <aside class="sidebar">
-  <div class="nav">
+  <div class="nav" role="navigation" aria-label="主要ナビゲーション">
    <button id="nav-manage" class="navbtn active" type="button">テスト管理</button>
    <div id="subnav-manage" class="subnav">
     <button id="sub-design" class="subtab active" type="button">テスト設計</button>
@@ -553,7 +554,7 @@
    <button id="nav-admin" class="navbtn navbtn-admin" type="button">管理者</button>
   </div>
  </aside>
- <div class="content">
+ <div class="content" role="main">
  <div id="view-manage" class="screen">
   <!-- サブタブ（設計/実行/実行履歴）は左サイドバーへ移動 -->
   <div class="workspace">
@@ -1772,7 +1773,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    (r.suites||[]).forEach(function(s){ var o=document.createElement('option'); o.value=s.id; o.textContent=s.name+' ('+s.count+'件 / '+s.startUrl+')'; sel.appendChild(o); });
  }
  function toast(msg,kind){
-   var t=$('m-toast'); if(!t){ t=document.createElement('div'); t.id='m-toast'; document.body.appendChild(t); }
+   var t=$('m-toast'); if(!t){ t=document.createElement('div'); t.id='m-toast'; t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); document.body.appendChild(t); }
    var hide=function(){ t.className='toast'; };
    t.className='toast '+(kind||'ok')+' show';
    var m=document.createElement('span'); m.textContent=msg;
@@ -1814,7 +1815,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    // 同じログ要素で再実行された場合、前回のパネルを畳んで lg を元の位置へ戻す（ネスト防止）
    if(lg){ var oldP=lg.closest?lg.closest('.prog'):null; if(oldP&&oldP.parentNode){ oldP.parentNode.insertBefore(lg,oldP); oldP.parentNode.removeChild(oldP); } }
    if(lg&&lg.parentNode){
-     panel=document.createElement('div'); panel.className='prog';
+     panel=document.createElement('div'); panel.className='prog'; panel.setAttribute('role','status'); panel.setAttribute('aria-live','polite');
      lg.parentNode.insertBefore(panel,lg);
      lg.classList.remove('hidden'); lg.classList.add('rawlog');
      stopBtn=document.createElement('button'); stopBtn.className='btn-sm btn-del'; stopBtn.type='button'; stopBtn.textContent='途中停止';
