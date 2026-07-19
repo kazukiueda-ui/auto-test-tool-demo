@@ -524,6 +524,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <!-- かんたん/くわしくモード切替は一時無効化（差が小さいため）。復活時はこのコメントを外し initUiMode を戻す。
@@ -999,6 +1000,16 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    <p class="muted" style="margin:0 0 8px"><b>共通（一般的なWebシステム）→業務システム→業界別</b>の分類ツリーで管理します。各業務を開くと<b>重点観点・境界値・異常系・テストデータ設計</b>のノウハウが表示され、これが探索・AIレビューへ注入されます（テスト専門家＋業務専門家の知見）。プロンプト欄を編集すると<b>その業務だけ上書き</b>できます。<b>「＋ 業務を追加」</b>で独自業務も追加可能（ヘッダの選択にも反映）。</p>
    <div id="adm-domain-list"></div>
    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button id="adm-domain-add" class="btn-sm btn-gray" type="button">＋ 業務を追加</button><button id="adm-domain-save" class="btn-sm" type="button">業務別プロンプトを保存</button><span id="adm-domain-msg" class="muted"></span></div>
+   <div style="margin-top:14px;border-top:1px solid #eef1f6;padding-top:10px">
+    <div style="font-weight:700;font-size:13px;color:#2a4b7c;margin-bottom:4px">ノウハウの組織共有（還流）</div>
+    <p class="muted" style="margin:0 0 8px">案件で追加した<b>業務・上書きプロンプト</b>を<b>ノウハウパック(JSON)</b>で書き出し、他プロジェクト/メンバーが取り込めます。使うほど検証会社の知見が溜まり、組織で共有できます（内蔵の23業種はコード側で不変）。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     <button id="adm-kh-export" class="btn-sm btn-gray" type="button">ノウハウを書き出し（JSON）</button>
+     <button id="adm-kh-import" class="btn-sm btn-gray" type="button">ノウハウを取り込み（ファイル）</button>
+     <input id="adm-kh-file" type="file" accept="application/json,.json" style="display:none">
+     <span id="adm-kh-msg" class="muted"></span>
+    </div>
+   </div>
   </div>
  </div>
 
@@ -1153,7 +1164,22 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var base=name.toLowerCase().replace(/[^\w\u3040-\u30ff\u4e00-\u9faf-]/g,'').slice(0,16)||'biz'; var key='custom-'+base+'-'+((window.__customDomains||[]).length+1);
      window.__customDomains=(window.__customDomains||[]).concat([{key:key,label:name,defaultPrompt:''}]); renderDomainSelect(); renderDomainPrompts(); if($('cb-domain'))$('cb-domain').value=key; if(typeof toast==='function')toast('業務「'+name+'」を追加しました（ヘッダの業務ドメインにも反映）','ok'); });
    var sv=$('adm-domain-save'); if(sv) sv.addEventListener('click',function(){ var m={}; document.querySelectorAll('#adm-domain-list .dp-box').forEach(function(t){ var k=t.getAttribute('data-key'); if(t.value.trim())m[k]=t.value; }); window.__domainPrompts=m;
-     fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{domainPrompts:m,customDomains:window.__customDomains}})}).then(function(r){return r.json();}).then(function(){ $('adm-domain-msg').textContent='保存しました（'+Object.keys(m).length+'業務）'; if(typeof toast==='function')toast('業務別プロンプトを保存しました','ok'); }).catch(function(){ $('adm-domain-msg').textContent='保存に失敗しました'; }); }); })();
+     fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{domainPrompts:m,customDomains:window.__customDomains}})}).then(function(r){return r.json();}).then(function(){ $('adm-domain-msg').textContent='保存しました（'+Object.keys(m).length+'業務）'; if(typeof toast==='function')toast('業務別プロンプトを保存しました','ok'); }).catch(function(){ $('adm-domain-msg').textContent='保存に失敗しました'; }); });
+   // ノウハウ還流：書き出し（ダウンロード）
+   var ex=$('adm-kh-export'); if(ex) ex.addEventListener('click',function(){ var a=document.createElement('a'); a.href=withTok('/api/knowhow/export'); a.download='knowhow-pack.json'; document.body.appendChild(a); a.click(); document.body.removeChild(a); $('adm-kh-msg').textContent='ノウハウパックを書き出しました'; });
+   // ノウハウ還流：取り込み（ファイル選択→マージ保存）
+   var imp=$('adm-kh-import'), fi=$('adm-kh-file');
+   if(imp&&fi){ imp.addEventListener('click',function(){ fi.click(); });
+     fi.addEventListener('change',function(){ var f=fi.files&&fi.files[0]; if(!f)return; var rd=new FileReader();
+       rd.onload=function(){ var pack; try{ pack=JSON.parse(String(rd.result)); }catch(e){ $('adm-kh-msg').innerHTML='<span style="color:#c62828">JSONの読み込みに失敗</span>'; fi.value=''; return; }
+         if(!confirm('ノウハウパックを取り込みます。既存の同名業務・プロンプトはパックの内容で更新されます。よろしいですか？')){ fi.value=''; return; }
+         fetch(withTok('/api/knowhow/import'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,pack:pack})}).then(function(r){return r.json();}).then(function(r){ if(r.error){ $('adm-kh-msg').innerHTML='<span style="color:#c62828">'+esc(r.error)+'</span>'; return; }
+           window.__customDomains=(r.settings&&r.settings.customDomains)||window.__customDomains; window.__domainPrompts=(r.settings&&r.settings.domainPrompts)||window.__domainPrompts;
+           renderDomainSelect(); renderDomainPrompts(); renderDomainMini&&renderDomainMini();
+           $('adm-kh-msg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 取り込みました</span>（追加 '+(r.added||0)+' 業務／更新 '+(r.updated||0)+'／プロンプト '+(r.prompts||0)+'）';
+           if(typeof toast==='function')toast('ノウハウを取り込みました','ok'); }).catch(function(){ $('adm-kh-msg').textContent='取り込みに失敗しました'; }).then(function(){ fi.value=''; }); };
+       rd.readAsText(f); }); }
+   })();
  function loadProjects(){ return fetch(withTok('/api/projects')).then(function(r){return r.json();}).then(function(r){
    var sel=$('cb-project'); if(!sel) return; var list=(r&&r.projects)||[];
    if(!curProject && r&&r.current) curProject=r.current;
