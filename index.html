@@ -522,9 +522,12 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
+ <!-- かんたん/くわしくモード切替は一時無効化（差が小さいため）。復活時はこのコメントを外し initUiMode を戻す。
  <span class="cb-item"><span class="uimode-seg" role="group" aria-label="表示モード"><button id="cb-uimode-simple" class="uimode-btn" type="button" title="URLを入れるだけの最小表示">かんたん</button><button id="cb-uimode-expert" class="uimode-btn" type="button" title="全機能・詳細設定を表示">くわしく</button></span></span>
+ -->
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
  <span class="cb-item adv"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
  <span class="cb-item adv"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">最適なモデルを自動選択（段階別）</option></select></span>
@@ -877,6 +880,14 @@ graph TD
    <div style="margin-top:8px"><button id="set-dbTest" class="btn-sm btn-gray" style="margin:0">接続テスト</button> <button id="set-dbSave" class="btn-sm" style="margin:0">DB接続を保存</button> <span id="set-dbMsg" class="muted"></span></div>
   </div>
   <div class="card">
+   <h3>回帰検知の通知（Slack / Teams）</h3>
+   <p class="muted" style="margin:0 0 8px">定期実行・CI・手動比較の完了時に、<b>Incoming Webhook</b> へ結果を通知します（<code>{"text": "..."}</code> をPOST＝Slack/Teams両対応）。既定は<b>問題（回帰・差分・失敗）があった時だけ</b>通知します。</p>
+   <label style="display:block;font-size:13px">Webhook URL</label>
+   <input id="set-notifyUrl" type="url" style="width:100%;box-sizing:border-box" placeholder="https://hooks.slack.com/services/…（空欄＝通知しない）" autocomplete="off">
+   <label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-top:8px"><input type="checkbox" id="set-notifyAlways"> 成功（相違なし）のときも通知する</label>
+   <div style="margin-top:8px"><button id="set-notifyTest" class="btn-sm btn-gray" style="margin:0">テスト送信</button> <button id="set-notifySave" class="btn-sm" style="margin:0">通知設定を保存</button> <span id="set-notifyMsg" class="muted"></span></div>
+  </div>
+  <div class="card">
    <h3>担当者マスタ</h3>
    <p class="muted" style="margin:0 0 8px">課題の「担当」で選べる担当者を登録します（<b>1行に1名</b>）。ここで登録した人が、課題の担当ドロップダウンに表示されます（自由入力も可）。</p>
    <textarea id="set-assignees" rows="5" style="width:100%;box-sizing:border-box;font-size:13px" placeholder="例）&#10;山田太郎&#10;佐藤花子"></textarea>
@@ -1156,6 +1167,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
    if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
    if(Array.isArray(s.apiIgnore)&&$('m-apiIgnore')) $('m-apiIgnore').value=s.apiIgnore.join('\n');
+   if($('set-notifyUrl')) $('set-notifyUrl').value=s.notifyWebhook||'';
+   if($('set-notifyAlways')) $('set-notifyAlways').checked=!!s.notifyAlways;
    if(s.sensitivity&&$('m-sensitivity')){ $('m-sensitivity').value=s.sensitivity; try{ $('m-sensitivity').dispatchEvent(new Event('change')); }catch(e){} }
    window.__dbConn=(s.dbConn&&typeof s.dbConn==='object')?s.dbConn:{}; if(typeof renderDbConn==='function') renderDbConn();
    window.__assignees=Array.isArray(s.assignees)?s.assignees:[]; renderAssigneeMaster(); renderAssigneeDatalist();
@@ -1251,11 +1264,15 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(bs) bs.classList.toggle('on',curUiMode==='simple'); if(be) be.classList.toggle('on',curUiMode==='expert');
    try{ localStorage.setItem('att_uimode',curUiMode); }catch(e){}
  }
- function initUiMode(){ var saved='simple'; try{ saved=localStorage.getItem('att_uimode')||'simple'; }catch(e){}
+ function initUiMode(){
+   // かんたんモードは一時無効化（差が小さいため）。常時「くわしく」＝全機能表示に固定。
+   // 復活時は下のコメントを外し、上の固定行を削除する。
+   applyUiMode('expert');
+   /* var saved='simple'; try{ saved=localStorage.getItem('att_uimode')||'simple'; }catch(e){}
    applyUiMode(saved);
    var bs=$('cb-uimode-simple'), be=$('cb-uimode-expert');
    if(bs) bs.addEventListener('click',function(){ applyUiMode('simple'); saveUiModePref('simple'); });
-   if(be) be.addEventListener('click',function(){ applyUiMode('expert'); saveUiModePref('expert'); });
+   if(be) be.addEventListener('click',function(){ applyUiMode('expert'); saveUiModePref('expert'); }); */
    // 初回のみ：3ステップの案内を表示（マニュアル不要の導線）。×で以降非表示。
    var seen=false; try{ seen=!!localStorage.getItem('att_seen_intro'); }catch(e){}
    var intro=$('m-intro'); if(intro&&!seen){ intro.style.display='flex'; }
@@ -1494,6 +1511,18 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      fetch(withTok('/api/db/test-conn'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(c)}).then(function(r){return r.json();}).then(function(r){ tb.disabled=false; if(r.ok){ $('set-dbMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 接続OK</span>'; } else { $('set-dbMsg').innerHTML='<span style="color:#c62828">✕ '+esc(r.error||'接続失敗')+'</span>'; } }).catch(function(){ tb.disabled=false; $('set-dbMsg').textContent='接続テストに失敗しました'; }); });
    var sv=$('set-dbSave'); if(sv) sv.addEventListener('click',function(){ var c=dbConnFromUi(); window.__dbConn=c||{};
      fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{dbConn:c||undefined}})}).then(function(r){return r.json();}).then(function(){ $('set-dbMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 保存しました</span>'; if(typeof toast==='function')toast('DB接続を保存しました','ok'); }).catch(function(){ $('set-dbMsg').textContent='保存に失敗しました'; }); }); })();
+ // 回帰検知の通知（Webhook）：保存とテスト送信
+ (function(){
+   var sv=$('set-notifySave'); if(sv) sv.addEventListener('click',function(){
+     var url=($('set-notifyUrl')?$('set-notifyUrl').value:'').trim(); var always=$('set-notifyAlways')?$('set-notifyAlways').checked:false;
+     fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{notifyWebhook:url,notifyAlways:always}})}).then(function(r){return r.json();}).then(function(){ $('set-notifyMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 保存しました</span>'+(url?'':'（空欄＝通知オフ）'); if(typeof toast==='function')toast('通知設定を保存しました','ok'); }).catch(function(){ $('set-notifyMsg').textContent='保存に失敗しました'; }); });
+   var tb=$('set-notifyTest'); if(tb) tb.addEventListener('click',function(){
+     var url=($('set-notifyUrl')?$('set-notifyUrl').value:'').trim();
+     if(!url){ $('set-notifyMsg').textContent='Webhook URLを入力してください'; return; }
+     $('set-notifyMsg').textContent='テスト送信中…'; tb.disabled=true;
+     fetch(withTok('/api/notify-test'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})}).then(function(r){return r.json();}).then(function(r){ tb.disabled=false;
+       $('set-notifyMsg').innerHTML=r.ok?'<span style="color:#2e7d32;font-weight:700">✓ 送信しました（チャンネルを確認）</span>':'<span style="color:#c62828">送信失敗：URL/権限を確認してください</span>'; }).catch(function(){ tb.disabled=false; $('set-notifyMsg').textContent='送信失敗'; }); });
+ })();
  // ==== 課題管理サブタブ（一覧/集計/項目設定）====
  function showIssTab(t){
    if($('iss-view-board'))$('iss-view-board').classList.toggle('hidden',t!=='board');
