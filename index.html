@@ -523,6 +523,7 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <!-- かんたん/くわしくモード切替は一時無効化（差が小さいため）。復活時はこのコメントを外し initUiMode を戻す。
@@ -888,6 +889,13 @@ graph TD
    <div style="margin-top:8px"><button id="set-notifyTest" class="btn-sm btn-gray" style="margin:0">テスト送信</button> <button id="set-notifySave" class="btn-sm" style="margin:0">通知設定を保存</button> <span id="set-notifyMsg" class="muted"></span></div>
   </div>
   <div class="card">
+   <h3>ログイン必須サイト（認証状態）</h3>
+   <p class="muted" style="margin:0 0 8px">ログインが必要なサイトは、<b>認証状態ファイル</b>を指定すると<b>ログイン済みで探索・比較</b>できます。作り方：ターミナルで <code>att login --url &lt;ログインURL&gt; --out auth.json</code> を実行→開いたブラウザでログイン→Enter。生成された <code>auth.json</code> の<b>パス</b>を下に指定してください（Cookie/セッションを含むため取り扱い注意）。</p>
+   <label style="display:block;font-size:13px">ログイン状態ファイル（storageState JSON）のパス</label>
+   <input id="set-authState" type="text" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:12.5px" placeholder="例）C:\work\auth.json（空欄＝未ログインで探索）" autocomplete="off">
+   <div style="margin-top:8px"><button id="set-authSave" class="btn-sm" style="margin:0">認証状態のパスを保存</button> <span id="set-authMsg" class="muted"></span></div>
+  </div>
+  <div class="card">
    <h3>担当者マスタ</h3>
    <p class="muted" style="margin:0 0 8px">課題の「担当」で選べる担当者を登録します（<b>1行に1名</b>）。ここで登録した人が、課題の担当ドロップダウンに表示されます（自由入力も可）。</p>
    <textarea id="set-assignees" rows="5" style="width:100%;box-sizing:border-box;font-size:13px" placeholder="例）&#10;山田太郎&#10;佐藤花子"></textarea>
@@ -1169,6 +1177,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(Array.isArray(s.apiIgnore)&&$('m-apiIgnore')) $('m-apiIgnore').value=s.apiIgnore.join('\n');
    if($('set-notifyUrl')) $('set-notifyUrl').value=s.notifyWebhook||'';
    if($('set-notifyAlways')) $('set-notifyAlways').checked=!!s.notifyAlways;
+   if($('set-authState')) $('set-authState').value=s.authStatePath||'';
    if(s.sensitivity&&$('m-sensitivity')){ $('m-sensitivity').value=s.sensitivity; try{ $('m-sensitivity').dispatchEvent(new Event('change')); }catch(e){} }
    window.__dbConn=(s.dbConn&&typeof s.dbConn==='object')?s.dbConn:{}; if(typeof renderDbConn==='function') renderDbConn();
    window.__assignees=Array.isArray(s.assignees)?s.assignees:[]; renderAssigneeMaster(); renderAssigneeDatalist();
@@ -1523,6 +1532,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      fetch(withTok('/api/notify-test'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:url})}).then(function(r){return r.json();}).then(function(r){ tb.disabled=false;
        $('set-notifyMsg').innerHTML=r.ok?'<span style="color:#2e7d32;font-weight:700">✓ 送信しました（チャンネルを確認）</span>':'<span style="color:#c62828">送信失敗：URL/権限を確認してください</span>'; }).catch(function(){ tb.disabled=false; $('set-notifyMsg').textContent='送信失敗'; }); });
  })();
+ // ログイン状態ファイルのパス保存
+ (function(){ var sv=$('set-authSave'); if(sv) sv.addEventListener('click',function(){
+   var p=($('set-authState')?$('set-authState').value:'').trim();
+   fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:{authStatePath:p}})}).then(function(r){return r.json();}).then(function(){ $('set-authMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 保存しました</span>'+(p?'（以降ログイン済みで探索/比較）':'（空欄＝未ログイン）'); if(typeof toast==='function')toast('認証状態のパスを保存しました','ok'); }).catch(function(){ $('set-authMsg').textContent='保存に失敗しました'; }); }); })();
  // ==== 課題管理サブタブ（一覧/集計/項目設定）====
  function showIssTab(t){
    if($('iss-view-board'))$('iss-view-board').classList.toggle('hidden',t!=='board');
