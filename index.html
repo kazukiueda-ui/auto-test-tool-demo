@@ -515,10 +515,11 @@
 
 
 
+
 <header><h1>TFACT2（仮）</h1></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><span class="uimode-seg" role="group" aria-label="表示モード"><button id="cb-uimode-simple" class="uimode-btn" type="button" title="URLを入れるだけの最小表示">かんたん</button><button id="cb-uimode-expert" class="uimode-btn" type="button" title="全機能・詳細設定を表示">くわしく</button></span></span>
- <span class="cb-item"><select id="cb-project"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
+ <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
  <span class="cb-item adv"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
  <span class="cb-item adv"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">最適なモデルを自動選択（段階別）</option></select></span>
  <span class="cb-item"><b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini adv" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
@@ -613,7 +614,7 @@ graph TD
 
    <button id="m-exploreBtn">捜索してテストケース生成</button>
    <span class="muted" style="margin:0 8px">または</span>
-   <select id="m-savedSel"><option value="">保存済みスイートを読み込む…</option></select>
+   <select id="m-savedSel" aria-label="保存済みスイートを読み込む" title="保存済みスイートを読み込む"><option value="">保存済みスイートを読み込む…</option></select>
    <button id="m-loadBtn" class="btn-gray">読み込む</button>
    <div id="m-exploreModeWrap" class="hidden adv" style="margin-top:10px;padding:8px 10px;background:#eef4fb;border:1px solid #cfe0f2;border-radius:8px">
     <div style="font-weight:600;font-size:13px;margin-bottom:4px">既にテストケースがあります。スライダーを変えて再捜索した結果を…</div>
