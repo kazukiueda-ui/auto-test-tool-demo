@@ -651,6 +651,7 @@
 
 
 
+
 <header><h1>AgentQA</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -697,20 +698,14 @@
    <span class="step is-locked" data-target="m-runner" data-phase="exec">⑤ 比較</span>
   </div>
   <div id="m-nextCta" class="next-cta"></div>
-  <div id="m-intro" class="intro-tip" style="display:none"><span><b>はじめての方へ</b> ① URLを入れて捜索 → ② 内容を確認して保存 → ③ 変更後URLと比較。これだけで「壊れていないか」が分かります。</span><button id="m-introClose" type="button" aria-label="閉じる">×</button></div>
+  <div id="m-intro" class="intro-tip adv" style="display:none"><span><b>はじめての方へ</b> ① URLを入れて捜索 → ② 内容を確認して保存 → ③ 変更後URLと比較。これだけで「壊れていないか」が分かります。</span><button id="m-introClose" type="button" aria-label="閉じる">×</button></div>
   <!-- ① 捜索 or 読み込み -->
   <div class="card" id="m-explore">
-   <h3>① 修正前(N)を捜索して、テストケースを生成</h3>
-   <label>テストケース生成のターゲットURL（修正前 N）<span class="muted" style="font-weight:400">（過去に入力したURLは入力欄クリックで履歴から選べます）</span></label>
-   <input id="m-url" type="url" placeholder="https://n.example.com/" list="m-urlHistory" autocomplete="off">
+   <h3 class="adv">① 修正前(N)を捜索して、テストケースを生成</h3>
+   <h3 class="simple-only">修正前URL入力</h3>
+   <label class="adv">テストケース生成のターゲットURL（修正前 N）<span class="muted" style="font-weight:400">（過去に入力したURLは入力欄クリックで履歴から選べます）</span></label>
+   <input id="m-url" type="url" placeholder="https://n.example.com/" aria-label="テスト対象のURL（修正前）" list="m-urlHistory" autocomplete="off">
    <datalist id="m-urlHistory"></datalist>
-   <div class="simple-hint simple-only">URLを入れて<b>「テスト設計」</b>を押すだけ。業種は<b>自動判定</b>、不足観点は<b>自動追加</b>します。 <a href="#" id="m-sampleUrl">URLが無ければ「例で試す」</a></div>
-   <!-- かんたんモード：スライダー1本（テスト量）。値を深さ/広さ/画面数/時間に自動反映。 -->
-   <div class="slider simple-only" style="max-width:560px;margin-top:10px">
-    <div class="lab"><span>テスト量：<b>軽く（速い）</b> ⇔ <b>しっかり（網羅）</b></span><b id="m-simpleAmountLab">標準</b></div>
-    <input type="range" id="m-simpleAmount" min="0" max="1" step="0.05" value="0.5">
-    <div class="muted">右にするほど多くの画面・操作を深く探索します（時間もかかります）。重要な導線から優先的にテストします。</div>
-   </div>
    <div class="adv" style="margin-top:4px"><a href="#" id="m-sampleUrl2" class="muted" style="font-size:12px">サンプルURLを入れて試す</a></div>
 
    <!-- 捜索の方針（表出スライダー） -->
