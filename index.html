@@ -650,10 +650,12 @@
 
 
 
+
 <header><h1>AgentQA</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
  <span class="cb-item adv"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
+ <span class="cb-item"><span class="cb-cap">エンジン</span> <select id="cb-engine" title="LLMエンジン（Claude API / ローカルQwen）"><option value="claude">Claude（API）</option><option value="local">Qwen（ローカル）</option></select> <span id="cb-engine-note" class="cb-cap" style="color:#c62828"></span></span>
  <span class="cb-item adv"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">最適なモデルを自動選択（段階別）</option></select></span>
  <span class="cb-item"><b class="cb-cap">業務ドメイン</b> <select id="cb-domain" title="業務ドメインを選び「決定→反映」で重点観点を業務別プロンプトへ入れます"><option value="none">（業務指定なし）</option></select> <button id="cb-domain-apply" class="cb-mini adv" type="button" title="選択した業務の重点観点を業務別プロンプトへ反映（上書き）">決定→反映</button></span>
  <span class="cb-item adv"><span id="cb-badge" class="cb-badge warn">確認中…</span></span>
@@ -1243,7 +1245,17 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // ==== 制御バー（プロジェクト/モード/モデル/業務ドメイン）＋トークングラフ ====
  var ATT_ENV={llmAvailable:false,localLlm:false,models:[],domains:[],defaultModel:'claude-sonnet-4-6',jpyPerUsd:150};
  var apiMode=true; // API利用モード（false=APIオフ＝ルールベース）
- function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', reviewMode:$('m-reviewMode')?$('m-reviewMode').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:currentDomainPrompt(), llm:apiMode }; }
+ function collectLlm(){ return { project:curProject||undefined, model:$('cb-model')?$('cb-model').value:'auto', engine:$('cb-engine')?$('cb-engine').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:'auto', domain:$('cb-domain')?$('cb-domain').value:'none', domainPrompt:currentDomainPrompt(), llm:apiMode }; }
+ // エンジン選択（Claude/ローカルQwen）の可用性表示・切替。未接続なら注記＋手順。
+ function updateEngineUi(){ var sel=$('cb-engine'); if(!sel) return; var note=$('cb-engine-note');
+   var hasLocal=!!(ATT_ENV&&ATT_ENV.hasLocalLlm); var hasCl=!!(ATT_ENV&&(ATT_ENV.hasClaude||ATT_ENV.llmAvailable));
+   var localOpt=sel.querySelector('option[value="local"]'); if(localOpt) localOpt.textContent=hasLocal?('Qwen（ローカル：'+((ATT_ENV&&ATT_ENV.localModel)||'')+'）'):'Qwen（ローカル・未接続）';
+   var eng=sel.value;
+   if(note){ if(eng==='local'&&!hasLocal){ note.textContent='未接続：ATT_LLM_BASE_URL を設定してください（例 Ollama）'; note.title='サーバの環境変数 ATT_LLM_BASE_URL（例 http://127.0.0.1:11434/v1）と ATT_LLM_MODEL（例 qwen2.5:7b）を設定して再起動'; }
+     else if(eng==='claude'&&!hasCl){ note.textContent='未接続：ANTHROPIC_API_KEY を設定してください'; }
+     else note.textContent=''; }
+   // ローカル選択時はClaudeモデル選択は無関係→淡色化
+   var mdl=$('cb-model'); if(mdl) mdl.style.opacity=(eng==='local')?'0.5':''; }
  function applyModeUi(){
    var b=$('cb-mode'); if(!b) return;
    b.textContent=apiMode?'API利用モード':'APIオフ（ルールベース）';
@@ -1265,6 +1277,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    ATT_ENV=e||ATT_ENV;
    var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">最適なモデルを自動選択（段階別）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
    renderDomainSelect(); renderDomainPrompts(); renderDomainMini();
+   // エンジン既定：ローカルのみ利用可ならローカルを既定に、そうでなければClaude。
+   var esel=$('cb-engine'); if(esel && !esel.dataset.userset){ esel.value=(ATT_ENV.hasLocalLlm && !(ATT_ENV.hasClaude||ATT_ENV.llmAvailable))?'local':'claude'; }
+   if(typeof updateEngineUi==='function') updateEngineUi();
    if(!ATT_ENV.llmAvailable){ apiMode=false; } // キー無ければ強制オフ
    applyModeUi(); updateBadge(); applyHeaderLogo();
  }).catch(function(){}); }
@@ -1389,6 +1404,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function loadProjectSettings(){ if(!curProject) return Promise.resolve(); return fetch(withTok('/api/project?id='+encodeURIComponent(curProject))).then(function(r){return r.json();}).then(function(p){
    var s=(p&&p.settings)||{};
    if(s.model&&$('cb-model')) $('cb-model').value=s.model;
+   if(s.engine&&$('cb-engine')){ $('cb-engine').value=s.engine; $('cb-engine').dataset.userset='1'; if(typeof updateEngineUi==='function') updateEngineUi(); }
    window.__customDomains=Array.isArray(s.customDomains)?s.customDomains:[]; window.__domainPrompts=(s.domainPrompts&&typeof s.domainPrompts==='object')?s.domainPrompts:{};
    renderDomainSelect(); renderDomainPrompts();
    if(s.domain&&$('cb-domain')&&(s.domain==='auto'||s.domain==='none'||allDomains().some(function(d){return d.key===s.domain;}))) $('cb-domain').value=s.domain;
@@ -1412,7 +1428,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, ignoreApi:$('m-ignoreApi')?$('m-ignoreApi').checked:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, engine:$('cb-engine')?$('cb-engine').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, ignoreApi:$('m-ignoreApi')?$('m-ignoreApi').checked:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
@@ -1420,6 +1436,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var cbp=$('cb-project'); if(cbp){ var cbpPrev=cbp.value; cbp.addEventListener('change',function(){ if(!confirmLeave()){ cbp.value=cbpPrev; return; } cbpPrev=cbp.value; curProject=cbp.value; markClean(); localStorage.setItem('att_project',curProject); loadProjectSettings().then(function(){ loadSavedList(); loadSchedules&&loadSchedules(); renderTokenBar(); }); }); }
    var cbn=$('cb-newProj'); if(cbn) cbn.addEventListener('click',function(){ var name=prompt('新規プロジェクト名'); if(!name) return; fetch(withTok('/api/projects'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}).then(function(r){return r.json();}).then(function(p){ curProject=p.id; localStorage.setItem('att_project',curProject); loadProjects().then(loadProjectSettings).then(function(){ loadSavedList(); }); }); });
    var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
+   var cbeng=$('cb-engine'); if(cbeng) cbeng.addEventListener('change',function(){ cbeng.dataset.userset='1'; updateEngineUi(); if(typeof saveProjectSettings==='function') saveProjectSettings(); if(typeof toast==='function') toast(cbeng.value==='local'?'エンジン：ローカルQwen に切替':'エンジン：Claude（API）に切替','ok'); });
    var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate();
      var lab=cbmodel.options[cbmodel.selectedIndex]?cbmodel.options[cbmodel.selectedIndex].text:cbmodel.value;
      if(typeof toast==='function') toast('次回の実行から「'+lab+'」を使用します（実行中の処理には影響しません）','ok');
