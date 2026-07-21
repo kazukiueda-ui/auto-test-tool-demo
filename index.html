@@ -501,15 +501,17 @@
    if(has('/api/run-baseline')||has('/api/run-suite')||path.match(/\/api\/run$/)) return J({runId:'demo-cmp'});
    if(has('/api/status')){
      var id=(url.split('id=')[1]||'').split('&')[0];
-     if(id==='demo-explore') return load('data/suite.json').then(function(t){ return J({status:'done',progress:EXP,suite:JSON.parse(t)}); });
-     if(id==='demo-ai') return load('data/aireview.json').then(function(t){ return J({status:'done',progress:AIP,aiReview:JSON.parse(t)}); });
-     if(id==='demo-improve') return Promise.all([load('data/improved-suite.json'),load('data/improved-aireview.json')]).then(function(a){
+     if(!window.__pollN)window.__pollN={};
+     function ANIM(rid,kind,doneFn){ return (window.__replay?Promise.resolve(window.__replay):load('data/replay.json').then(function(t){try{window.__replay=JSON.parse(t);}catch(e){window.__replay={};}return window.__replay;})).then(function(rp){ var fr=(rp&&rp[kind])||[]; var n=window.__pollN[rid]||0; if(fr.length&&n<fr.length){window.__pollN[rid]=n+1;return J({status:'running',progress:fr[n].progress});} window.__pollN[rid]=0;return doneFn(); }); }
+     if(id==='demo-explore') return ANIM(id,'explore',function(){ return load('data/suite.json').then(function(t){ return J({status:'done',progress:EXP,suite:JSON.parse(t)}); }); });
+     if(id==='demo-ai') return ANIM(id,'review',function(){ return load('data/aireview.json').then(function(t){ return J({status:'done',progress:AIP,aiReview:JSON.parse(t)}); }); });
+     if(id==='demo-improve') return ANIM(id,'review',function(){ return Promise.all([load('data/improved-suite.json'),load('data/improved-aireview.json')]).then(function(a){
         return J({status:'done',progress:IMP,suite:JSON.parse(a[0]),aiReview:JSON.parse(a[1]),
           summary:{note:'目標 85点に到達（70→90点、6件追加）',reachedTarget:true,startScore:70,finalScore:90,added:6,
-            rounds:[{round:1,before:70,after:82,added:4},{round:2,before:82,after:90,added:2}]}}); });
+            rounds:[{round:1,before:70,after:82,added:4},{round:2,before:82,after:90,added:2}]}}); }); })
      if(id==='demo-apply') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['信頼度の推奨アクションを反映中…','完了'],suite:JSON.parse(t),summary:{details:['不足観点ケースを追加','弱ロケータを安定要素へ変更']}}); });
      if(id==='demo-regen') return load('data/improved-suite.json').then(function(t){ return J({status:'done',progress:['改善提案からケース生成中…','完了'],suite:JSON.parse(t),summary:{added:6}}); });
-     if(id==='demo-cmp') return load('data/summary.json').then(function(t){ return J({status:'done',progress:CMP,summary:JSON.parse(t).summary}); });
+     if(id==='demo-cmp') return ANIM(id,'exec',function(){ return load('data/summary.json').then(function(t){ return J({status:'done',progress:CMP,summary:JSON.parse(t).summary}); }); });
      if(id==='demo-capture') return load('data/suite.json').then(function(t){ return J({status:'done',progress:['1回目(N)を実行中…','ベースライン取得 完了: 2 件（比較対象になりました）'],suite:JSON.parse(t),summary:{captured:2}}); });
      return J({status:'done',progress:[]});
    }
@@ -543,6 +545,8 @@
 })();
 </script>
 <div style="background:#6a1b9a;color:#fff;text-align:center;font-size:12px;padding:4px 8px">デモ（モック）── 実ツールのUIをそのまま動かし、サーバ処理は normal/patched 比較用の固定データに差し替えています（API・課金なし）</div>
+
+
 
 
 
@@ -2488,8 +2492,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      if(s.summary&&s.summary.detectedDomain){ applyDetectedDomain(s.summary.detectedDomain,false); }
      // かんたんモード：探索後に不足観点を自動追加してから次の一手を提示。
      if(curUiMode==='simple'){ autoAugmentSilent(function(){
-       showNextCta('<span>✅ テストケース＋不足観点を用意しました。</span><b>次：</b>②で「AIレビューして自動追記」→ ④保存 → 実行。 <button id="m-nextToReview" class="btn-sm" style="background:#6a1b9a;margin:0">②レビューへ</button>');
-       var rb=$('m-nextToReview'); if(rb) rb.addEventListener('click',function(){ var c=$('m-review'); if(c){ c.scrollIntoView({behavior:'smooth'}); } });
+       showNextCta('<span>✅ テストケース＋不足観点を用意しました。</span><b>次：</b>下の「AIレビューして自動追記」→ ④保存 → 実行 と進みます。');
      }); return; }
      // くわしくモード：次の一手を1つだけ提示（内容確認→保存→比較）。
      showNextCta('<span>✅ テストケースができました。</span><b>次：</b>下でざっと確認したら、変更後URLと比べます。 <button id="m-nextToCompare" class="btn-sm" style="background:#0a74a8;margin:0">④保存して比較へ進む</button>');
