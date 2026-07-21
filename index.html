@@ -1,15 +1,21 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>TFACT2（仮）</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>AgentQA</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='88'>%F0%9F%A7%AA</text></svg>">
 <style>
  body{font-family:'Segoe UI','Meiryo',sans-serif;margin:0;background:#eef1f5;color:#1e2430}
- header{background:#1f3864;color:#fff;padding:14px 22px}header h1{margin:0;font-size:19px}
+ /* ヘッダ＝AGESTコーポレートカラー。鮮やかなシアン #0097d7 は白文字だとAA未達のため、
+    濃いアズール→コーポレートシアンのグラデにし、タイトルは濃い左端に載せて可読性(約7:1)を確保。 */
+ /* ヘッダは上部固定（sticky）。タイトル左・会社ロゴ右。下のコントロールバーは --hdr-h 分だけ下げて重ねない。 */
+ header{position:sticky;top:0;z-index:1800;background:linear-gradient(100deg,#075e86 0%,#0097d7 100%);color:#fff;padding:12px 22px;display:flex;align-items:center;gap:16px}header h1{margin:0;font-size:19px;letter-spacing:.3px;text-shadow:0 1px 2px rgba(0,0,0,.18)}
+ .hdr-mode{margin-left:14px;font-size:12px;font-weight:700;color:#fff;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:3px 12px;white-space:nowrap;letter-spacing:.02em}
+ .hdr-logo{margin-left:auto;max-height:36px;max-width:200px;display:block;object-fit:contain}
+ .hdr-logo-ph{margin-left:auto;font-size:11px;color:rgba(255,255,255,.72);border:1px dashed rgba(255,255,255,.45);border-radius:6px;padding:4px 10px;white-space:nowrap}
  .wrap{max-width:1600px;margin:18px auto;padding:0 18px}
  .card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 5px rgba(0,0,0,.08);margin-bottom:16px;scroll-margin-top:56px}
  .stepper{position:relative;z-index:1;display:flex;gap:6px;background:#eef1f5;padding:9px 8px 8px;margin:0 0 10px;flex-wrap:wrap;border-bottom:1px solid #dde3ec;border-radius:8px}
  .stepper .step{display:inline-flex;align-items:center;gap:5px;background:#fff;color:#37507a;border:1px solid #d3dcea;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;user-select:none;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
  .stepper .step:hover{background:#e7eefc}
- .stepper .step.active{background:#1f3864;color:#fff;border-color:#1f3864}
+ .stepper .step.active{background:#0a74a8;color:#fff;border-color:#0a74a8}
  .stepper .step.is-locked{opacity:.4;cursor:not-allowed;pointer-events:none;background:#f2f4f8}
  .stepper .step.done::before{content:"✓";color:#1f9d55;font-weight:900;margin-right:1px}
  .stepper .step.done.active::before{color:#7ff0a8}
@@ -25,7 +31,7 @@
  .estimate{background:#fff7e6;border:1px solid #f0d9a8;border-radius:8px;padding:10px 12px;font-size:14px;margin:6px 0 4px}
  .estimate b{font-size:18px;color:#b26a00}
  .opts{display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px}
- button{background:#1f3864;color:#fff;border:0;border-radius:8px;padding:11px 22px;font-size:15px;cursor:pointer;margin-top:14px}
+ button{background:#0a74a8;color:#fff;border:0;border-radius:8px;padding:11px 22px;font-size:15px;cursor:pointer;margin-top:14px}
  button:disabled{opacity:.5;cursor:not-allowed}
  /* キーボード操作時のフォーカス可視化（WCAG 2.4.7）。マウスクリックでは出さない(:focus-visible)。 */
  :focus-visible{outline:3px solid #0097d7;outline-offset:2px;border-radius:4px}
@@ -37,7 +43,7 @@
  .sumcard{display:inline-block;margin-right:16px;font-size:14px}.big{font-size:26px;font-weight:700}
  .tabs{max-width:1000px;margin:14px auto 0;padding:0 14px;display:flex;gap:6px}
  .tab{background:#dbe2ec;color:#33415c;border:0;border-radius:8px 8px 0 0;padding:10px 18px;font-size:14px;cursor:pointer;margin:0}
- .tab.active{background:#fff;color:#1f3864;font-weight:700}
+ .tab.active{background:#fff;color:#0a74a8;font-weight:700}
  h3{font-size:16px;margin:0 0 10px}
  select{padding:8px 10px;border:1px solid #cfd6e0;border-radius:8px;font-size:14px}
  input[type=text]{padding:9px 10px;border:1px solid #cfd6e0;border-radius:8px;font-size:14px;box-sizing:border-box}
@@ -118,7 +124,7 @@
  .sidebar .subnav{flex-direction:column;align-items:stretch;gap:4px;margin:2px 0 4px 12px;padding:4px 0 4px 10px;border-left:3px solid #c3d0e6}
  .sidebar .subtab{border-radius:8px;text-align:left;padding:8px 12px;font-size:13px;background:#e7ecf3;color:#37507a;top:0}
  .sidebar .subtab:hover{background:#dbe3ef}
- .sidebar .subtab.active{background:#37507a;color:#fff;box-shadow:none}
+ .sidebar .subtab.active{background:#0a74a8;color:#fff;box-shadow:none}
  .subnav.hidden{display:none}
  .navbtn-admin{background:#f4dede;color:#7a1f1f;border-color:#e2b6b6}
  .sidebar .navbtn-admin.active{background:#7a1f1f;color:#fff;border-color:#7a1f1f}
@@ -165,15 +171,41 @@
  .exec-pick{background:#eef4ff;border:1px solid #cfe0ff;border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
  .exec-pick label{font-weight:700}
  .exec-pick #m-execCases{flex-basis:100%}
- .iss-split{display:flex;gap:12px}@media(max-width:760px){.iss-split{flex-direction:column}}
- .iss-listcol{flex:0 0 42%;max-height:640px;overflow:auto;border:1px solid #e3e8f0;border-radius:8px}
- .iss-detailcol{flex:1;min-width:0;border:1px solid #e3e8f0;border-radius:8px;padding:12px}
+ .iss-split{display:flex;gap:12px;align-items:flex-start}@media(max-width:760px){.iss-split{flex-direction:column}}
+ .iss-listcol{flex:0 0 42%;max-height:70vh;overflow:auto;border:1px solid #e3e8f0;border-radius:8px}
+ /* 詳細は一覧と独立してスクロール（詳細を読んでも一覧が動かない）。上端に追従して見やすく。 */
+ .iss-detailcol{flex:1;min-width:0;max-height:70vh;overflow:auto;border:1px solid #e3e8f0;border-radius:8px;padding:12px;position:sticky;top:8px}
+ @media(max-width:760px){.iss-listcol,.iss-detailcol{max-height:none;position:static}}
+ /* 単一課題モーダル（ボードのカードから開く。看板に戻る導線つき） */
+ .issmodal{position:fixed;inset:0;background:rgba(16,41,63,.45);display:flex;align-items:flex-start;justify-content:center;z-index:1000;padding:24px 12px;overflow:auto}
+ .issmodal.hidden{display:none}
+ .issmodal-panel{background:#fff;border-radius:10px;max-width:820px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3);max-height:90vh;display:flex;flex-direction:column}
+ .issmodal-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #e3e8f0;position:sticky;top:0;background:#fff;border-radius:10px 10px 0 0}
+ .issmodal-body{padding:12px 14px;overflow:auto}
+ .issmodal-back{margin-left:auto;background:#10293f;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:13px;cursor:pointer}
+ .issmodal-back:hover{background:#0a1e30}
+ /* 画像拡大ライトボックス */
+ .imgzoom{position:fixed;inset:0;z-index:2000;background:rgba(10,20,30,.92);display:flex;flex-direction:column}
+ .imgzoom.hidden{display:none}
+ .imgzoom-bar{display:flex;align-items:center;gap:12px;padding:8px 14px;color:#dfeaf5;font-size:13px;background:rgba(0,0,0,.35)}
+ .imgzoom-bar #img-zoom-cap{font-weight:700}
+ .imgzoom-hint{margin-left:auto;font-size:11px;color:#9fb6d8}
+ .imgzoom-x{background:#c62828;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:14px;cursor:pointer}
+ .imgzoom-body{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;padding:16px;cursor:zoom-out}
+ .imgzoom-body img{max-width:100%;height:auto;background:#fff;box-shadow:0 6px 30px rgba(0,0,0,.5)}
  table.iss{width:100%;border-collapse:collapse;font-size:12.5px}
  table.iss th,table.iss td{border-bottom:1px solid #eef1f6;padding:6px 8px;text-align:left;vertical-align:middle}
  table.iss th{background:#f0f4fb;font-size:12px;position:sticky;top:0}
  table.iss th.isort{cursor:pointer;user-select:none;white-space:nowrap}table.iss th.isort:hover{background:#e3ecfa}
  table.iss td.imono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:#556;white-space:nowrap}
  table.iss tr.irow{cursor:pointer}table.iss tr.irow:hover{background:#eef4ff}table.iss tr.irow.sel{background:#dbe7fb}
+ table.iss tr.irow.isnew{background:#fffaf0}table.iss tr.irow.isnew.sel{background:#f4ead6}
+ /* 起票時間＋スイートを1列にまとめ、縦に改行して横幅を節約（横スクロールを避ける） */
+ table.iss td.imeta{vertical-align:top;line-height:1.4;white-space:normal}
+ table.iss td.imeta .imono2{font-family:ui-monospace,Consolas,monospace;font-size:11px;color:#5a6675;white-space:normal;word-break:keep-all}
+ table.iss td.imeta .isuite2{font-size:11px;color:#3a4d73;margin-top:2px;word-break:break-all}
+ table.iss td{vertical-align:top}
+ .newbadge{display:inline-block;background:#c62828;color:#fff;font-size:9px;font-weight:800;border-radius:4px;padding:0 4px;margin-right:4px;vertical-align:middle;letter-spacing:.5px}
  .st-未対応{color:#c62828;font-weight:700}.st-対応中{color:#1565c0;font-weight:700}.st-確認中{color:#6a1b9a;font-weight:700}.st-完了{color:#2e7d32;font-weight:700}.st-対象外{color:#90a4ae}
  .stchip{display:inline-block;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;color:#fff}
  .sc-未対応{background:#c62828}.sc-対応中{background:#1565c0}.sc-確認中{background:#6a1b9a}.sc-完了{background:#2e7d32}.sc-対象外{background:#90a4ae}
@@ -212,7 +244,7 @@
  .btn-sm{padding:5px 12px;font-size:13px;margin:6px 0 0}
  .btn-del{background:#c62828}.btn-gray{background:#607d8b}.btn-mini{background:#90a4ae;padding:2px 8px;font-size:12px;margin:0}
  /* 制御バー（プロジェクト/モード/モデル/業務ドメイン/バッジ） */
- .ctrlbar{position:sticky;top:0;z-index:1600;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#16233f;color:#e8eefc;padding:8px 18px;font-size:13px;border-bottom:2px solid #0d1730}
+ .ctrlbar{position:sticky;top:var(--hdr-h,52px);z-index:1600;display:flex;gap:14px;align-items:center;flex-wrap:wrap;background:#10293f;color:#e8eefc;padding:8px 18px;font-size:13px;border-bottom:2px solid #0d1730}
  .ctrlbar .cb-item{display:inline-flex;align-items:center;gap:5px}
  .ctrlbar select{padding:5px 8px;border-radius:6px;border:1px solid #3b527d;background:#20304f;color:#e8eefc;font-size:13px}
  .ctrlbar button{margin:0;padding:5px 12px;font-size:13px;border-radius:6px}
@@ -225,7 +257,7 @@
  .subnav{display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;margin:2px 0 0;padding:0 4px;position:relative;z-index:2}
  .subtab{background:#dde5f0;color:#45557a;border:1px solid #cdd8e8;border-bottom:0;border-radius:9px 9px 0 0;padding:9px 20px;font-size:13.5px;font-weight:700;cursor:pointer;margin:0;position:relative;top:1px}
  .subtab:hover{background:#e9eff8}
- .subtab.active{background:#fff;color:#1f3864;border-color:#b7c6de;box-shadow:0 -2px 6px rgba(30,50,90,.08)}
+ .subtab.active{background:#fff;color:#0a74a8;border-color:#b7c6de;box-shadow:0 -2px 6px rgba(30,50,90,.08)}
  /* タブの下の区分けパネル（この中身がタブごとに切り替わる＝並列であることを示す） */
  .workspace{background:#fff;border:1px solid #b7c6de;border-radius:0 10px 10px 10px;padding:14px 14px 12px;margin-bottom:6px;position:relative;z-index:1;box-shadow:0 2px 8px rgba(20,30,60,.06)}
  @media(max-width:640px){.subtab{padding:9px 14px}}
@@ -277,7 +309,54 @@
  .prog-steps li .pk{flex:0 0 16px;text-align:center}
  .prog-steps li.cur{color:#243b63;font-weight:600}
  .prog-steps li.sub{color:#8493a8;font-size:11.5px;padding-left:16px}
+ /* エージェントの“ひとりごと”（自律的に考えている感を出す吹き出し） */
+ .prog-think{display:flex;align-items:flex-start;gap:9px;margin:8px 0 2px;padding:9px 11px;background:#fff;border:1px solid #e0d3f2;border-radius:12px;border-top-left-radius:3px;position:relative;box-shadow:0 1px 3px rgba(106,27,154,.06)}
+ .prog-think .pa{flex:0 0 auto;width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6a1b9a,#37507a);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;animation:progpulse 1.6s ease-in-out infinite}
+ .prog-think .pt{flex:1;min-width:0;font-size:12.5px;color:#3a3050;line-height:1.5}
+ .prog-think .pt .pname{font-weight:700;color:#6a1b9a;margin-right:6px;font-size:11.5px}
+ .prog-think .pt .pquote{font-style:italic}
+ .prog-think .pt .pcursor{display:inline-block;width:7px;color:#6a1b9a;animation:progblink 1s steps(1) infinite}
+ .prog.done .prog-think,.prog.fail .prog-think,.prog.stop .prog-think{display:none}
+ @keyframes progblink{0%,50%{opacity:1}51%,100%{opacity:0}}
+ @media(prefers-reduced-motion:reduce){.prog-think .pa,.prog-think .pcursor{animation:none}}
  .prog-meta{font-size:11px;color:#7385a0;margin-top:7px;display:flex;gap:12px;flex-wrap:wrap}
+ /* リアルタイム探索マップ（樹形図） */
+ .prog-graph-wrap{margin:9px 0 3px;border:1px solid #dbe4f0;border-radius:9px;background:#fbfdff}
+ .prog-graph-wrap.hidden{display:none}
+ .prog-graph-sum{cursor:pointer;font-size:12px;font-weight:700;color:#0a5a80;padding:7px 10px;list-style:revert}
+ .prog-graph-sum .pg-meta{font-weight:400;color:#6b7a90;font-size:11.5px}
+ .prog-graph{max-height:300px;overflow:auto;padding:6px 8px}
+ .prog-graph svg{display:block}
+ .prog-graph .pg-node{transition:opacity .12s}.prog-graph .pg-node:hover{opacity:.72}
+ /* 自動改善のラウンド表示（今が何回目か＋各ラウンドの評価値） */
+ .prog-rounds{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 4px}
+ .prog-rounds.hidden{display:none}
+ .rd-lead{font-size:12px;color:#3a4d73;font-weight:600}.rd-lead b{color:#6a1b9a}.rd-ok{color:#2e7d32;font-weight:700}
+ .rd-chip{font-size:11px;padding:2px 9px;border-radius:12px;border:1px solid #d6bdea;background:#fff;color:#5a4a70}
+ .rd-chip.rd-init{border-color:#cdd8ea;color:#5a6b86}
+ .rd-chip.rd-done{border-color:#bfe6cf;background:#eefaf0;color:#1b6b34}.rd-chip.rd-done b{color:#1b5e20}
+ .rd-chip.rd-cur{border-color:#6a1b9a;color:#6a1b9a;box-shadow:0 0 0 2px rgba(106,27,154,.08);animation:progpulse 1.1s ease-in-out infinite}
+ .rd-chip.rd-todo{color:#9aa7b8;border-style:dashed}
+ .rd-stop{font-size:11px;color:#8a5000;background:#fdf3d6;border:1px solid #f0cf8a;border-radius:10px;padding:2px 9px}
+ /* テスト実施中ノードの強調（外側リングを点滅） */
+ .prog-graph .pg-ring{stroke-width:2;opacity:.75;animation:pgring 1.1s ease-in-out infinite}
+ @keyframes pgring{0%,100%{opacity:.75;stroke-width:2}50%{opacity:.12;stroke-width:4}}
+ @media(prefers-reduced-motion:reduce){.prog-graph .pg-ring{animation:none}}
+ /* 画面キャプチャ（従）。今テスト中の1画面だけを、何をしているかの文言とセットで表示。 */
+ .prog-exec-wrap{margin:6px 0 3px;border:1px solid #e4e9f1;border-radius:9px;background:#fafcfe}
+ .prog-exec-wrap.hidden{display:none}
+ .prog-exec-wrap .prog-graph-sum{color:#5a6b86}
+ .prog-exec{padding:8px}
+ .exs-single{display:flex;gap:12px;align-items:flex-start}
+ .exs-thumb{display:block;position:relative;flex:0 0 200px;height:118px;background:#eef2f7;overflow:hidden;border:1px solid #dbe4ee;border-radius:8px}
+ .exs-thumb img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+ .exs-thumb.ex-live{outline:2px solid #0a74a8;outline-offset:-2px;animation:progpulse 1.3s ease-in-out infinite}
+ .ex-noimg{height:100%;display:flex;align-items:center;justify-content:center;color:#9aa7b8;font-size:22px}
+ .exs-single-info{flex:1;min-width:0;padding-top:2px}
+ .exs-single-name{font-size:13px;font-weight:700;color:#33465f;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+ .exs-single-head{margin-top:6px;display:flex;align-items:center;gap:8px}
+ .exs-single-sub{font-size:11.5px;color:#6b7a90;margin-top:5px}
+ @media(max-width:520px){.exs-thumb{flex-basis:120px;height:80px}}
  .prog details{margin-top:7px}.prog details>summary{cursor:pointer;font-size:11.5px;color:#7385a0}
  .prog pre.rawlog{background:#0f1620;color:#cfe3ff;padding:9px;border-radius:7px;margin-top:6px;font-size:11.5px;white-space:pre-wrap;max-height:180px;overflow:auto}
  @keyframes progpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.14);opacity:.75}}
@@ -312,17 +391,21 @@
  .simple-only{display:none}
  .uimode-seg{display:inline-flex;border:1px solid #cfd8e6;border-radius:999px;overflow:hidden;background:#eef2f8}
  .uimode-btn{border:0;background:transparent;font-size:12.5px;font-weight:700;color:#5a6b86;padding:5px 14px;cursor:pointer}
- .uimode-btn.on{background:#2456c9;color:#fff}
+ .uimode-btn.on{background:#0a74a8;color:#fff}
  /* かんたんモード：探索カードのURL行を主役に。ヒントは1行に抑える。 */
  body[data-uimode="simple"] #m-explore{border:1px solid #d7e0ee;box-shadow:0 6px 24px rgba(19,34,61,.07)}
  body[data-uimode="simple"] #m-explore h3{font-size:20px}
  body[data-uimode="simple"] #m-url{font-size:16px;padding:12px 14px}
  body[data-uimode="simple"] #m-exploreBtn{font-size:16px;padding:12px 22px}
  .simple-hint{font-size:13px;color:#5a6b86;margin:6px 0 2px}
- .simple-hint b{color:#2456c9}
+ .simple-hint b{color:#0a6ea0}
  .next-cta{display:none;margin:10px 0;padding:12px 16px;border:1px solid #bcd3f5;background:#eef4fd;border-radius:10px;font-size:14px;color:#22406e;align-items:center;gap:12px}
  body[data-uimode="simple"] .next-cta.show{display:flex}
- .next-cta b{color:#2456c9}
+ /* かんたんモードで完全に隠す（開ける必要のないもの）。※画面遷移図・エージェント思考/合議・実行ライブ等の「見せる機能」は残す。 */
+ body[data-uimode="simple"] .cb-item:has(#cb-domain){display:none}            /* 業務ドメイン選択（自動判定は継続） */
+ body[data-uimode="simple"] #cb-domain-kh{display:none}                        /* 業務ノウハウ・ミニパネル */
+ body[data-uimode="simple"] #view-settings .card:has(#m-covChart){display:none} /* カバレッジ推移 */
+ .next-cta b{color:#0a6ea0}
  /* 「例で試す」押下時に捜索ボタンを一瞬強調 */
  @keyframes attpulse{0%{box-shadow:0 0 0 0 rgba(0,151,215,.5)}70%{box-shadow:0 0 0 10px rgba(0,151,215,0)}100%{box-shadow:0 0 0 0 rgba(0,151,215,0)}}
  .pulse{animation:attpulse 1.2s ease-out 2}
@@ -526,11 +609,44 @@
 
 
 
-<header><h1>TFACT2（仮）</h1></header>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<header><h1>AgentQA</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
- <!-- かんたん/くわしくモード切替は一時無効化（差が小さいため）。復活時はこのコメントを外し initUiMode を戻す。
- <span class="cb-item"><span class="uimode-seg" role="group" aria-label="表示モード"><button id="cb-uimode-simple" class="uimode-btn" type="button" title="URLを入れるだけの最小表示">かんたん</button><button id="cb-uimode-expert" class="uimode-btn" type="button" title="全機能・詳細設定を表示">くわしく</button></span></span>
- -->
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
  <span class="cb-item adv"><button id="cb-mode" class="cb-toggle on" type="button">API利用モード</button></span>
  <span class="cb-item adv"><span class="cb-cap">モデル</span> <select id="cb-model" title="使用モデル"><option value="auto">最適なモデルを自動選択（段階別）</option></select></span>
@@ -552,8 +668,8 @@
    </div>
    <button id="nav-issues" class="navbtn" type="button">課題管理 <span id="nav-issCount" class="navcount hidden">0</span></button>
    <div id="subnav-issues" class="subnav hidden">
-    <button id="iss-tab-board" class="subtab active" type="button">ボード</button>
-    <button id="iss-tab-list" class="subtab" type="button">一覧・詳細</button>
+    <button id="iss-tab-list" class="subtab active" type="button">一覧・詳細</button>
+    <button id="iss-tab-board" class="subtab" type="button">ボード</button>
     <button id="iss-tab-stats" class="subtab" type="button">集計・分析</button>
     <button id="iss-tab-fields" class="subtab" type="button">カスタム項目の設定</button>
    </div>
@@ -581,14 +697,20 @@
    <label>テストケース生成のターゲットURL（修正前 N）<span class="muted" style="font-weight:400">（過去に入力したURLは入力欄クリックで履歴から選べます）</span></label>
    <input id="m-url" type="url" placeholder="https://n.example.com/" list="m-urlHistory" autocomplete="off">
    <datalist id="m-urlHistory"></datalist>
-   <div class="simple-hint simple-only">URLを入れて<b>「捜索」</b>を押すだけ。業種は<b>自動判定</b>し、変更前の状態を基準に記録します。 <a href="#" id="m-sampleUrl">URLが無ければ「例で試す」</a></div>
+   <div class="simple-hint simple-only">URLを入れて<b>「テスト設計」</b>を押すだけ。業種は<b>自動判定</b>、不足観点は<b>自動追加</b>します。 <a href="#" id="m-sampleUrl">URLが無ければ「例で試す」</a></div>
+   <!-- かんたんモード：スライダー1本（テスト量）。値を深さ/広さ/画面数/時間に自動反映。 -->
+   <div class="slider simple-only" style="max-width:560px;margin-top:10px">
+    <div class="lab"><span>テスト量：<b>軽く（速い）</b> ⇔ <b>しっかり（網羅）</b></span><b id="m-simpleAmountLab">標準</b></div>
+    <input type="range" id="m-simpleAmount" min="0" max="1" step="0.05" value="0.5">
+    <div class="muted">右にするほど多くの画面・操作を深く探索します（時間もかかります）。重要な導線から優先的にテストします。</div>
+   </div>
    <div class="adv" style="margin-top:4px"><a href="#" id="m-sampleUrl2" class="muted" style="font-size:12px">サンプルURLを入れて試す</a></div>
 
    <!-- 捜索の方針（表出スライダー） -->
    <div class="slider main adv">
     <div class="lab"><span>捜索の方針：<b>重要なものから</b> ⇔ <b>均等に</b></span><b id="m-priorityv">0.20</b></div>
     <input type="range" id="m-priority" min="0" max="1" step="0.01" value="0.2">
-    <div class="muted">左＝認証/フォーム等の重要導線を優先 ／ 右＝優先度を無視して全リンクを均等に捜索</div>
+    <div class="muted">左＝<b>重要な操作導線を優先</b>し、そこを<b>そこそこ深く</b>探索（既定0.2＝おすすめ）／ 右＝優先度を無視して全リンクを均等に浅く捜索</div>
    </div>
 
    <!-- 推定 -->
@@ -640,13 +762,25 @@ graph TD
   <!-- ② 妥当性レビュー（捜索直後に、まず「十分か」を確認し、追加を判断） -->
   <div class="card hidden" id="m-review">
    <h3>② 妥当性レビュー ── 生成テストは十分か（1回目）</h3>
-   <p class="muted" style="margin:0 0 10px">捜索結果から<b>テスト仕様（機能一覧・テスト観点・画面遷移図）を逆生成</b>し、まず「十分か」を確認します。追加は下の「追加アクション」から。下の③でロケータ等を修正したら「レビュー表示を更新」で反映できます。</p>
+   <p class="muted" style="margin:0 0 10px">捜索結果から<b>テスト仕様（機能一覧・テスト観点・画面遷移図）を逆生成</b>し、まず「十分か」を確認します。追加は下の「追加アクション」から。<b>下の③でケースを編集すると、この表示は自動で更新されます。</b></p>
    <div id="m-suf"></div>
-   <button id="m-reviewBtn" class="btn-sm btn-gray" style="margin:8px 0 10px">レビュー表示を更新（編集を反映・テストは変更しません）</button>
-   <iframe id="m-reviewFrame" src="about:blank" style="width:100%;height:640px;border:1px solid #cfd6e0;border-radius:8px;background:#fff"></iframe>
+   <details class="editsec revfold" open>
+    <summary>逆生成した仕様・レビュー表示 ── 機能一覧／テスト観点／画面遷移図（クリックで開閉）</summary>
+    <iframe id="m-reviewFrame" src="about:blank" style="width:100%;height:640px;border:1px solid #cfd6e0;border-radius:8px;background:#fff;margin-top:8px"></iframe>
+   </details>
 
-   <!-- 結果を一通り見た後の「追加アクション」を末尾にまとめて設置 -->
-   <div class="actions-box" id="m-actions">
+   <!-- かんたんモード：ワンクリックで「レビュー→改善→ケース追記」を1回だけ自動実行 -->
+   <div class="simple-only" id="m-simpleReview" style="margin-top:12px;padding:14px 16px;border:1px solid #e0d3ef;background:#faf6ff;border-radius:12px">
+    <div style="font-weight:700;font-size:15px;margin-bottom:4px">🤖 AIレビューで自動改善（1回）</div>
+    <p class="muted" style="margin:0 0 10px;font-size:13px">AIが現状のテストを1回レビューし、<b>不足観点＋改善ケースを自動で追記</b>します（追加ケースの基準取得まで自動。Claude API・従量課金）。</p>
+    <button id="m-simpleReviewBtn" class="btn-sm" style="margin:0;background:#6a1b9a">AIレビューして自動で追記</button>
+    <span class="muted" id="m-simpleReviewMsg" style="font-size:12px;margin-left:8px"></span>
+    <pre id="m-simpleReviewLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:180px;overflow:auto"></pre>
+    <div id="m-simpleReviewResult" style="margin-top:8px"></div>
+   </div>
+
+   <!-- 結果を一通り見た後の「追加アクション」を末尾にまとめて設置（くわしくモードのみ） -->
+   <div class="actions-box adv" id="m-actions">
     <h4 style="margin:0 0 4px">結果を確認したら、追加するものを選びましょう</h4>
     <p class="muted" style="margin:0 0 10px">下の各アクションは、<b>上のレビューの対応する項目に紐づいています</b>（見出しに「レビューのどこに対応するか」を明記）。<b>いずれも既存テストは保持したまま「追加」します</b>（作り直しません。誤りは下の③で修正）。</p>
     <div class="act-sec">
@@ -660,8 +794,8 @@ graph TD
      <div id="m-applyRecResult" class="hidden" style="margin-top:8px;background:#eef4ff;border:1px solid #cfe0ff;border-radius:8px;padding:8px 10px;font-size:13px"></div>
     </div>
     <div class="act-sec">
-     <div class="act-hd">③ AIレビュー ── 現状評価＋（任意で）目標まで自動改善</div>
-     <p class="muted" style="margin:2px 0 8px">まず現状のテストをAI（架空のレビュアー）が評価します。下の<b>改善ラウンド数を1以上</b>にすると、そのまま「レビュー→不足観点＋AI改善ケース追加→再レビュー」を<b>目標評価に到達するか頭打ちになるまで自動で反復</b>します（Claude API・要APIキー・従量課金。ラウンドを増やすほど費用増）。</p>
+     <div class="act-hd">③ AIレビュー ── まず現状を評価（任意で自動改善まで）</div>
+     <p class="muted" style="margin:2px 0 8px">AI（架空のレビュアー）が現状のテストを評価します（<b>スイートは変更しません</b>）。結果を見て、下の<b>「このレビューをテストに反映」</b>で改善を1回反映できます（繰り返し可）。まとめてやりたい場合は下の<b>「目標点まで自動で改善を繰り返す」</b>にチェックすると、レビュー→改善→再レビューを目標到達まで自動反復します（Claude API・従量課金）。</p>
      <div style="margin:2px 0 10px">
       <label style="font-weight:700;margin-right:6px">レビュー方式</label>
       <select id="m-reviewMode">
@@ -676,18 +810,24 @@ graph TD
       <input type="range" id="m-aiDepth" min="0" max="1" step="0.05" value="0.6">
       <div class="muted">深いほど各観点の指摘・生成ケース数の上限が増え（最大30指摘/40ケース）、修正箇所を残らず洗い出します（トークン＝課金も増加）。</div>
      </div>
-     <div class="slider" style="max-width:520px;margin:2px 0 6px">
-      <div class="lab"><span>改善ラウンド数（<b>0＝レビューのみ</b> ／ 1以上＝目標まで自動改善）</span><b id="m-aiRoundsv">0回（レビューのみ）</b></div>
-      <input type="range" id="m-aiRounds" min="0" max="3" step="1" value="0">
-     </div>
-     <div id="m-targetWrap" class="slider hidden" style="max-width:520px;margin:2px 0 8px">
-      <div class="lab"><span>目標 総合評価（自動改善の到達目標）</span><b id="m-aiTargetv">85点</b></div>
-      <input type="range" id="m-aiTarget" min="60" max="100" step="1" value="85">
+     <label style="display:block;margin:6px 0;font-weight:700"><input type="checkbox" id="m-aiAuto"> レビュー後、<b>目標点まで自動で改善を繰り返す</b>（不足観点＋AI改善ケースを追加。Claude API・従量課金）</label>
+     <div id="m-autoOpts" class="hidden" style="margin:2px 0 8px 22px">
+      <div class="slider" style="max-width:480px;margin:2px 0 8px">
+       <div class="lab"><span>最大反復回数</span><b id="m-aiRoundsv">2回</b></div>
+       <input type="range" id="m-aiRounds" min="1" max="3" step="1" value="2">
+      </div>
+      <div class="slider" style="max-width:480px;margin:2px 0 8px">
+       <div class="lab"><span>目標 総合評価（到達したら停止）</span><b id="m-aiTargetv">85点</b></div>
+       <input type="range" id="m-aiTarget" min="60" max="100" step="1" value="85">
+      </div>
      </div>
      <button id="m-aiReviewBtn" class="btn-sm" style="background:#6a1b9a">AIレビューを実行</button>
-     <span class="muted" id="m-aiRunNote">※現在は「レビューのみ」（スイートは変更しません）。ラウンド数を1以上にすると自動改善まで実行します。</span>
+     <span class="muted" id="m-aiRunNote">※まず現状を評価します（スイートは変更しません）。反映は結果の下の「このレビューをテストに反映」から。上のチェックで自動改善まで一気に実行できます。</span>
      <pre id="m-aiLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre>
-     <div id="m-aiResult"></div>
+     <details id="m-aiResultFold" class="editsec revfold hidden" open style="margin-top:8px">
+      <summary>AIレビュー結果 ── 各観点の評価・指摘・改善案（クリックで開閉）</summary>
+      <div id="m-aiResult" style="margin-top:8px"></div>
+     </details>
      <div id="m-autoResult" style="margin-top:8px"></div>
     </div>
    </div>
@@ -709,26 +849,45 @@ graph TD
     <div class="ex-main"><div class="ex-path" id="m-path"></div><div class="ex-list" id="m-cases"></div></div>
    </div>
    <div id="m-ctx" class="ctxmenu hidden"></div>
-   <button id="m-addCase" class="btn-sm" style="background:#2e7d32">＋ 空のテストケースを追加</button>
-   <button id="m-xlsx" class="btn-sm btn-gray">テストケースをExcel出力</button>
-   <button id="m-codePw" class="btn-sm btn-gray" title="Playwright の spec ファイルとして書き出し（CIで実行可能）">Playwrightコード出力</button>
-   <button id="m-codeCy" class="btn-sm btn-gray" title="Cypress の spec ファイルとして書き出し">Cypressコード出力</button>
-   <button id="m-specHtml" class="btn-sm btn-gray" title="観測から仕様書をリバース生成（画面一覧/遷移図/機能/操作フロー/API）。HTML">仕様書を生成（HTML）</button>
-   <button id="m-specMd" class="btn-sm btn-gray" title="仕様書をMarkdownで出力">仕様書(Markdown)</button>
-   <button id="m-specXlsx" class="btn-sm btn-gray" title="仕様書をExcel（概要/画面一覧/機能/操作フロー/API の複数シート）で出力">仕様書(Excel)</button>
-   <button id="m-specLlm" class="btn-sm" style="background:#6a1b9a" title="LLMで概要・画面説明・機能説明・業務フローを文章化し、以降の仕様書出力に織り込みます（要APIキー）">LLMで文章化</button>
-   <span id="m-specLlmMsg" class="muted" style="font-size:12px"></span>
-   <button id="m-approveAll" class="btn-sm btn-gray" title="1回目(N)取得済みのケースを一括で承認（ゴールデン化）。承認済みの差分だけが回帰NGになります">★ 全て承認（ゴールデン化）</button>
-   <button id="m-genAsserts" class="btn-sm btn-gray" title="読み込んだ仕様書の用語（画面名/機能名）を、観測ページに紐づけて肯定的アサーションを生成。N比較が無くても『あるべき文言/画面』を検証できます">仕様からアサーション生成</button>
-   <button id="m-faultCheck" class="btn-sm btn-gray" title="N観測に典型欠陥を注入し、このテストが実際に検知できるかを測ります（検出力）">検出力チェック（フォールト注入）</button>
-   <button id="m-traceBtn" class="btn-sm btn-gray" title="仕様の画面/機能とテストケースの対応表を作ります（要件トレーサビリティ）">要件トレーサビリティ</button>
-   <button id="m-confBtn" class="btn-sm" style="background:#37507a" title="検出力・網羅・信頼度・仕様担保・安定性を束ね、リスク重み付けした総合『リリース確度』を評価します">◎ リリース確度を評価</button>
-   <span id="m-approveCount" class="muted" style="font-size:12px"></span>
+   <!-- よく使う操作は常時表示。仕様書生成やコード出力・品質チェックは分類して折り畳む -->
+   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px">
+    <button id="m-addCase" class="btn-sm" style="background:#2e7d32">＋ 空のテストケースを追加</button>
+    <button id="m-xlsx" class="btn-sm btn-gray">テストケースをExcel出力</button>
+    <button id="m-approveAll" class="btn-sm btn-gray adv" title="1回目(N)取得済みのケースを一括で承認（ゴールデン化）。承認済みの差分だけが回帰NGになります">★ 全て承認（ゴールデン化）</button>
+    <button id="m-confBtn" class="btn-sm adv" style="background:#37507a" title="検出力・網羅・信頼度・仕様担保・安定性を束ね、リスク重み付けした総合『リリース確度』を評価します">◎ リリース確度を評価</button>
+    <span id="m-approveCount" class="muted" style="font-size:12px"></span>
+   </div>
    <div id="m-confResult" style="margin-top:6px"></div>
-   <div id="m-assertMsg" class="muted" style="font-size:12px;margin-top:4px"></div>
-   <div id="m-faultResult" style="margin-top:6px"></div>
-   <div id="m-traceResult" style="margin-top:6px"></div>
-   <details class="editsec" style="margin-top:10px">
+   <details class="editsec adv" style="margin-top:8px">
+    <summary>仕様書・ドキュメント生成 ── 観測から仕様書やテストコードを出力</summary>
+    <p class="muted" style="margin:8px 0 6px;font-size:12px">捜索した観測結果から、<b>仕様書</b>（画面一覧/遷移図/機能/操作フロー/API）や<b>テストコード</b>を書き出します。<b>先に「LLMで文章化」</b>を実行しておくと、概要・画面説明・業務フローの文章が仕様書に織り込まれます（要APIキー・任意）。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+     <button id="m-specLlm" class="btn-sm" style="background:#6a1b9a" title="先に実行推奨：概要・画面説明・機能説明・業務フローをLLMで文章化し、以降の仕様書出力に織り込みます（要APIキー）">① LLMで文章化（先に実行・任意）</button>
+     <span id="m-specLlmMsg" class="muted" style="font-size:12px"></span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     <button id="m-specHtml" class="btn-sm btn-gray" title="観測から仕様書をリバース生成（画面一覧/遷移図/機能/操作フロー/API）。HTML">② 仕様書を生成（HTML）</button>
+     <button id="m-specMd" class="btn-sm btn-gray" title="仕様書をMarkdownで出力">仕様書(Markdown)</button>
+     <button id="m-specXlsx" class="btn-sm btn-gray" title="仕様書をExcel（概要/画面一覧/機能/操作フロー/API の複数シート）で出力">仕様書(Excel)</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
+     <button id="m-codePw" class="btn-sm btn-gray" title="Playwright の spec ファイルとして書き出し（CIで実行可能）">Playwrightコード出力</button>
+     <button id="m-codeCy" class="btn-sm btn-gray" title="Cypress の spec ファイルとして書き出し">Cypressコード出力</button>
+    </div>
+   </details>
+   <details class="editsec adv" style="margin-top:8px">
+    <summary>品質チェック ── 仕様担保・検出力・トレーサビリティ</summary>
+    <p class="muted" style="margin:8px 0 6px;font-size:12px">このテストが<b>本当に効くか</b>を測ります（読み込んだ仕様書があるとより精密になります）。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     <button id="m-genAsserts" class="btn-sm btn-gray" title="読み込んだ仕様書の用語（画面名/機能名）を、観測ページに紐づけて肯定的アサーションを生成。N比較が無くても『あるべき文言/画面』を検証できます">仕様からアサーション生成</button>
+     <button id="m-faultCheck" class="btn-sm btn-gray" title="N観測に典型欠陥を注入し、このテストが実際に検知できるかを測ります（検出力）">検出力チェック（フォールト注入）</button>
+     <button id="m-traceBtn" class="btn-sm btn-gray" title="仕様の画面/機能とテストケースの対応表を作ります（要件トレーサビリティ）">要件トレーサビリティ</button>
+    </div>
+    <div id="m-assertMsg" class="muted" style="font-size:12px;margin-top:6px"></div>
+    <div id="m-faultResult" style="margin-top:6px"></div>
+    <div id="m-traceResult" style="margin-top:6px"></div>
+   </details>
+   <details class="editsec adv" style="margin-top:10px">
     <summary>DBデータ更新の検証（設定は接続だけ・クエリ任意）</summary>
     <div style="margin:6px 0;padding:6px 8px;background:#eef6ee;border:1px solid #cfe0cf;border-radius:6px;font-size:12px"><b>自動発見モード（既定）</b>：「設定」画面でDB接続を保存しておくと、<b>テスト実行の前後でDBを丸ごとスナップショットし、変化したテーブル・行を自動で検出</b>します。クエリやテーブルの指定は不要です（read-only・動的値は正規化）。<br><b>初回は全テーブル</b>を対象にし、結果画面で<b>「★ DBデータ更新を期待値に承認」</b>すると、<b>以降は更新のあったテーブルだけ</b>を対象にして軽量化＆回帰判定します。<span id="m-dbFocusState"></span></div>
     <div class="muted" style="margin:6px 0">下の<b>検証クエリ（任意・上級者向け）</b>は、特定の行だけを期待値化して毎回チェックしたい場合に使います。通常は不要です。無視列に id/created_at 等を入れると誤検知を防げます。</div>
@@ -741,12 +900,6 @@ graph TD
     </div>
     <div id="m-dbResult" style="margin-top:6px"></div>
    </details>
-   <div style="margin-top:10px;border-top:1px dashed #cfd6e0;padding-top:8px">
-    <div class="muted" style="margin-bottom:4px">レビューや改善で<b>1回目に追加したケース</b>は、まだ「1回目(N)の結果」が無いため、テスト実行(⑤)の比較では対象外になります。下のボタンで<b>開始URL(1回目)に対して実行し、Nを取得＝比較対象</b>にできます。</div>
-    <button id="m-captureBtn" class="btn-sm" style="background:#00695c">追加ケースの1回目(N)を実行して比較対象にする</button>
-    <span id="m-captureMsg" class="muted"></span>
-    <pre id="m-captureLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:160px;overflow:auto"></pre>
-   </div>
   </div>
 
   <!-- ④ 名前を付けて保存（③編集とは別カードに分離し、ステッパー5工程と1対1対応） -->
@@ -775,15 +928,17 @@ graph TD
    <div class="opts" style="margin-top:10px">
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-shots" checked> スクショ/視覚差分</label>
     <label style="display:inline;font-weight:400"><input type="checkbox" id="m-video" checked> 録画（動画を保存・結果画面で再生）</label>
-    <label style="display:inline;font-weight:400;margin-left:6px">判定感度
+    <label class="adv" style="display:inline;font-weight:400;margin-left:6px">判定感度
      <select id="m-sensitivity" style="font-size:13px">
       <option value="standard" selected>標準（日時/ID/UUID等の動的値は無視）</option>
       <option value="high">厳格（微差も検出・視覚0.3%）</option>
       <option value="low">寛容（動的値・非機能を無視・視覚2%）</option>
      </select></label>
    </div>
-   <div class="muted" id="m-sensNote" style="font-size:12px;margin:2px 0 0"></div>
-   <details class="editsec" style="margin-top:8px">
+   <div class="muted adv" id="m-sensNote" style="font-size:12px;margin:2px 0 0"></div>
+   <label class="adv" style="display:block;margin:8px 0 2px;font-size:13px"><input type="checkbox" id="m-ignoreApi"> <b>API通信の差分を比較しない</b>（fetch/XHRの呼出・レスポンスを判定に含めない）</label>
+   <div class="muted adv" style="font-size:12px;margin:0 0 4px 22px">修正前(N)と修正後(N+1)で<b>URL/環境が違う</b>とAPIの宛先も変わり、差分がノイズになりがちです。API挙動を比較したくない場合はONにしてください（画面表示・DOM・視覚差分の比較は継続）。</div>
+   <details class="editsec adv" style="margin-top:8px">
     <summary>API比較で無視するパターン（任意・動的ID/タイムスタンプ等）</summary>
     <div class="muted" style="margin:6px 0">数値ID・UUID・長いhash・6桁以上の数字を含むパスは<b>自動で無視</b>されます。ここでは<b>追加で無視</b>したい通信を1行1パターンで指定します（部分一致。<code>/正規表現/</code> も可）。例）<code>/api/ping</code>、<code>/\/session\/[a-z0-9]+/</code>、<code>timestamp=</code></div>
     <textarea id="m-apiIgnore" rows="3" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:12px" placeholder="例）&#10;/api/telemetry&#10;//orders/[A-Z0-9]{6,}/&#10;t=（クエリのタイムスタンプ）"></textarea>
@@ -793,14 +948,19 @@ graph TD
    <div id="m-resultCard" class="hidden" style="margin-top:12px">
     <div id="m-verdict"></div>
     <div id="m-resultActions" style="margin:10px 0;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
-     <button id="m-fileIssueBtn" class="btn-sm hidden" style="background:#c62828">起票する（内容を確認して登録）</button>
-     <button id="m-approveChangesBtn" class="btn-sm hidden" style="background:#c9a400" title="この差分が意図した変更なら、N+1の挙動を新しい「正（ゴールデン）」として承認し、次回からの基準にします">★ 変化を承認（新挙動を次回の基準に）</button>
+     <button id="m-approveChangesBtn" class="btn-sm hidden adv" style="background:#c9a400" title="この差分が意図した変更なら、N+1の挙動を新しい「正（ゴールデン）」として承認し、次回からの基準にします">★ 変化を承認（新挙動を次回の基準に）</button>
      <button id="m-dbApproveBtn" class="btn-sm hidden" style="background:#c9a400" title="このテスト実行で起きたDBデータ更新パターンを期待値として承認。次回から更新パターンの回帰を判定します">★ DBデータ更新を期待値に承認</button>
      <a id="m-reportLink" href="#" target="_blank" style="font-weight:600">総合テスト報告書 ↗</a>
      <a id="m-xlsxLink" href="#" style="font-weight:600">テストケースExcel ⬇</a>
      <a id="m-issuesLink" href="#" class="hidden" style="font-weight:600;color:#c62828">課題管理で確認</a>
     </div>
-    <div id="m-issueDraft" class="hidden" style="margin:10px 0;border:1px solid #f0c9c9;background:#fff7f7;border-radius:8px;padding:12px"></div>
+    <!-- 起票は「判定を見た後」に押す位置（判定の直下・ダッシュボードの上）へ。差分がある時だけ表示。 -->
+    <div id="m-fileSec" class="hidden" style="margin:10px 0;border:1px solid #f0c9c9;background:#fff7f7;border-radius:8px;padding:10px 12px">
+     <div style="font-size:13px;color:#c62828;font-weight:700;margin-bottom:6px">差分が見つかりました → 課題として起票</div>
+     <div class="muted" style="font-size:12px;margin-bottom:8px">下の「詳細（ダッシュボード）」で差分を確認してから起票できます。</div>
+     <button id="m-fileIssueBtn" class="btn-sm" style="background:#c62828">起票する（内容を確認して登録）</button>
+     <div id="m-issueDraft" class="hidden" style="margin:10px 0;border:1px solid #f0c9c9;background:#fff;border-radius:8px;padding:12px"></div>
+    </div>
     <details id="m-dashDetails"><summary>詳細（ダッシュボード：ケース別・網羅・遷移図など）を開く</summary>
      <div style="margin-top:8px"><a id="m-openLink" href="#" target="_blank" class="muted">新しいタブで開く ↗</a></div>
      <iframe id="m-frame" src="about:blank"></iframe>
@@ -823,18 +983,20 @@ graph TD
  <div id="view-issues" class="screen hidden">
   <!-- サブタブ（一覧/集計/設定）は左サイドバーへ移動 -->
   <div class="workspace">
-  <div id="iss-view-board" class="card">
+  <div id="iss-view-board" class="card hidden">
    <div class="issbar"><h3 style="margin:0">ボード</h3><span class="muted" style="margin-left:6px">カードをドラッグしてステータスを変更できます</span>
     <input id="m-boardSearch" placeholder="検索（キー/タイトル/担当/ラベル）…" style="width:220px;padding:3px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px;margin-left:auto">
    </div>
    <div id="iss-board" class="kanban"></div>
   </div>
-  <div id="iss-view-list" class="card hidden">
+  <div id="iss-view-list" class="card">
    <div class="issbar">
     <h3 style="margin:0">課題一覧</h3>
     <span class="muted" id="m-issMeta" style="margin-left:6px"></span>
-    <label style="font-weight:400;font-size:13px;margin-left:auto"><input type="checkbox" id="m-issOpen"> 未完了のみ</label>
-    <input id="m-issSearch" placeholder="検索…" style="width:140px;padding:3px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px">
+    <label style="font-weight:400;font-size:12px;margin-left:auto">スイート <select id="m-issSuiteFilter" style="padding:3px 4px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px;max-width:180px"><option value="">すべて</option></select></label>
+    <label style="font-weight:400;font-size:12px">重要度 <select id="m-issPriFilter" style="padding:3px 4px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px"><option value="">すべて</option><option value="高">高</option><option value="中">中</option><option value="低">低</option></select></label>
+    <label style="font-weight:400;font-size:13px"><input type="checkbox" id="m-issOpen"> 未完了のみ</label>
+    <input id="m-issSearch" placeholder="検索…" style="width:120px;padding:3px 6px;border:1px solid #d5dbe3;border-radius:4px;font-size:12px">
     <button id="m-issReload" class="btn-mini btn-gray">再読込</button>
    </div>
    <div class="iss-split">
@@ -854,11 +1016,31 @@ graph TD
    <div style="margin-top:10px"><button id="iss-fields-save" style="margin:0">項目定義を保存</button> <span id="iss-fields-msg" class="muted"></span></div>
   </div>
   </div><!-- /workspace -->
+  <!-- ボードのカードから開く単一課題モーダル（一覧へ飛ばず、その課題だけを表示。閉じると看板へ戻る） -->
+  <div id="iss-modal" class="issmodal hidden">
+   <div class="issmodal-panel">
+    <div class="issmodal-head"><b style="font-size:14px">課題の詳細</b><button type="button" id="iss-modal-back" class="issmodal-back">✕ 閉じて看板に戻る</button></div>
+    <div class="issmodal-body" id="m-issModalBody"></div>
+   </div>
+  </div>
+ </div>
+ <!-- 画像の拡大表示（証跡スクショ・差分画像をクリックで拡大／ホイールでズーム） -->
+ <div id="img-zoom" class="imgzoom hidden">
+  <div class="imgzoom-bar"><span id="img-zoom-cap"></span><span class="imgzoom-hint">クリック/✕で閉じる ・ ホイールでズーム</span><button type="button" id="img-zoom-x" class="imgzoom-x">✕</button></div>
+  <div class="imgzoom-body" id="img-zoom-body"><img id="img-zoom-img" alt=""></div>
  </div>
 
  <!-- 設定（プロジェクト単位）：担当者マスタ・定期実行 -->
  <div id="view-settings" class="screen hidden">
   <div style="font-weight:700;color:#2a4b7c;margin:2px 0 10px">設定（このプロジェクト） <span class="muted" style="font-weight:400;font-size:12px">── プロジェクトごとに保存されます</span></div>
+  <div class="card">
+   <h3>表示モード</h3>
+   <p class="muted" style="margin:0 0 8px">「シンプル」＝URL→設計→実行→差分→課題登録の最小フロー（詳細設定・モデル/業種選択などは隠します）。「詳細」＝全機能を表示。</p>
+   <span class="uimode-seg" role="group" aria-label="表示モード">
+    <button id="cb-uimode-simple" class="uimode-btn" type="button" title="URLを入れるだけの最小フロー（設計→実行→差分→課題）">シンプル</button>
+    <button id="cb-uimode-expert" class="uimode-btn" type="button" title="全機能・詳細設定を表示">詳細</button>
+   </span>
+  </div>
   <div class="card">
    <h3>カバレッジ推移（テストの成長）</h3>
    <p class="muted" style="margin:0 0 8px">スイートを保存するたびに記録します。実装が進む＝テストケース・到達画面・仕様適合が増えていく様子を時系列で確認できます（早期E2Eの成長の見える化）。</p>
@@ -1031,10 +1213,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
   <span class="muted" id="tb-breakdown" style="color:#9fb6d8"></span>
   <span style="margin-left:auto;display:inline-flex;align-items:center;gap:10px;color:#9fb6d8">
    <span>期間 <input type="range" id="tb-range" min="5" max="100" step="5" value="100" style="width:130px;vertical-align:middle" title="表示する直近の期間（右=全期間、左=直近だけ拡大）"> <b id="tb-rangeLbl" style="color:#cdd9f0">全期間</b></span>
-   <span class="tb-toggle" id="tb-toggle" style="margin:0">▼ 隠す</span>
+   <span class="tb-toggle" id="tb-toggle" style="margin:0">▲ 表示</span>
   </span>
  </div>
- <div class="tb-graphs">
+ <div class="tb-graphs" style="display:none">
   <div class="tb-legend"><span style="color:#ffd479">■ 金額 ¥（左軸）</span>　<span style="color:#8fe3a0">■ トークン量（右軸）</span></div>
   <div class="tb-plot">
    <div class="tb-yaxis tb-yleft" id="tb-yleft" title="累計金額(円)"></div>
@@ -1079,8 +1261,14 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var mdl=$('cb-model'); if(mdl){ mdl.innerHTML='<option value="auto">最適なモデルを自動選択（段階別）</option>'+(ATT_ENV.models||[]).map(function(m){return '<option value="'+m.id+'">'+escHtml(m.label)+'</option>';}).join(''); }
    renderDomainSelect(); renderDomainPrompts(); renderDomainMini();
    if(!ATT_ENV.llmAvailable){ apiMode=false; } // キー無ければ強制オフ
-   applyModeUi(); updateBadge();
+   applyModeUi(); updateBadge(); applyHeaderLogo();
  }).catch(function(){}); }
+ // ヘッダ固定：高さを --hdr-h に反映（下のコントロールバーを重ねない）。会社ロゴは ATT_ENV.logoUrl（サーバ ATT_LOGO_URL）or window.__LOGO_URL があれば右端に表示。
+ function setHdrH(){ var h=document.querySelector('header'); if(h) document.documentElement.style.setProperty('--hdr-h', h.offsetHeight+'px'); }
+ function applyHeaderLogo(){ var lu=(window.ATT_ENV&&ATT_ENV.logoUrl)||window.__LOGO_URL||''; var img=$('hdr-logo'), ph=$('hdr-logo-ph');
+   if(lu&&img){ img.onload=function(){ img.style.display=''; if(ph)ph.style.display='none'; setHdrH(); }; img.onerror=function(){ img.style.display='none'; if(ph)ph.style.display=''; setHdrH(); }; img.src=lu; }
+   else { if(img) img.style.display='none'; if(ph) ph.style.display=''; setHdrH(); } }
+ (function(){ setHdrH(); window.addEventListener('resize', setHdrH); applyHeaderLogo(); })();
  // 業務ドメイン：組込み(ATT_ENV.domains)＋利用者追加(__customDomains)。プロンプトは業務別に保持(__domainPrompts)。
  window.__domainPrompts={}; window.__customDomains=[];
  function allDomains(){ return (ATT_ENV.domains||[]).concat(window.__customDomains||[]); }
@@ -1089,7 +1277,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function currentDomainPrompt(){ var key=$('cb-domain')?$('cb-domain').value:'none'; if(key==='none')return ''; var m=window.__domainPrompts||{}; return (m[key]!=null&&m[key]!=='')?m[key]:domainPromptFor(key); }
  // ヘッダの業務ドメイン選択：分類ごとに optgroup でツリー表示。
  function renderDomainSelect(){ var dom=$('cb-domain'); if(!dom)return; var cur=dom.value;
-   var tree=ATT_ENV.domainTree||[]; var html='<option value="auto">🔎 自動判定（探索して業種を推定）</option><option value="none">（業務指定なし）</option>';
+   // ヘッダの「業界選択」では共通（一般的なWeb観点）はツリーとして不要なため除外し、業種の選択に集中させる。
+   var tree=(ATT_ENV.domainTree||[]).filter(function(g){return g.category&&g.category.key!=='common';});
+   var html='<option value="auto">🔎 自動判定（探索して業種を推定）</option><option value="none">（業務指定なし）</option>';
    if(tree.length){ tree.forEach(function(g){ html+='<optgroup label="'+escHtml(g.category.label)+'">'+(g.domains||[]).map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>'; }); }
    else { html+=allDomains().filter(function(d){return d.key!=='none';}).map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join(''); }
    var cust=(window.__customDomains||[]); if(cust.length) html+='<optgroup label="利用者追加">'+cust.map(function(d){return '<option value="'+escAttr(d.key)+'">'+escHtml(d.label)+'</option>';}).join('')+'</optgroup>';
@@ -1211,12 +1401,13 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if($('set-notifyAlways')) $('set-notifyAlways').checked=!!s.notifyAlways;
    if($('set-authState')) $('set-authState').value=s.authStatePath||'';
    if(s.sensitivity&&$('m-sensitivity')){ $('m-sensitivity').value=s.sensitivity; try{ $('m-sensitivity').dispatchEvent(new Event('change')); }catch(e){} }
+   if($('m-ignoreApi')) $('m-ignoreApi').checked=(s.ignoreApi===true);
    window.__dbConn=(s.dbConn&&typeof s.dbConn==='object')?s.dbConn:{}; if(typeof renderDbConn==='function') renderDbConn();
    window.__assignees=Array.isArray(s.assignees)?s.assignees:[]; renderAssigneeMaster(); renderAssigneeDatalist();
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, ignoreApi:$('m-ignoreApi')?$('m-ignoreApi').checked:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); });
@@ -1246,6 +1437,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var bar=$('m-tokenbar'); if(!bar) return;
    if(!s||!s.count){ bar.classList.add('hidden'); document.body.classList.remove('tb-on'); return; }
    bar.classList.remove('hidden'); document.body.classList.add('tb-on');
+   // グラフの開閉状態に合わせて下部余白を調整（既定は閉じた状態＝tb-min）
+   var tbg=document.querySelector('#m-tokenbar .tb-graphs'); document.body.classList.toggle('tb-min', !!(tbg && tbg.style.display==='none'));
    $('tb-tokens').textContent=fmtInt(s.totalTokens);
    $('tb-yen').textContent='¥'+fmtInt(Math.round(s.totalJpy));
    $('tb-usd').textContent='($'+(s.totalUsd||0).toFixed(3)+' ／ '+fmtInt(Math.round(s.jpyPerUsd))+'円/$)';
@@ -1303,17 +1496,23 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function applyUiMode(m){ curUiMode=(m==='expert')?'expert':'simple'; document.body.setAttribute('data-uimode',curUiMode);
    var bs=$('cb-uimode-simple'), be=$('cb-uimode-expert');
    if(bs) bs.classList.toggle('on',curUiMode==='simple'); if(be) be.classList.toggle('on',curUiMode==='expert');
+   // 設定画面のトグル（同じIDを設置する場合の見た目同期）
+   var bs2=$('set-uimode-simple'), be2=$('set-uimode-expert');
+   if(bs2) bs2.classList.toggle('on',curUiMode==='simple'); if(be2) be2.classList.toggle('on',curUiMode==='expert');
+   // ヘッダのモード表示（設定画面で切替）
+   var hm=$('hdr-mode'); if(hm) hm.textContent=(curUiMode==='simple'?'シンプルモード':'詳細モード');
+   // かんたんモードは実行の既定を固定：API比較オフ・感度は標準（コントロールは非表示）。
+   if(curUiMode==='simple'){ var ia=$('m-ignoreApi'); if(ia) ia.checked=true; var se=$('m-sensitivity'); if(se) se.value='standard'; }
    try{ localStorage.setItem('att_uimode',curUiMode); }catch(e){}
  }
  function initUiMode(){
-   // かんたんモードは一時無効化（差が小さいため）。常時「くわしく」＝全機能表示に固定。
-   // 復活時は下のコメントを外し、上の固定行を削除する。
-   applyUiMode('expert');
-   /* var saved='simple'; try{ saved=localStorage.getItem('att_uimode')||'simple'; }catch(e){}
+   // 既定は「かんたん」＝URL→設計→実行→差分→課題登録の最小フロー（.adv を隠す）。
+   // 「くわしく」で全機能を表示。設定はlocalStorageに保存し、プロジェクトにも同期。
+   var saved='simple'; try{ saved=localStorage.getItem('att_uimode')||'simple'; }catch(e){}
    applyUiMode(saved);
    var bs=$('cb-uimode-simple'), be=$('cb-uimode-expert');
    if(bs) bs.addEventListener('click',function(){ applyUiMode('simple'); saveUiModePref('simple'); });
-   if(be) be.addEventListener('click',function(){ applyUiMode('expert'); saveUiModePref('expert'); }); */
+   if(be) be.addEventListener('click',function(){ applyUiMode('expert'); saveUiModePref('expert'); });
    // 初回のみ：3ステップの案内を表示（マニュアル不要の導線）。×で以降非表示。
    var seen=false; try{ seen=!!localStorage.getItem('att_seen_intro'); }catch(e){}
    var intro=$('m-intro'); if(intro&&!seen){ intro.style.display='flex'; }
@@ -1339,8 +1538,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
            +'<td style="font-size:12px"><a href="'+withTok('runs/'+v.runId+'/dashboard.html')+'" target="_blank">ダッシュボード↗</a> ／ <a href="'+withTok('runs/'+v.runId+'/report.html')+'" target="_blank">報告書↗</a></td></tr>';
        }).join('')+'</tbody></table>'; }).catch(function(){ box.innerHTML='<span class="muted">履歴の取得に失敗しました。</span>'; }); }
  (function(){ var rl=$('m-histReload'); if(rl) rl.addEventListener('click',loadRunHistory); })();
- // 設計中の編集（③一覧の入力/変更）を未保存としてマーク
- (function(){ var box=$('m-cases'); if(box){ box.addEventListener('input',markDirty); box.addEventListener('change',markDirty); } })();
+ // 設計中の編集（③一覧の入力/変更）を未保存としてマークし、レビュー表示も自動更新（デバウンス）する。
+ // ＝手動の「レビュー表示を更新」ボタンは不要（構造変更は renderCases、インライン編集はここで反映）。
+ (function(){ var box=$('m-cases'); if(box){
+   box.addEventListener('input',function(){ markDirty(); if(typeof refreshReview==='function') refreshReview(); });
+   box.addEventListener('change',function(){ markDirty(); if(typeof refreshReview==='function') refreshReview(); });
+ } })();
  // ==== 実行タブ：保存済みスイートを選択して実行 ====
  function loadExecSuites(){ var sel=$('m-execSuite'); if(!sel) return;
    // 設計→実行の遷移では、設計/保存したスイート(mSuiteId)を既定選択。無ければ現在選択を維持。
@@ -1378,7 +1581,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    function note(){ var n=$('m-sensNote'); if(!n) return; var v=sel.value;
      n.textContent = v==='high' ? '厳格：正規化せずに比較し、視覚差0.3%以上・非機能差もNG。わずかな違いも検出したい確認向け。'
        : v==='low' ? '寛容：日時/ID/UUID/数値/金額/相対時刻を無視、視覚差2%まで許容、非機能差はNGにしません。動的値による誤検知（差分0%なのにNG）を強く抑えます。'
-       : '標準：日時/ID/UUID/6桁以上の数値など動的値の違いは無視し、視覚差1%以上をNG判定。内容が同じで動的値だけ違う誤検知を抑えます。'; }
+       : '標準：<b>文言(テキスト)の違いを主に判定</b>します。日時/ID/UUID/数値/相対時刻などの動的値や、<b>レイアウト/位置の微差は無視</b>（明らかな画面崩れ＝視覚差6%以上のみNG）。「ほとんど同じ画面なのにNG」の誤検知を抑えます。'; }
    sel.addEventListener('change',note); note(); })();
  // ==== 定期実行スケジュール ====
  function loadSchedules(){ var sel=$('sc-suite'); if(!sel) return;
@@ -1418,16 +1621,28 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function fmtSec(s){ s=+s; var m=Math.floor(s/60), r=s%60; return m+'分'+(r<10?'0':'')+r+'秒'; }
  $('m-maxRunSec').addEventListener('input',function(){ $('m-maxRunSecv').textContent=fmtSec($('m-maxRunSec').value); mEstimate(); });
  $('m-llm').addEventListener('change',mEstimate);
+ // かんたんモード：スライダー1本（テスト量 v=0..1）→ 深さ/広さ/画面数/時間へ反映。優先度は0.2固定（重要導線から）。
+ function applySimpleAmount(){ var el=$('m-simpleAmount'); if(!el) return; var v=+el.value;
+   var set=function(id,val){ var e=$(id); if(e){ e.value=val; if($(id+'v')) $(id+'v').textContent=(typeof val==='number'&&val<=1)?(+val).toFixed(2):val; } };
+   set('m-depth',(0.3+v*0.5).toFixed(2)); set('m-breadth',(0.3+v*0.4).toFixed(2));
+   var mp=Math.round(10+v*40); var el2=$('m-maxPages'); if(el2){ el2.value=mp; if($('m-maxPagesv'))$('m-maxPagesv').textContent=mp; }
+   var ms=Math.round((120+v*360)/30)*30; var el3=$('m-maxRunSec'); if(el3){ el3.value=ms; if($('m-maxRunSecv'))$('m-maxRunSecv').textContent=fmtSec(ms); }
+   var pr=$('m-priority'); if(pr){ pr.value=0.2; if($('m-priorityv'))$('m-priorityv').textContent='0.20'; }
+   var lab=$('m-simpleAmountLab'); if(lab) lab.textContent=v<0.34?'軽め':(v>0.66?'しっかり':'標準');
+   if(typeof mEstimate==='function') mEstimate(); }
+ (function(){ var sa=$('m-simpleAmount'); if(sa){ sa.addEventListener('input',applySimpleAmount); applySimpleAmount(); } })();
  // AIレビューの深度・目標のラベル更新
  (function(){ var d=$('m-aiDepth'); if(d) d.addEventListener('input',function(){ $('m-aiDepthv').textContent=(+d.value).toFixed(2); });
    var t=$('m-aiTarget'); if(t) t.addEventListener('input',function(){ $('m-aiTargetv').textContent=t.value+'点'; });
-   var r=$('m-aiRounds'); if(r) r.addEventListener('input',applyRounds); applyRounds(); })();
- // 改善ラウンド数に応じて、目標スライダーの表示と実行ボタンの意味を切り替える
- function applyRounds(){ var r=$('m-aiRounds'); if(!r)return; var n=+r.value;
-   var lbl=$('m-aiRoundsv'); if(lbl) lbl.textContent=(n===0)?'0回（レビューのみ）':(n+'回（目標まで自動改善）');
-   var tw=$('m-targetWrap'); if(tw) tw.classList.toggle('hidden', n===0);
-   var note=$('m-aiRunNote'); if(note) note.textContent=(n===0)?'※「レビューのみ」（スイートは変更しません）。レビュー結果の下の「このレビューを反映」ボタンで手動反映できます。ラウンド数を1以上にすると自動で反復改善します。':('※レビュー→改善を最大 '+n+' ラウンド自動反復し、目標点まで改善します（従量課金）。');
-   var btn=$('m-aiReviewBtn'); if(btn) btn.textContent=(n===0)?'AIレビューを実行':'AIレビュー＋自動改善を実行'; }
+   var r=$('m-aiRounds'); if(r) r.addEventListener('input',applyRounds);
+   var a=$('m-aiAuto'); if(a) a.addEventListener('change',applyRounds); applyRounds(); })();
+ // 「自動で改善を繰り返す」ON/OFFで、反復オプションの表示と実行ボタンの意味を切り替える。
+ // レビュー(OFF)＝評価のみ／自動改善(ON)＝レビュー→改善→再レビューを目標まで反復。この二択で「0回/1回」の分かりにくさを解消。
+ function applyRounds(){ var auto=$('m-aiAuto')&&$('m-aiAuto').checked; var r=$('m-aiRounds');
+   var lbl=$('m-aiRoundsv'); if(lbl&&r) lbl.textContent=(+r.value)+'回';
+   var opts=$('m-autoOpts'); if(opts) opts.classList.toggle('hidden', !auto);
+   var note=$('m-aiRunNote'); if(note) note.textContent=auto?('※レビュー→改善→再レビューを最大 '+(r?r.value:2)+' 回、目標点まで自動反復します（スイートを変更・従量課金）。'):'※まず現状を評価します（スイートは変更しません）。反映は結果の下の「このレビューをテストに反映」から。';
+   var btn=$('m-aiReviewBtn'); if(btn) btn.textContent=auto?'AIレビュー＋自動改善を実行':'AIレビューを実行'; }
  function aiDepth(){ var d=$('m-aiDepth'); return d?+d.value:0.6; }
  function mEstimate(){
    var cases=+$('m-maxPages').value;
@@ -1532,7 +1747,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  window.addEventListener('scroll',function(){ if(mStepTick) return; mStepTick=true;
    requestAnimationFrame(function(){ syncStepper(); mStepTick=false; }); },{passive:true});
  $('nav-manage').addEventListener('click',function(){ showView('manage'); });
- $('nav-issues').addEventListener('click',function(){ if(!confirmLeave())return; showView('issues'); showIssTab(mSelIssue?'list':'board'); if(mSelIssue) renderIssueDetail(mSelIssue); });
+ $('nav-issues').addEventListener('click',function(){ if(!confirmLeave())return; showView('issues'); showIssTab('list'); if(mSelIssue) renderIssueDetail(mSelIssue); }); // 既定は一覧表示
  (function(){ var s=$('nav-settings'); if(s) s.addEventListener('click',function(){ if(!confirmLeave())return; showView('settings'); loadSchedules&&loadSchedules(); renderAssigneeMaster(); }); })();
  (function(){ var a=$('nav-admin'); if(a) a.addEventListener('click',function(){ if(!confirmLeave())return; showView('admin'); }); })();
  // ==== 担当者マスタ（プロジェクト設定 assignees）====
@@ -1581,6 +1796,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    $('iss-tab-stats').classList.toggle('active',t==='stats');
    $('iss-tab-fields').classList.toggle('active',t==='fields');
    if(t==='board') renderIssueBoard();
+   if(t==='list' && typeof renderIssueList==='function') renderIssueList();
    if(t==='stats') renderIssueStats();
    if(t==='fields') renderIssueFields();
  }
@@ -1590,6 +1806,15 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(b)b.addEventListener('click',function(){showIssTab('stats');});
    if(c)c.addEventListener('click',function(){showIssTab('fields');});
    var bs=$('m-boardSearch'); if(bs)bs.addEventListener('input',renderIssueBoard); })();
+ // ==== 単一課題モーダル（ボードのカードから開く。一覧へ遷移せず、その課題だけを表示）====
+ function openIssueModal(id){ if(!id) return; mSelIssue=id; var m=$('iss-modal'); if(!m) return;
+   renderIssueDetail(id,'m-issModalBody'); m.classList.remove('hidden');
+   document.body.style.overflow='hidden'; // 背景スクロールを止める
+ }
+ function closeIssueModal(){ var m=$('iss-modal'); if(m) m.classList.add('hidden'); document.body.style.overflow=''; mSelIssue=null; if(typeof renderIssueBoard==='function') renderIssueBoard(); }
+ (function(){ var back=$('iss-modal-back'); if(back) back.addEventListener('click',closeIssueModal);
+   var ov=$('iss-modal'); if(ov) ov.addEventListener('click',function(e){ if(e.target===ov) closeIssueModal(); }); // 背景クリックで閉じる
+   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var m=$('iss-modal'); if(m&&!m.classList.contains('hidden')) closeIssueModal(); } }); })();
  // ==== カンバンボード（Jira風・ステータス列＋ドラッグ&ドロップ）====
  var ISS_TYPES=['バグ','タスク','改善','質問'];
  var TYPE_ICON={'バグ':'🐞','タスク':'✓','改善':'⬆','質問':'?'};
@@ -1615,7 +1840,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    box.querySelectorAll('.kcard').forEach(function(c){
      c.addEventListener('dragstart',function(e){ dragId=c.getAttribute('data-id'); c.classList.add('kdrag'); try{e.dataTransfer.setData('text/plain',dragId);}catch(_){} });
      c.addEventListener('dragend',function(){ c.classList.remove('kdrag'); });
-     c.addEventListener('click',function(){ mSelIssue=c.getAttribute('data-id'); showIssTab('list'); renderIssueList(); renderIssueDetail(mSelIssue); });
+     c.addEventListener('click',function(){ openIssueModal(c.getAttribute('data-id')); });
    });
    box.querySelectorAll('.kcards').forEach(function(zone){
      zone.addEventListener('dragover',function(e){ e.preventDefault(); zone.classList.add('kover'); });
@@ -1700,11 +1925,27 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function escHtml(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
  function escAttr(s){ return escHtml(s).replace(/"/g,'&quot;'); }
  function issuesForCase(scid){ return (window.__issues||[]).filter(function(i){return i.caseId===scid;}); }
+ function issSuiteName(i){ return (i&&i.suite&&(i.suite.name||i.suite.id))||''; }
+ // NEW判定：前回ロード時に見えていなかった課題を「今回増えた」とみなす（localStorageで前回セットを保持）。
+ function issSeenKey(){ return 'att_seen_iss_'+(curProject||'default'); }
  function loadIssues(){
    fetch(withTok('/api/issues')).then(function(r){return r.json();}).catch(function(){return null;}).then(function(r){
-     window.__issues=(r&&r.issues)||[]; renderIssueList(); if(typeof renderIssueBoard==='function')renderIssueBoard(); updateNavCount(); if(mSuite) renderCases();
+     window.__issues=(r&&r.issues)||[];
+     var cur=window.__issues.map(function(i){return i.id;});
+     var prev=null; try{ var a=JSON.parse(localStorage.getItem(issSeenKey())||'null'); if(Array.isArray(a)) prev=a; }catch(e){}
+     var pset=prev?new Set(prev):null;
+     window.__newIssueIds=new Set(pset?cur.filter(function(id){return !pset.has(id);}):[]); // 初回はNEWなし
+     try{ localStorage.setItem(issSeenKey(),JSON.stringify(cur)); }catch(e){}
+     populateSuiteFilter();
+     renderIssueList(); if(typeof renderIssueBoard==='function')renderIssueBoard(); updateNavCount(); if(mSuite) renderCases();
    });
  }
+ // スイートフィルタの選択肢を、現在の課題が持つスイート名から生成
+ function populateSuiteFilter(){ var sel=$('m-issSuiteFilter'); if(!sel) return; var cur=sel.value;
+   var names={}; (window.__issues||[]).forEach(function(i){ var n=issSuiteName(i); if(n) names[n]=(names[n]||0)+1; });
+   var keys=Object.keys(names).sort();
+   sel.innerHTML='<option value="">すべて</option>'+keys.map(function(n){return '<option value="'+escAttr(n)+'">'+escHtml(n)+'（'+names[n]+'）</option>';}).join('');
+   if(cur&&names[cur]) sel.value=cur; }
  function updateNavCount(){ var openN=(window.__issues||[]).filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
    var b=$('nav-issCount'); b.textContent=openN; b.classList.toggle('hidden',openN===0); }
  function fmtDT(iso){ if(!iso) return '-'; try{ var d=new Date(iso); if(isNaN(d.getTime())) return String(iso); var p=function(n){return (n<10?'0':'')+n;}; return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes()); }catch(e){ return String(iso); } }
@@ -1713,35 +1954,46 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // 入力したターゲットURLの履歴（localStorage・最大20件）。datalistで候補表示。
  function urlHist(){ try{ return JSON.parse(localStorage.getItem('att_url_hist')||'[]'); }catch(e){ return []; } }
  function pushUrlHist(u){ u=(u||'').trim(); if(!/^https?:\/\//.test(u)) return; var list=urlHist().filter(function(x){return x!==u;}); list.unshift(u); localStorage.setItem('att_url_hist',JSON.stringify(list.slice(0,20))); renderUrlHist(); }
- function renderUrlHist(){ var dl=$('m-urlHistory'); if(!dl) return; dl.innerHTML=urlHist().map(function(u){return '<option value="'+esc(u)+'"></option>';}).join(''); }
+ function renderUrlHist(){ var dl=$('m-urlHistory'); if(!dl) return;
+   // 入力履歴＋保存済みスイートの開始URL＋サンプルURL を候補に（履歴が空でも選べるように）。
+   var urls=urlHist().slice();
+   (window.__savedSuiteUrls||[]).forEach(function(u){ if(u&&urls.indexOf(u)<0) urls.push(u); });
+   var SAMPLE='https://uedakazuki-plainliving.github.io/auto-test-site-demo/normal/'; if(urls.indexOf(SAMPLE)<0) urls.push(SAMPLE);
+   dl.innerHTML=urls.map(function(u){return '<option value="'+esc(u)+'"></option>';}).join(''); }
  var issSort={key:'createdAt',dir:-1}; // 既定：起票の新しい順
- function issSortVal(i,key){ if(key==='status')return ISS_STATUS.indexOf(i.status); if(key==='id')return String(i.id||''); if(key==='title')return String(i.title||''); return String(i.createdAt||''); }
+ function issSortVal(i,key){ if(key==='status')return ISS_STATUS.indexOf(i.status); if(key==='id')return String(i.id||''); if(key==='title')return String(i.title||''); if(key==='suite')return issSuiteName(i); return String(i.createdAt||''); }
  function renderIssueList(){
    var list=(window.__issues||[]); var openOnly=$('m-issOpen').checked; var q=($('m-issSearch').value||'').toLowerCase();
-   var shown=list.filter(function(i){ if(openOnly&&(i.status==='完了'||i.status==='対象外'))return false; if(q&&(i.title+' '+i.caseName+' '+i.diff+' '+i.id).toLowerCase().indexOf(q)<0)return false; return true; });
+   var suiteF=($('m-issSuiteFilter')?$('m-issSuiteFilter').value:'')||''; var priF=($('m-issPriFilter')?$('m-issPriFilter').value:'')||'';
+   var newSet=window.__newIssueIds||new Set();
+   var shown=list.filter(function(i){ if(openOnly&&(i.status==='完了'||i.status==='対象外'))return false;
+     if(suiteF&&issSuiteName(i)!==suiteF)return false; if(priF&&i.priority!==priF)return false;
+     if(q&&(i.title+' '+i.caseName+' '+i.diff+' '+i.id+' '+issSuiteName(i)).toLowerCase().indexOf(q)<0)return false; return true; });
    shown.sort(function(a,b){ var va=issSortVal(a,issSort.key),vb=issSortVal(b,issSort.key); if(va<vb)return -1*issSort.dir; if(va>vb)return 1*issSort.dir; return 0; });
    var openN=list.filter(function(i){return i.status!=='完了'&&i.status!=='対象外';}).length;
-   $('m-issMeta').textContent='全'+list.length+'件（未完了 '+openN+'件）';
+   var newN=list.filter(function(i){return newSet.has(i.id);}).length;
+   $('m-issMeta').textContent='全'+list.length+'件（未完了 '+openN+'件'+(newN?' ・ NEW '+newN+'件':'')+'）'+((suiteF||priF||openOnly||q)?' ／ 表示 '+shown.length+'件':'');
    var w=$('m-issList');
    if(!shown.length){ w.innerHTML='<div class="muted" style="padding:12px">課題はありません（テスト実行の結果画面から「起票」ボタンで登録します）。</div>'; return; }
    function arrow(k){ return issSort.key===k?(issSort.dir<0?' ▾':' ▲'):''; }
    var pcol={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
-   var rows=shown.map(function(i){
-     return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+'" data-id="'+i.id+'">'
-       +'<td class="imono">'+escHtml(issKey(i))+'</td>'
+   var rows=shown.map(function(i){ var isNew=newSet.has(i.id); var sn=issSuiteName(i);
+     return '<tr class="irow'+(mSelIssue===i.id?' sel':'')+(isNew?' isnew':'')+'" data-id="'+i.id+'">'
+       +'<td class="imono">'+(isNew?'<span class="newbadge">NEW</span>':'')+escHtml(issKey(i))+'</td>'
        +'<td title="'+escAttr(i.type||'バグ')+'">'+typeIcon(i.type)+'</td>'
        +'<td><span class="stchip sc-'+i.status+'">'+i.status+'</span></td>'
        +'<td><span style="color:'+(pcol[i.priority]||'#888')+';font-weight:700">'+escHtml(i.priority)+'</span></td>'
-       +'<td class="imono">'+fmtDT(i.createdAt)+'</td>'
-       +'<td><b>'+escHtml(i.title)+'</b>'+((i.labels&&i.labels.length)?' '+i.labels.map(function(l){return '<span class="klabel">'+escHtml(l)+'</span>';}).join(''):'')+'<div class="muted">'+escHtml(i.assignee||'未割当')+' ／ '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+(i.suite&&(i.suite.name||i.suite.id)?' ／ '+escHtml(i.suite.name||i.suite.id):'')+'</div></td></tr>';
+       +'<td><b>'+escHtml(i.title)+'</b>'+((i.labels&&i.labels.length)?' '+i.labels.map(function(l){return '<span class="klabel">'+escHtml(l)+'</span>';}).join(''):'')+'<div class="muted">'+escHtml(i.assignee||'未割当')+' ／ '+escHtml(i.caseId)+(i.occurrences>1?' / 再発'+i.occurrences:'')+'</div></td>'
+       +'<td class="imeta"><div class="imono2">'+fmtDT(i.createdAt)+'</div>'+(sn?'<div class="isuite2" title="'+escAttr(sn)+'">🗂 '+escHtml(sn)+'</div>':'<div class="muted" style="font-size:11px">スイート —</div>')+'</td>'
+       +'</tr>';
    }).join('');
    w.innerHTML='<table class="iss"><thead><tr>'
-     +'<th class="isort" data-k="id" style="width:70px">キー'+arrow('id')+'</th>'
-     +'<th style="width:34px">種別</th>'
-     +'<th class="isort" data-k="status" style="width:64px">状態'+arrow('status')+'</th>'
-     +'<th style="width:44px">優先</th>'
-     +'<th class="isort" data-k="createdAt" style="width:104px">起票時間'+arrow('createdAt')+'</th>'
-     +'<th class="isort" data-k="title">課題（クリックで詳細）'+arrow('title')+'</th>'
+     +'<th class="isort" data-k="id" style="width:74px">キー'+arrow('id')+'</th>'
+     +'<th style="width:30px">種別</th>'
+     +'<th class="isort" data-k="status" style="width:58px">状態'+arrow('status')+'</th>'
+     +'<th style="width:38px">優先</th>'
+     +'<th class="isort" data-k="title">課題（大事な情報・クリックで詳細）'+arrow('title')+'</th>'
+     +'<th class="isort" data-k="createdAt" style="width:112px">起票時間／スイート'+arrow('createdAt')+'</th>'
      +'</tr></thead><tbody>'+rows+'</tbody></table>';
    w.querySelectorAll('th.isort').forEach(function(th){ th.addEventListener('click',function(){ var k=th.getAttribute('data-k'); if(issSort.key===k)issSort.dir*=-1; else {issSort.key=k; issSort.dir=(k==='createdAt'||k==='status')?-1:1;} renderIssueList(); }); });
    w.querySelectorAll('tr.irow').forEach(function(tr){ tr.addEventListener('click',function(){ mSelIssue=tr.getAttribute('data-id'); renderIssueList(); renderIssueDetail(mSelIssue); }); });
@@ -1749,7 +2001,18 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function renderActivity(acts){ acts=acts||[]; if(!acts.length) return '<span class="muted" style="font-size:12px">履歴はありません</span>';
    return acts.slice().reverse().map(function(a){ var isC=a.kind==='comment'; return '<div class="iss-act'+(isC?' comment':'')+'"><span class="at">'+fmtDT(a.ts)+'</span> '+(isC?'💬 ':'')+escHtml(a.text||'')+'</div>'; }).join(''); }
  function issLogSec(title,arr){ return (arr&&arr.length)?'<details style="margin:4px 0"><summary>'+title+'（'+arr.length+'）</summary><pre style="background:#0f1620;color:#cfe3ff;padding:8px;border-radius:6px;font-size:11px;white-space:pre-wrap;max-height:220px;overflow:auto">'+arr.map(escHtml).join('\n')+'</pre></details>':''; }
- function issShot(cap,u){ return u?'<figure style="margin:0"><figcaption class="muted" style="font-size:11px">'+cap+'</figcaption><img src="'+withTok(u)+'" style="max-width:100%;border:1px solid #ddd;border-radius:6px;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')"></figure>':''; }
+ function issShot(cap,u){ if(!u) return ''; var src=withTok(u); return '<figure style="margin:0"><figcaption class="muted" style="font-size:11px">'+cap+'</figcaption><img src="'+src+'" data-zoomcap="'+escAttr(cap)+'" class="issshot" style="max-width:100%;border:1px solid #ddd;border-radius:6px;cursor:zoom-in"></figure>'; }
+ // 画像拡大（ライトボックス）。証跡スクショ/差分画像のクリックで開き、ホイールでズーム。
+ var imgZoomScale=1;
+ function openImgZoom(src,cap){ var z=$('img-zoom'),im=$('img-zoom-img'); if(!z||!im)return; imgZoomScale=1; im.style.width=''; im.src=src; $('img-zoom-cap').textContent=cap||'拡大表示'; z.classList.remove('hidden'); document.body.style.overflow='hidden'; }
+ function closeImgZoom(){ var z=$('img-zoom'); if(z) z.classList.add('hidden'); document.body.style.overflow=''; }
+ (function(){
+   document.addEventListener('click',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('issshot')){ openImgZoom(t.getAttribute('src'), t.getAttribute('data-zoomcap')); } });
+   var x=$('img-zoom-x'); if(x) x.addEventListener('click',closeImgZoom);
+   var z=$('img-zoom'); if(z) z.addEventListener('click',function(e){ if(e.target===z||e.target.id==='img-zoom-body') closeImgZoom(); });
+   var body=$('img-zoom-body'); if(body) body.addEventListener('wheel',function(e){ e.preventDefault(); var im=$('img-zoom-img'); if(!im||!im.naturalWidth)return; imgZoomScale=Math.max(0.2,Math.min(6,imgZoomScale*(e.deltaY<0?1.12:0.89))); im.style.width=(im.naturalWidth*imgZoomScale)+'px'; },{passive:false});
+   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ var zz=$('img-zoom'); if(zz&&!zz.classList.contains('hidden')) closeImgZoom(); } });
+ })();
  function issConcreteHtml(arr){ if(!arr||!arr.length) return ''; var rows=arr.map(function(c){ return '<tr><td style="font-weight:600;white-space:nowrap">'+escHtml(c.field)+'</td><td style="color:#c62828">'+escHtml(c.removed||'∅')+'</td><td style="color:#2e7d32">'+escHtml(c.added||'∅')+'</td></tr>'; }).join('');
    return '<details open style="margin:4px 0"><summary>具体的な相違点（N→N+1・'+arr.length+'）</summary><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left">項目</th><th style="text-align:left">修正前(N)</th><th style="text-align:left">修正後(N+1)</th></tr></thead><tbody>'+rows+'</tbody></table></details>'; }
  function issEvidenceHtml(ev,issue){
@@ -1769,8 +2032,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(f.type==='select'){ var opts='<option value=""></option>'+((f.options||[]).map(function(o){return '<option'+(o===val?' selected':'')+'>'+escHtml(o)+'</option>';}).join('')); return '<select id="'+id+'" data-fid="'+fid+'">'+opts+'</select>'; }
    var t=(f.type==='number'?'number':(f.type==='date'?'date':'text'));
    return '<input id="'+id+'" data-fid="'+fid+'" type="'+t+'" value="'+escAttr(val)+'"'+(t==='text'?' style="width:100%;box-sizing:border-box"':'')+'>'; }
- function renderIssueDetail(id){
-   var i=(window.__issues||[]).find(function(x){return x.id===id;}); var d=$('m-issDetail');
+ function renderIssueDetail(id,targetId){
+   targetId=targetId||'m-issDetail';
+   var i=(window.__issues||[]).find(function(x){return x.id===id;}); var d=$(targetId);
+   if(!d) return;
    if(!i){ d.innerHTML='<span class="muted">左の一覧から課題を選択してください。</span>'; return; }
    function sel(f,opts){ return '<select id="issf-'+f+'">'+opts.map(function(s){return '<option'+(s===i[f]?' selected':'')+'>'+s+'</option>';}).join('')+'</select>'; }
    var cv=i.customValues||{}; var fdefs=(window.__issueFields||[]);
@@ -1818,7 +2083,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      fetch(withTok('/api/issue-update'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)})
       .then(function(r){return r.json();}).then(function(r){ btn.disabled=false;
         if(r&&r.issue){ var idx=window.__issues.findIndex(function(x){return x.id===r.issue.id;}); if(idx>=0)window.__issues[idx]=r.issue;
-          renderIssueList(); if(typeof renderIssueBoard==='function')renderIssueBoard(); updateNavCount(); if(mSuite)renderCases(); renderIssueDetail(i.id); // 詳細も再描画（状態チップを更新）
+          renderIssueList(); if(typeof renderIssueBoard==='function')renderIssueBoard(); updateNavCount(); if(mSuite)renderCases(); renderIssueDetail(i.id,targetId); // 詳細も再描画（状態チップを更新。モーダル/一覧の元の場所へ）
           if(typeof toast==='function') toast('課題を更新しました（'+r.issue.status+'）','ok');
         } else { $('issf-msg').textContent='更新に失敗しました'; }
       }).catch(function(){ btn.disabled=false; $('issf-msg').textContent='通信エラー'; });
@@ -1836,18 +2101,32 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  $('m-issReload').addEventListener('click',loadIssues);
  $('m-issOpen').addEventListener('change',renderIssueList);
  $('m-issSearch').addEventListener('input',renderIssueList);
+ (function(){ var sf=$('m-issSuiteFilter'); if(sf) sf.addEventListener('change',renderIssueList); var pf=$('m-issPriFilter'); if(pf) pf.addEventListener('change',renderIssueList); })();
 
  var mSuite=null, mSuiteId=null, mtimer=null, mCompared=false, mDirty=false;
+ var mSaveAsked=false, mUnfiledAsked=false, mIssueNavAsked=false; // 各種「一度だけ聞く」フラグ
  // 設計したスイートが未保存（新規/編集後で保存前）なら true。画面遷移時に確認する。
  function markDirty(){ mDirty=true; }
- function markClean(){ mDirty=false; }
- function confirmLeave(){ return !mDirty || confirm('テストスイートが未保存です。保存せずに移動しますか？\n（キャンセルすると留まって、④「保存」で保存できます）'); }
+ function markClean(){ mDirty=false; mSaveAsked=false; } // 保存したら「保存しますか」を再び聞けるように
+ // 未起票の差分があるか（結果を見た後に起票する導線）。
+ function hasUnfiled(){ var fb=$('m-fileIssueBtn'), fs=$('m-fileSec'); return !!(mCompared && fs && !fs.classList.contains('hidden') && fb); }
+ // 画面遷移時のガード。①未起票の差分（一度だけ・はいで起票へ）②スイート未保存（一度だけ）。
+ function confirmLeave(){
+   if(hasUnfiled() && !mUnfiledAsked){ mUnfiledAsked=true;
+     if(confirm('未起票のテスト結果（差分）があります。起票しますか？\n（はい＝起票ボタンへ移動／いいえ＝このまま移動）')){
+       var fb=$('m-fileIssueBtn'); if(fb){ fb.scrollIntoView({behavior:'smooth',block:'center'}); try{fb.focus();}catch(e){} } return false; } }
+   if(mDirty && !mSaveAsked){ mSaveAsked=true;
+     return confirm('テストスイートが未保存です。保存せずに移動しますか？\n（キャンセルすると留まって、④「保存」で保存できます）'); }
+   return true;
+ }
  var KINDS=['goto','click','fill','submit','assert'];
 
  async function loadSavedList(){
    var r=await fetch(withTok('/api/suites')).then(function(r){return r.json();}).catch(function(){return null;});
    if(!r) return; var sel=$('m-savedSel'); sel.innerHTML='<option value="">保存済みスイートを読み込む…</option>';
    (r.suites||[]).forEach(function(s){ var o=document.createElement('option'); o.value=s.id; o.textContent=s.name+' ('+s.count+'件 / '+s.startUrl+')'; sel.appendChild(o); });
+   window.__savedSuiteUrls=(r.suites||[]).map(function(s){return s.startUrl;}).filter(Boolean); // URL履歴候補に使う
+   if(typeof renderUrlHist==='function') renderUrlHist();
  }
  function toast(msg,kind){
    var t=$('m-toast'); if(!t){ t=document.createElement('div'); t.id='m-toast'; t.setAttribute('role','status'); t.setAttribute('aria-live','polite'); document.body.appendChild(t); }
@@ -1862,22 +2141,93 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  // 進捗行を「高レベルのフェーズ（アイコン＋一言）」に翻訳する。何をしているか一目で分かるように。
  function progPhase(line){ var t=(line||'').replace(/^[\s⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏└　▶]+/,'');
    var map=[
-     [/要約|読み込み|設計を/, '📖','テスト設計を読み込んでいます'],
-     [/再レビュー/, '🔎','改善後を再レビューしています'],
-     [/合議|突き合わせ|総合評価/, '🤝','各観点を合議し総合評価をまとめています'],
-     [/並行レビュー|観点で/, '🧑‍⚖️','複数の観点で並行レビュー中'],
-     [/問い合わせ|レビュー中|評価/, '🧠','AIレビュアーが評価しています'],
-     [/バッチ|ケース生成|生成中|設計中/, '✍️','改善テストケースを生成しています'],
-     [/不足観点|augment|補強/, '➕','不足している観点を補っています'],
-     [/ラウンド/, '🔁','自動改善のラウンドを実行中'],
-     [/文章化|narrative|概要|仕様/, '📝','仕様を文章化しています'],
-     [/捜索|探索|ページ|遷移|クロール/, '🕸️','サイトを探索しています'],
-     [/スナップ|テーブル|DB|データベース/, '🗄️','データベースを検査しています'],
-     [/停止|中断/, '⏹️','停止処理中'],
-     [/失敗|エラー/, '⚠️','一部でエラーが発生しました']
+     [/ブラウザを起動|起動しています|起動しました/, '🚀','ブラウザを起動しています','boot'],
+     [/要約|読み込み|設計を/, '📖','テスト設計を読み込んでいます','read'],
+     [/再レビュー/, '🔎','改善後を再レビューしています','review'],
+     [/合議|突き合わせ/, '🤝','各観点を合議し総合評価をまとめています','consensus'],
+     [/並行レビュー|観点で/, '🧑‍⚖️','複数の観点で並行レビュー中','review'],
+     [/問い合わせ|レビュー|評価|査読/, '🧠','AIレビュアーが評価しています','review'],
+     [/バッチ|ケース生成|生成中|設計中|AI改善|改善ケース|改善を適用|自律改善|自動改善/, '✍️','改善テストケースを生成しています','generate'],
+     [/不足観点|augment|補強/, '➕','不足している観点を補っています','augment'],
+     [/ラウンド/, '🔁','自動改善のラウンドを実行中','review'],
+     [/文章化|narrative|概要|仕様/, '📝','仕様を文章化しています','narrative'],
+     [/N\+1|比較|再実行|実行して/, '🔬','修正前後を動かして見比べています','compare'],
+     [/ベースライン|1回目|N を取得|Nを取得|取得中/, '🎬','1回目(N)の状態を記録しています','capture'],
+     [/捜索|探索|ページ|遷移|クロール|確定|テストケース/, '🕸️','サイトを探索しています','explore'],
+     [/スナップ|テーブル|DB|データベース/, '🗄️','データベースを検査しています','db'],
+     [/停止|中断/, '⏹️','停止処理中','stop'],
+     [/失敗|エラー/, '⚠️','一部でエラーが発生しました','error']
    ];
-   for(var i=0;i<map.length;i++){ if(map[i][0].test(t)) return {ico:map[i][1],label:map[i][2]}; }
-   return {ico:'⚙️',label:'処理を実行しています'};
+   for(var i=0;i<map.length;i++){ if(map[i][0].test(t)) return {ico:map[i][1],label:map[i][2],key:map[i][3]}; }
+   return {ico:'⚙️',label:'処理を実行しています',key:'work'};
+ }
+ // 自動改善（複数ラウンド）の進捗行から「今が何回目か」と「各ラウンド完了時点の評価値」を組み立てる。
+ function renderRounds(lines){
+   var maxR=0,curR=0,init=null,rounds={},reached=false,stop='';
+   for(var i=0;i<lines.length;i++){ var t=lines[i]||'';
+     var mi=/初回[^0-9]*?(\d+)\s*点/.exec(t); if(mi) init=+mi[1];
+     var ms=/ラウンド\s*(\d+)\s*\/\s*(\d+)/.exec(t); if(ms){ curR=+ms[1]; maxR=+ms[2]; }
+     var me=/ラウンド\s*(\d+)\s*完了[：:]\s*(\d+)\s*→\s*(\d+)\s*点/.exec(t); if(me){ rounds[+me[1]]={before:+me[2],after:+me[3]}; if(+me[1]>curR)curR=+me[1]; }
+     if(/目標[^。]*到達/.test(t)) reached=true;
+     if(/追加できる改善ケースがありません/.test(t)) stop='これ以上ケースを追加できないため終了';
+     if(/頭打ち/.test(t)) stop='評価が頭打ちのため終了';
+   }
+   if(!maxR && init==null) return ''; // 自動改善でなければ非表示
+   var doneMax=0; Object.keys(rounds).forEach(function(k){ if(+k>doneMax)doneMax=+k; });
+   var chips='';
+   if(init!=null) chips+='<span class="rd-chip rd-init">初回 '+init+'点</span>';
+   var top=Math.max(maxR,curR);
+   for(var r=1;r<=top;r++){ var d=rounds[r]; var done=!!d; var isCur=(!done && r===curR && !stop);
+     if(done){ var up=(d.after>d.before); chips+='<span class="rd-chip rd-done" title="'+d.before+'→'+d.after+'点">R'+r+' '+d.before+'→<b>'+d.after+'点</b>'+(up?' ▲':(d.after<d.before?' ▽':''))+'</span>'; }
+     else if(isCur){ chips+='<span class="rd-chip rd-cur">▶ R'+r+' レビュー中…</span>'; }
+     else if(stop && r>doneMax){ /* 早期終了：未実施ラウンドは出さない */ }
+     else chips+='<span class="rd-chip rd-todo">R'+r+'</span>';
+   }
+   var lead='<span class="rd-lead">🔁 レビュー→改善　<b>'+(curR||1)+'回目</b>／最大'+(maxR||top)+'回'+(reached?'　<span class="rd-ok">✓目標到達</span>':'')+'</span>';
+   var stopHtml=(stop&&!reached)?'<span class="rd-stop">■ '+stop+'（'+doneMax+'/'+(maxR||top)+'回で終了）</span>':'';
+   return lead+chips+stopHtml;
+ }
+ // エージェントの作業ナレーション（自律的に考えて作業している感を出す）。文言はビジネスユース寄り。
+ var AGENT_NAME={ boot:'テスト設計エージェント', explore:'テスト設計エージェント', capture:'ベースライン記録', read:'レビュー担当',
+   review:'レビュー担当', consensus:'統合レビュー', generate:'テスト設計エージェント', augment:'テスト設計エージェント',
+   narrative:'仕様文書化', compare:'回帰実行エージェント', db:'データ検証', work:'エージェント', error:'エージェント', stop:'エージェント' };
+ // 動的ナレーションが作れない工程向けの定型（順番に切り替え）。テスト設計(explore)は原則 dynamicThought を使う。
+ var AGENT_THOUGHTS={
+   boot:['ブラウザを起動し、対象サイトへ接続しています。','探索環境を初期化しています。まもなく開始します。'],
+   explore:['画面構成と主要導線を把握しています。','機能ごとに操作を試行し、挙動を確認しています。','正常系に加え、境界値・異常系の観点を洗い出しています。','未訪問の画面が残っていないか、網羅状況を確認しています。'],
+   capture:['現在の状態を基準（N＝修正前）として記録しています。','修正後との比較に備え、期待結果を確定しています。'],
+   read:['既存テストの構成と狙いを把握しています。','評価に先立ち、ケースの網羅範囲を確認しています。'],
+   review:['テスト観点に抜け漏れがないか点検しています。','正常系偏重になっていないか、異常系の充足を確認しています。','ロケータの堅牢性（壊れにくさ）を評価しています。','利用者視点で操作の自然さ・妥当性を確認しています。','リスクの高い機能から優先的に精査しています。','境界値・データ条件のカバレッジを確認しています。'],
+   consensus:['各観点の評価を突き合わせ、総合評価を算定しています。','指摘の重複を排除し、優先度を再整理しています。','リスクの高い指摘を優先度「高」に格上げしています。','一致した強みと、見解が分かれた論点を整理しています。'],
+   generate:['指摘事項を踏まえ、追加テストケースを設計しています。','前提→操作→期待結果の構成でケースを作成しています。','不足していた観点を、具体的な手順へ落とし込んでいます。'],
+   augment:['標準観点テンプレートから、不足分を補完しています。','定番の抜け漏れがないか、チェックリストで点検しています。'],
+   narrative:['観測結果から仕様書の文章を生成しています。','概要・画面説明・業務フローを文章化しています。'],
+   compare:['修正前(N)と修正後(N+1)を同一手順で実行し、比較しています。','表示・通信・DOM構造の差分を検出しています。','ID・時刻などの無意味な差分を除外し、本質的な差分のみ判定しています。','各ケースについて、回帰の有無を確認しています。'],
+   db:['実行前後のデータベースの状態差分を検証しています。','更新されたテーブル・行を突き合わせています。'],
+   work:['この処理を順次実行しています。','現在の工程を進めています。'],
+   error:['一部でエラーが発生しました。ログを確認しています。'],
+   stop:['ここまでの結果で処理を確定しています。']
+ };
+ // テスト設計(探索)の“いま何を探索しているか”を進捗行から抽出し、対象機能・観点をビジネス文で表示する。
+ function agentClip(s){ s=(s||'').replace(/\s+/g,' ').trim(); return s.length>26?s.slice(0,26)+'…':s; }
+ function dynamicThought(key,line){
+   var t=(line||'').replace(/^[\s⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏└　▶]+/,'');
+   // 「実行中: … 」「N件目を確定: … 」などから操作ラベルを取り出す
+   var m=/(?:実行中|確定|生成)[：:]\s*(.+)$/.exec(t); var lab=m?m[1]:'';
+   if(!lab && /^(リンク|ボタン|入力|送信|開始)/.test(t)) lab=t; // ラベルそのものが来る場合
+   if(!lab) return null;
+   var last=lab.split('→').pop().trim(); // 操作列の末尾＝現在の操作
+   if(/^開始/.test(last)) return 'トップページから探索を開始し、主要な導線を洗い出しています。';
+   var mL=/リンク[：:]\s*(.+)/.exec(last); if(mL) return '「'+agentClip(mL[1])+'」への画面遷移をたどり、遷移先を検証しています。';
+   var mB=/ボタン[：:]\s*(.+)/.exec(last); if(mB) return '「'+agentClip(mB[1])+'」機能を操作し、挙動を確認しています。';
+   var mI=/入力\(([^)]*)\)\s*=\s*(.+)/.exec(last);
+   if(mI){ var f=agentClip(mI[1]), v=mI[2];
+     if(/正常/.test(v)) return '「'+f+'」に正常値を入力し、正常系の挙動を確認しています。';
+     if(/例外|異常|境界/.test(v)) return '「'+f+'」に異常値・境界値を投入し、検証観点を洗い出しています。';
+     return '「'+f+'」への入力パターンを検証しています。'; }
+   var mS=/送信\(([^)]*)\)/.exec(last); if(mS){ var sl=mS[1]; return (/enter/i.test(sl)?'フォーム送信':'「'+agentClip(sl)+'」')+'による登録・送信処理を検証しています。'; }
+   if(/スキップ|重複/.test(t)) return '既出の画面状態を検出し、重複を避けて次の候補へ進みます。';
+   return '「'+agentClip(last)+'」を対象に探索を進めています。';
  }
  // 完了した行か（チェック✓を付ける）
  function progDone(line){ return /完了|→|＋|追加|生成しました|反映|✓|成功/.test(line||'')&&!/中…|中\.|しています|問い合わせ/.test(line||''); }
@@ -1899,14 +2249,124 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      stopBtn.style.cssText='margin:8px 0 0'; stopBtn.onclick=function(){ stopBtn.disabled=true; stopBtn.textContent='停止要求中…'; fetch(withTok('/api/cancel?id='+id),{method:'POST'}).catch(function(){}); };
      var det=document.createElement('details'); det.innerHTML='<summary>詳細ログ（テキスト）</summary>'; det.appendChild(lg);
      panel.innerHTML='<div class="prog-head"><span class="prog-ico">⚙️</span><span class="prog-htxt"></span><span class="prog-dots"></span></div>'
-       +'<div class="prog-phase"></div><div class="prog-bar"><i></i></div><div class="prog-chips-slot"></div>'
+       +'<div class="prog-phase"></div><div class="prog-think" aria-hidden="true"><span class="pa">🤖</span><span class="pt"><span class="pname"></span><span class="pquote"></span><span class="pcursor">▋</span></span></div>'
+       +'<div class="prog-bar"><i></i></div><div class="prog-chips-slot"></div>'
+       +'<div class="prog-rounds hidden" aria-hidden="true"></div>'
+       +'<details class="prog-graph-wrap hidden" open aria-hidden="true"><summary class="prog-graph-sum"><span class="pg-title">探索マップ（リアルタイム）</span><span class="pg-meta"></span></summary><div class="prog-graph"></div></details>'
+       +'<details class="prog-exec-wrap hidden" open aria-hidden="true"><summary class="prog-graph-sum">テスト実行の様子（実行中のケース＋直近に観測した画面）<span class="pe-meta"></span></summary><div class="prog-exec"></div></details>'
        +'<ul class="prog-steps"></ul><div class="prog-meta"></div>';
      panel.appendChild(stopBtn); panel.appendChild(det);
      els={ ico:panel.querySelector('.prog-ico'), htxt:panel.querySelector('.prog-htxt'), dots:panel.querySelector('.prog-dots'),
-       phase:panel.querySelector('.prog-phase'), chips:panel.querySelector('.prog-chips-slot'), steps:panel.querySelector('.prog-steps'), meta:panel.querySelector('.prog-meta') };
+       phase:panel.querySelector('.prog-phase'), think:panel.querySelector('.prog-think'), thinkAva:panel.querySelector('.prog-think .pa'), thinkName:panel.querySelector('.prog-think .pname'), thinkQuote:panel.querySelector('.prog-think .pquote'),
+       chips:panel.querySelector('.prog-chips-slot'), rounds:panel.querySelector('.prog-rounds'), graphWrap:panel.querySelector('.prog-graph-wrap'), graph:panel.querySelector('.prog-graph'), graphMeta:panel.querySelector('.pg-meta'), graphTitle:panel.querySelector('.pg-title'),
+       execWrap:panel.querySelector('.prog-exec-wrap'), exec:panel.querySelector('.prog-exec'), execMeta:panel.querySelector('.pe-meta'), steps:panel.querySelector('.prog-steps'), meta:panel.querySelector('.prog-meta') };
+     // 遷移図ノードのクリック＝そのシナリオのテストケースを開く（設計・実行どちらも）
+     if(els.graph){ els.graph.addEventListener('click',function(e){ var g=(e.target&&e.target.closest)?e.target.closest('[data-scid]'):null; if(!g)return; var scid=g.getAttribute('data-scid'); if(scid&&typeof openCaseById==='function') openCaseById(scid); }); }
    }
    function removeStop(){ if(stopBtn&&stopBtn.parentNode) stopBtn.parentNode.removeChild(stopBtn); stopBtn=null; }
-   var lines=[], running=true, t0=Date.now(), lastChangeT=Date.now(), prevLen=0, lastChips='', lastSteps='', lastIco='';
+   var lines=[], running=true, t0=Date.now(), lastChangeT=Date.now(), prevLen=0, lastChips='', lastSteps='', lastIco='', lastRounds='';
+   // リアルタイム探索/実行マップ：最終の画面遷移図と同一の「操作ラベルでマージした木」を丸ごと受け取って描く。
+   var gNodes=[], gDirty=false, gMaxD=0, gRunPos=null, gNewNo=0;
+   function addGraphEvent(ev){ if(!ev||!ev.full||!Array.isArray(ev.nodes)) return;
+     gNodes=ev.nodes; gMaxD=0; gNewNo=0;
+     gNodes.forEach(function(n){ if((n.depth||0)>gMaxD)gMaxD=n.depth||0; (n.nos||[]).forEach(function(no){ if(no>gNewNo)gNewNo=no; }); });
+     gDirty=true; }
+   // ノードの実行状態＝そこで trace が終わるケース(nos)の集約（いずれか実行中→テスト中／それ以外は最悪判定）
+   function nodeExec(n){ if(!n.nos||!n.nos.length) return null; var anyRun=false,worst=null,RANK={ok:0,done:0,idle:0,skip:1,warn:2,diff:3,ng:4};
+     for(var k=0;k<n.nos.length;k++){ var e=eRows[n.nos[k]]; if(!e) continue; if(e.status==='running'&&!e.verdict) anyRun=true; var vv=execVerdict(e); if(worst===null||(RANK[vv.c]||0)>(RANK[worst.c]||0)) worst=vv; }
+     if(anyRun) return {c:'run',t:'テスト中'}; return worst; }
+   var GKCOL={start:'#075e86',link:'#0a74a8',button:'#37507a',input:'#2e7d32',submit:'#6a1b9a',state:'#607d8b'};
+   var GKNAME={start:'開始',link:'画面遷移',button:'機能操作',input:'入力',submit:'登録/送信',state:'状態'};
+   function gclip(s){ s=String(s||''); return s.length>16?s.slice(0,16)+'…':s; }
+   function renderGraph(){ if(!gNodes.length) return ''; gRunPos=null; var execMode2=(eOrder.length>0);
+     var byD={}; gNodes.forEach(function(n){ (byD[n.depth]=byD[n.depth]||[]).push(n); });
+     var NW=118,NH=26,GX=12,LH=66,PX=12,PY=24,pos={},maxRow=1;
+     for(var d=0;d<=gMaxD;d++){ var arr=byD[d]||[]; if(arr.length>maxRow)maxRow=arr.length; arr.forEach(function(n,i){ pos[n.id]={x:PX+i*(NW+GX)+NW/2,y:PY+d*LH}; }); }
+     var W=PX*2+maxRow*(NW+GX),H=PY*2+(gMaxD+1)*LH,edges='',nodes='';
+     gNodes.forEach(function(n){ var p=pos[n.id]; if(n.parent&&pos[n.parent]){ var q=pos[n.parent];
+       edges+='<path d="M'+q.x+' '+(q.y+NH)+' C'+q.x+' '+(q.y+NH+18)+' '+p.x+' '+(p.y-18)+' '+p.x+' '+p.y+'" fill="none" stroke="#c3cede" stroke-width="1.4"/>'; } });
+     var VC={ok:'#2e7d32',diff:'#c77700',ng:'#c62828',warn:'#b8860b',skip:'#90a4ae',run:'#0a74a8',done:'#5a6b86',idle:'#b0bccf'};
+     var VFILL={ok:'#eaf7ee',diff:'#fdf0dd',ng:'#fbe4e1'};
+     gNodes.forEach(function(n){ var p=pos[n.id],c=GKCOL[n.kind]||'#607d8b',fill='#fff',sw=1.2,glow=false;
+       var isNew=(!execMode2&&gNewNo>0&&(n.nos||[]).indexOf(gNewNo)>=0); if(isNew){ glow=true; sw=2.4; } // 探索中：直近に確定したノードを強調
+       // 実行中はそのノードで終わるケースの状態・判定で色付け（どこをテスト中か・結果を遷移図に反映）
+       var nx=nodeExec(n); var isRun=false;
+       if(nx){ c=VC[nx.c]||c; fill=VFILL[nx.c]||'#fff'; isRun=(nx.c==='run'); glow=isRun; sw=(isRun?3:1.6); if(isRun){ fill='#e0f2fb'; gRunPos={x:p.x,y:p.y}; } }
+       var clk=n.scid?' class="pg-node'+(isRun?' pg-running':'')+'" data-scid="'+escAttr(n.scid)+'" style="cursor:pointer"':(isRun?' class="pg-running"':'');
+       nodes+='<g transform="translate('+(p.x-NW/2).toFixed(1)+','+p.y+')"'+clk+'>'
+        +(n.scid?'<title>'+escAttr(n.label)+'（クリックでテストケースを開く）</title>':'')
+        +(isRun?'<rect class="pg-ring" x="-4" y="-4" width="'+(NW+8)+'" height="'+(NH+8)+'" rx="10" fill="none" stroke="#0a74a8"/>':'')
+        +'<rect width="'+NW+'" height="'+NH+'" rx="7" fill="'+fill+'" stroke="'+c+'" stroke-width="'+sw+'"'+(glow?' filter="url(#pgglow)"':'')+'/>'
+        +'<rect width="4" height="'+NH+'" rx="2" fill="'+c+'"/>'
+        +(isRun?'<g transform="translate(0,-15)"><rect width="64" height="15" rx="7.5" fill="#0a74a8"/><text x="7" y="11" font-size="9.5" fill="#fff" font-weight="700">▶ テスト中</text></g>':'')
+        +'<text x="10" y="17" font-size="11" fill="#33465f"'+(isRun?' font-weight="700"':'')+'>'+esc(gclip(n.label))+'</text>'
+        +((nx&&nx.c!=='run')?'<text x="'+(NW-6)+'" y="17" font-size="9" text-anchor="end" fill="'+c+'">'+esc(nx.t)+'</text>':'')+'</g>'; });
+     return '<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img">'
+      +'<defs><filter id="pgglow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="0" stdDeviation="2.2" flood-color="#0a74a8" flood-opacity="0.55"/></filter></defs>'+edges+nodes+'</svg>';
+   }
+   // 実行ライブビュー：ケースごとの「実行中/結果＋スクリーンショット」を蓄積して描画。eTotal=そのランの総ケース数（分母）。
+   var eRows={}, eOrder=[], eDirty=false, eRunId=id, eTotal=0;
+   function eDen(){ return eTotal>0?eTotal:eOrder.length; } // 分母＝総ケース数（未取得なら既知分）
+   function addExecEvent(ev){ if(!ev||ev.no==null) return; var r=eRows[ev.no];
+     if(ev.total>eTotal) eTotal=ev.total; // 総ケース数（実行イベントに同梱）
+     if(!r){ r={no:ev.no,name:ev.name||ev.label||('ケース'+ev.no)}; eRows[ev.no]=r; eOrder.push(ev.no); eOrder.sort(function(a,b){return a-b;}); }
+     if(ev.t==='exec'){ r.name=ev.name||r.name; r.label=ev.label||r.label; r.status=ev.status; if(ev.shot){r.shot=ev.shot; r.shotDir=ev.shotDir||'shots';} if(ev.ms!=null)r.ms=ev.ms; if(ev.http!=null)r.http=ev.http; }
+     else if(ev.t==='result'){ r.verdict=ev.result||ev.kind||''; r.kind=ev.kind; r.regression=!!ev.regression; r.approved=!!ev.approved; }
+     eDirty=true; gDirty=true; // 遷移図(実行マップ)のノード色も更新する
+   }
+   function execVerdict(r){
+     if(r.regression) return {t:'回帰',c:'ng'};
+     var v=r.verdict||'';
+     if(v==='PASS') return {t:'一致',c:'ok'}; if(v==='DIFF') return {t:'差異',c:'diff'};
+     if(v==='FAIL') return {t:'不一致',c:'ng'}; if(v==='WARNING') return {t:'注意',c:'warn'};
+     if(v==='NOT_EXECUTED'||v==='BLOCKED') return {t:'対象外',c:'skip'}; if(v==='INCONCLUSIVE') return {t:'判定不能',c:'warn'};
+     if(r.status==='running') return {t:'実行中',c:'run'};
+     if(r.status==='done') return {t:'実行済',c:'done'};
+     return {t:'待機',c:'idle'};
+   }
+   // 主テキスト＝「いま実行中のケース」（下のログの現在行と一致）。画像はケース完了時に得られるため、
+   // 実行中はまだ無い→「直前に観測した画面」を表示し、その旨を明記して枠内の整合をとる。
+   function renderExec(){
+     var shotNo=null; for(var i=eOrder.length-1;i>=0;i--){ if(eRows[eOrder[i]].shot){ shotNo=eOrder[i]; break; } }
+     var runNo=null; for(var j=eOrder.length-1;j>=0;j--){ var rj=eRows[eOrder[j]]; if(rj.status==='running'&&!rj.verdict){ runNo=eOrder[j]; break; } }
+     if(shotNo==null && runNo==null) return '';
+     var imgCase=(shotNo!=null)?eRows[shotNo]:null; var live=(runNo!=null);
+     var url=imgCase&&imgCase.shot?withTok('runs/'+eRunId+'/'+(imgCase.shotDir||'shots')+'/'+imgCase.shot):'';
+     var thumb=url?'<a class="exs-thumb'+(live?' ex-live':'')+'" href="'+url+'" target="_blank" rel="noopener"><img src="'+url+'" alt=""></a>':'<div class="exs-thumb ex-live"><div class="ex-noimg">📷 撮影中…</div></div>';
+     var done=eOrder.filter(function(n){return eRows[n].verdict||eRows[n].status==='done';}).length; // 判定 or 完了（N取得は判定が無いので完了で数える）
+     var name, head, sub;
+     if(live){ var rc=eRows[runNo];
+       name='▶ 実行中：'+esc(rc.name);
+       head='<b style="color:#0a5a80">テスト実行中（'+done+'/'+eDen()+'ケース）</b>';
+       sub=imgCase?('画像は直前に観測した画面（'+esc(imgCase.name)+'）'):'画面を観測中…';
+     } else { var vv=execVerdict(imgCase);
+       name=esc(imgCase.name);
+       head='<span class="ex-badge ex-b-'+vv.c+'">'+vv.t+'</span>'+(imgCase.http!=null?'<span class="ex-http">HTTP '+imgCase.http+'</span>':'');
+       sub='テスト完了（'+done+'/'+eDen()+'ケース）';
+     }
+     return '<div class="exs-single">'+thumb+'<div class="exs-single-info">'
+       +'<div class="exs-single-name" title="'+escAttr(live?eRows[runNo].name:imgCase.name)+'">'+name+'</div>'
+       +'<div class="exs-single-head">'+head+'</div>'
+       +'<div class="exs-single-sub">'+sub+'</div>'
+       +'</div></div>';
+   }
+   // エージェントの作業ナレーション（タイプライタ表示）。テスト設計(探索)は実際の対象・観点を動的に、
+   // それ以外は工程ごとの定型を順番に切替。ワンパターンを避けるため内容が変わった時だけ打ち直す。
+   var thinkKey='', thinkArr=[], thinkIdx=0, thinkFull='', thinkShown=0, thinkStart=0, thinkHold=0, thinkName='';
+   function setThought(txt){ if(txt===thinkFull) return; thinkFull=txt||''; thinkShown=0; thinkStart=Date.now(); thinkHold=0; }
+   function typeStep(){ var now=Date.now();
+     if(thinkShown<thinkFull.length){ var want=Math.floor((now-thinkStart)/28); if(want>thinkFull.length)want=thinkFull.length; thinkShown=want; if(thinkShown>=thinkFull.length) thinkHold=now; }
+     return now; }
+   function pickThought(key,curLine){
+     var nm=(AGENT_NAME[key]||'エージェント')+'：'; if(els&&thinkName!==nm){ thinkName=nm; els.thinkName.textContent=nm; }
+     // 動的：いま探索している機能・観点を進捗から拾って表示（テスト設計＝explore が主。比較・記録も対象）
+     var dyn=(key==='explore'||key==='capture'||key==='compare')?dynamicThought(key,curLine):null;
+     if(dyn){ thinkKey=key; setThought(dyn); typeStep(); return; }
+     // 定型：内容を順番に切替
+     if(key!==thinkKey || !thinkArr.length){ thinkKey=key; thinkArr=(AGENT_THOUGHTS[key]||AGENT_THOUGHTS.work); thinkIdx=0; setThought(thinkArr[0]||''); typeStep(); return; }
+     var now=typeStep();
+     if(thinkShown>=thinkFull.length && thinkArr.length>1 && now-thinkHold>2600){ thinkIdx=(thinkIdx+1)%thinkArr.length; setThought(thinkArr[thinkIdx]||''); }
+   }
    function paint(){
      if(lg){ var atBottom=(lg.scrollHeight-lg.scrollTop-lg.clientHeight)<30; lg.textContent=lines.join('\n'); if(atBottom) lg.scrollTop=lg.scrollHeight; }
      if(!panel||!els) return;
@@ -1923,6 +2383,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      els.htxt.textContent=running?ph.label:(end==='error'?'エラーで終了しました':end==='stopped'?'停止しました（ここまでを反映）':'完了しました');
      els.dots.style.display=running?'':'none';
      els.phase.textContent=running?('現在の作業：'+curLine):'';
+     // エージェントのひとりごと（実行中のみ）：工程に応じた思考をタイプライタ表示
+     if(running){ pickThought(ph.key,curLine); if(els.think){ els.think.style.display=''; if(els.thinkAva) els.thinkAva.textContent=ph.ico; els.thinkQuote.textContent=thinkFull.slice(0,thinkShown); } }
+     else if(els.think){ els.think.style.display='none'; }
      // 観点チップ（fullレビューで観点名の進捗が出ていれば）—内容が変わった時だけ更新（アニメ維持）
      var joined=lines.join('\n'); var chips='';
      if(/観点/.test(joined)&&PERSONA_KEYS.some(function(k){return joined.indexOf(k)>=0;})){
@@ -1932,6 +2395,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
        }).join('')+'<span class="prog-chip'+(/合議/.test(joined)?(running?' on':' ok'):'')+'">'+(/合議/.test(joined)?(running?'⏳':'✓'):'•')+' 合議</span></div>';
      }
      if(chips!==lastChips){ els.chips.innerHTML=chips; lastChips=chips; }
+     // 自動改善の「今が何回目か＋各ラウンドの評価値」を表示（内容が変わった時だけ更新）
+     if(els.rounds){ var rh=renderRounds(lines); if(rh!==lastRounds){ els.rounds.innerHTML=rh; els.rounds.classList.toggle('hidden', !rh); lastRounds=rh; } }
      // ステップ一覧（直近6件）—内容が変わった時だけ更新
      var tail=lines.slice(-6);
      var steps=tail.map(function(l,i){ var isLast=(i===tail.length-1); var cls2=progSub(l)?'sub':''; var mk;
@@ -1944,6 +2409,21 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      if(steps!==lastSteps){ els.steps.innerHTML=steps; lastSteps=steps; }
      els.meta.innerHTML='<span>⏱ 経過 '+sec+' 秒</span>'+(running&&wait>=3?'<span>この工程 '+wait+' 秒</span>':'')+'<span>進捗 '+lines.length+' ステップ</span>';
      if(stopBtn) stopBtn.style.display=running?'':'none';
+     // 探索マップ（リアルタイム樹形図）：ノードが増えた時だけ再描画。最新へ自動スクロール。
+     var execMode=eOrder.length>0; // 実行中は遷移図＝テスト実行マップとして扱う
+     if(els.graphWrap){ if(gNodes.length){ els.graphWrap.classList.remove('hidden');
+       if(els.graphTitle) els.graphTitle.textContent=execMode?'テスト実行マップ（どこをテスト中か・結果）':'探索マップ（リアルタイム）';
+       if(gDirty){ els.graph.innerHTML=renderGraph();
+         if(els.graphMeta){ if(execMode){ var ok=eOrder.filter(function(n){return eRows[n].verdict;}).length; els.graphMeta.textContent=' ─ '+ok+'/'+eDen()+'ケース判定済'; } else els.graphMeta.textContent=' ─ '+gNodes.length+'状態／深さ'+gMaxD; }
+         gDirty=false;
+         if(running&&els.graphWrap.open){ if(execMode&&gRunPos){ // 実行中はテスト中ノードが見えるよう追従
+             els.graph.scrollTop=Math.max(0,gRunPos.y-els.graph.clientHeight/2); els.graph.scrollLeft=Math.max(0,gRunPos.x-els.graph.clientWidth/2);
+           } else if(!execMode){ els.graph.scrollLeft=els.graph.scrollWidth; els.graph.scrollTop=els.graph.scrollHeight; } } }
+     } else els.graphWrap.classList.add('hidden'); }
+     // 画面キャプチャ（今テスト中だけ分かればよい・流れる帯）
+     if(els.execWrap){ if(eOrder.length){ els.execWrap.classList.remove('hidden');
+       if(eDirty){ els.exec.innerHTML=renderExec(); if(els.execMeta){ var edone=eOrder.filter(function(n){return eRows[n].verdict||eRows[n].status==='done';}).length; els.execMeta.textContent=' ─ '+edone+'/'+eDen()+'ケース'; } eDirty=false; }
+     } else els.execWrap.classList.add('hidden'); }
    }
    window.__progEnd='';
    // アニメーション（250ms）：進捗が無い待ち時間でも経過秒・スピナーで動きを見せる
@@ -1953,7 +2433,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      if(!s)return;
      var nl=(s.progress||[]);
      if(nl.length!==prevLen){ prevLen=nl.length; lastChangeT=Date.now(); } // 新しい進捗が来たら待ち時間リセット
-     lines=nl;
+     // 探索マップ用のノード行（先頭に制御文字＋G のセンチネル）を抽出・蓄積し、表示ログからは除外する
+     var norm=[]; for(var gi=0;gi<nl.length;gi++){ var L=nl[gi]; if(typeof L==='string'&&L.charCodeAt(0)===1){ try{ var _pl=JSON.parse(L.slice(2)); if(L.charAt(1)==='E') addExecEvent(_pl); else addGraphEvent(_pl); }catch(e){} } else norm.push(L); }
+     lines=norm;
      running=(s.status==='running');
      window.__progEnd=running?'':(s.status==='error'?'error':s.status==='stopped'?'stopped':'done');
      paint();
@@ -2004,8 +2486,13 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      }
      // 自動判定モードで探索した場合、サーバが返した業種推定を反映（ノウハウ自動注入）。
      if(s.summary&&s.summary.detectedDomain){ applyDetectedDomain(s.summary.detectedDomain,false); }
-     // かんたんモード：次の一手を1つだけ提示（内容確認→保存→比較）。
-     showNextCta('<span>✅ テストケースができました。</span><b>次：</b>下でざっと確認したら、変更後URLと比べます。 <button id="m-nextToCompare" class="btn-sm" style="background:#2456c9;margin:0">④保存して比較へ進む</button>');
+     // かんたんモード：探索後に不足観点を自動追加してから次の一手を提示。
+     if(curUiMode==='simple'){ autoAugmentSilent(function(){
+       showNextCta('<span>✅ テストケース＋不足観点を用意しました。</span><b>次：</b>②で「AIレビューして自動追記」→ ④保存 → 実行。 <button id="m-nextToReview" class="btn-sm" style="background:#6a1b9a;margin:0">②レビューへ</button>');
+       var rb=$('m-nextToReview'); if(rb) rb.addEventListener('click',function(){ var c=$('m-review'); if(c){ c.scrollIntoView({behavior:'smooth'}); } });
+     }); return; }
+     // くわしくモード：次の一手を1つだけ提示（内容確認→保存→比較）。
+     showNextCta('<span>✅ テストケースができました。</span><b>次：</b>下でざっと確認したら、変更後URLと比べます。 <button id="m-nextToCompare" class="btn-sm" style="background:#0a74a8;margin:0">④保存して比較へ進む</button>');
      var nb=$('m-nextToCompare'); if(nb) nb.addEventListener('click',function(){ var c=$('m-save'); if(c){ c.scrollIntoView({behavior:'smooth'}); var nm=$('m-name'); if(nm) nm.focus(); } });
    },$('m-exploreBtn'));
  });
@@ -2173,13 +2660,14 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      if(html!=null) $('m-reviewFrame').srcdoc=html;
    },350);
  }
- $('m-reviewBtn').addEventListener('click',refreshReview);
- // 統合実行：ラウンド0=レビューのみ／1以上=目標まで自動改善（レビューを内包）
+ // 二択実行：チェックOFF＝レビューのみ／ON＝目標まで自動改善（レビューを内包）
  $('m-aiReviewBtn').addEventListener('click',function(){
    if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
-   var rounds=+($('m-aiRounds').value||0), target=+($('m-aiTarget').value||85), depth=aiDepth();
+   var auto=$('m-aiAuto')&&$('m-aiAuto').checked;
+   var rounds=Math.max(1,+($('m-aiRounds').value||2)), target=+($('m-aiTarget').value||85), depth=aiDepth();
    var btn=$('m-aiReviewBtn'); var lg=$('m-aiLog'); lg.classList.remove('hidden'); $('m-aiResult').innerHTML=''; $('m-autoResult').innerHTML='';
-   if(rounds===0){
+   var aif=$('m-aiResultFold'); if(aif) aif.classList.add('hidden'); // 実行中は空パネルを出さない（結果到着でrenderAiReviewが表示）
+   if(!auto){
      btn.disabled=true; lg.textContent='AIレビューを開始しています…';
      fetch(withTok('/api/ai-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
       .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
@@ -2192,10 +2680,11 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:target,maxRounds:rounds,depth:depth},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
     .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
       poll(r.runId,lg,function(s){ btn.disabled=false;
-        if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } renderCases();
-          var sm=s.summary||{}; var rws=(sm.rounds||[]).map(function(x){return '<tr><td>R'+x.round+'</td><td style="text-align:right">'+x.before+'→'+x.after+'</td><td style="text-align:right">+'+x.added+'</td></tr>';}).join('');
-          $('m-autoResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:'+(sm.reachedTarget?'#2e7d32':'#ef6c00')+';font-size:16px">'+esc2(sm.note||'')+'</b>'+(rws?'<table style="margin-top:6px;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:2px 8px">ラウンド</th><th style="padding:2px 8px">評価</th><th style="padding:2px 8px">追加</th></tr></thead><tbody>'+rws+'</tbody></table>':'')+'</div>';
+        if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview, true); } renderCases(); // 自動改善＝ケース自動登録済み→登録ボタン非表示
+          var sm=s.summary||{}; var rws=(sm.rounds||[]).map(function(x){ var dlt=x.after-x.before; var dc=(dlt>0?'#2e7d32':(dlt<0?'#c62828':'#607d8b')); return '<tr><td style="padding:2px 8px">R'+x.round+'</td><td style="text-align:right;padding:2px 8px">'+x.before+' → <b>'+x.after+'点</b> <span style="color:'+dc+'">('+(dlt>=0?'+':'')+dlt+')</span></td><td style="text-align:right;padding:2px 8px">+'+x.added+' 件</td></tr>';}).join('');
+          $('m-autoResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:'+(sm.reachedTarget?'#2e7d32':'#ef6c00')+';font-size:16px">'+esc2(sm.note||'')+'</b>'+(rws?'<table style="margin-top:6px;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left;padding:2px 8px">ラウンド</th><th style="padding:2px 8px">評価（点・増分）</th><th style="padding:2px 8px">追加ケース数</th></tr></thead><tbody>'+rws+'</tbody></table>':'')+'</div>';
           toast((sm.reachedTarget?'目標到達：':'改善完了：')+esc2(sm.note||''),'ok');
+          captureBaselines(true, lg); // 追加ケースの1回目(N)を同じパネルで続けて実行＝比較対象化
         }
       },btn);
     });
@@ -2208,15 +2697,47 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
       poll(r.runId,lg,function(s){ btn.disabled=false;
         if(s.suite){ mSuite=s.suite; markDirty(); renderCases();
           var d=(s.summary&&s.summary.details)||[]; var added=(s.summary&&s.summary.added)||0;
-          var rd=$('m-applyRecResult'); if(rd){ rd.classList.remove('hidden'); rd.innerHTML='<b>反映しました</b>'+(added?'（テストケース '+added+' 件を追加）':'')+(d.length?'<ul style="margin:4px 0 0;padding-left:18px">'+d.map(function(x){return '<li>'+String(x).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</li>';}).join('')+'</ul>':'')+'<div class="muted" style="margin-top:4px">追加/変更したケースは下の③で確認・編集できます。「レビュー表示を更新」で信頼度も再計算されます。</div>'; }
-          toast('推奨アクションを反映しました'+(added?'（+'+added+'件）':''),'ok'); }
+          var rd=$('m-applyRecResult'); if(rd){ rd.classList.remove('hidden'); rd.innerHTML='<b>反映しました</b>'+(added?'（テストケース '+added+' 件を追加）':'')+(d.length?'<ul style="margin:4px 0 0;padding-left:18px">'+d.map(function(x){return '<li>'+String(x).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];})+'</li>';}).join('')+'</ul>':'')+'<div class="muted" style="margin-top:4px">追加/変更したケースは下の③で確認・編集できます（編集するとレビュー表示・信頼度は自動で再計算されます）。</div>'; }
+          toast('推奨アクションを反映しました'+(added?'（+'+added+'件）':''),'ok');
+          if(added>0) captureBaselines(true, lg); } // 追加ケースの1回目(N)を同じパネルで続けて実行＝比較対象化
       },btn);
     });
  });
+ // かんたんモード：探索後に不足観点を「無音で」自動追加（alertを出さない版）。
+ function autoAugmentSilent(cb){
+   if(!mSuite){ if(cb)cb(); return; }
+   fetch(withTok('/api/augment'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})})
+    .then(function(r){return r.json();}).catch(function(){return null;})
+    .then(function(r){ if(r&&r.suite){ mSuite=r.suite; markDirty(); renderCases();
+       var n=(r.added||[]).length; if(n&&typeof toast==='function') toast('不足観点 '+n+' 件を自動追加しました','ok'); }
+       if(cb)cb(); });
+ }
+ // かんたんモード：ワンクリックで「レビュー→改善→ケース追記」を1回だけ自動実行（確認省略）。
+ (function(){ var b=$('m-simpleReviewBtn'); if(!b) return; b.addEventListener('click',function(){
+   if(!mSuite){alert('先にテスト設計（捜索）をしてください');return;}
+   if(!apiMode){ alert('AIレビューにはAPI利用ONとANTHROPIC_API_KEYが必要です。※不足観点の追加は探索後に自動で行っています。'); return; }
+   var lg=$('m-simpleReviewLog'); lg.classList.remove('hidden'); lg.textContent='AIレビューして改善ケースを作成しています…';
+   b.disabled=true; $('m-simpleReviewMsg').textContent='';
+   fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign(collectLlm(),{suite:mSuite,target:100,maxRounds:1,depth:0.3,reviewMode:'light'}))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;b.disabled=false;return;}
+      poll(r.runId,lg,function(s){ b.disabled=false;
+        if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; } renderCases();
+          var sm=s.summary||{}; var added=(sm.rounds||[]).reduce(function(a,x){return a+(x.added||0);},0);
+          $('m-simpleReviewResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:#2e7d32">✓ '+esc2(sm.note||'改善しました')+'</b>'+(added?' ／ テストケースを '+added+' 件追記':'')+'</div>';
+          $('m-simpleReviewMsg').textContent='完了';
+          toast('AIレビューで '+added+' 件追記しました','ok');
+          showNextCta('<span>✅ 改善まで完了。</span><b>次：</b>④で名前を付けて保存し、実行へ。 <button id="m-nextToSave2" class="btn-sm" style="background:#0a74a8;margin:0">④保存へ</button>');
+          var nb=$('m-nextToSave2'); if(nb) nb.addEventListener('click',function(){ var c=$('m-save'); if(c){ c.scrollIntoView({behavior:'smooth'}); var nm=$('m-name'); if(nm) nm.focus(); } });
+          captureBaselines(true, lg); }
+      },b);
+    });
+ }); })();
  var mAiReview=null;
  function esc2(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
- function renderAiReview(r){
+ // applied=true（自動改善の結果）＝ケースは自動登録済み→登録ボタンは出さない。
+ function renderAiReview(r,applied){
    var sevColor={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
+   var fold=$('m-aiResultFold'); if(fold){ fold.classList.remove('hidden'); fold.open=true; } // 結果が出たら畳めるパネルを表示（既定は開く）
    var el=$('m-aiResult');
    var sy=r.synthesis||{};
    var cards=(r.personas||[]).map(function(p){
@@ -2240,18 +2761,22 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      +((sy.agreements||[]).length?'<div style="margin-top:6px"><b style="font-size:12px">一致点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.agreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
      +((sy.disagreements||[]).length?'<div><b style="font-size:12px">相違点</b><ul style="margin:2px 0;padding-left:16px;font-size:12.5px">'+sy.disagreements.map(function(x){return '<li>'+esc2(x)+'</li>';}).join('')+'</ul></div>':'')
      +(acts?'<div style="margin-top:6px"><b style="font-size:12px">優先改善アクション</b>'+acts+'</div>':'')
-     +'<div style="margin-top:10px;border-top:1px dashed #d6bdea;padding-top:8px"><button id="m-aiApply" class="btn-sm" style="margin:0;background:#6a1b9a">▶ このレビューをテストに反映（不足観点＋AI改善ケースを1ラウンド追加）</button> <span id="m-aiApplyMsg" class="muted" style="font-size:12px"></span><div class="muted" style="font-size:11px;margin-top:3px">レビューの指摘に沿って、不足観点の追加（無料）＋AIによる改善ケース生成（Claude API・従量課金）を1回だけ実行します。上部で「改善ラウンド数」を上げると自動で反復します。</div></div>'
+     +(applied
+        ? '<div style="margin-top:10px;border-top:1px dashed #d6bdea;padding-top:8px"><span class="muted" style="font-size:12px;color:#2e7d32;font-weight:700">✓ 改善ケースは自動で登録済み</span> <span class="muted" style="font-size:11px">（自動改善では各ラウンドでケース追加＋1回目(N)実行まで自動で行われます。手動登録は不要です）</span></div>'
+        : '<div style="margin-top:10px;border-top:1px dashed #d6bdea;padding-top:8px"><button id="m-aiApply" class="btn-sm" style="margin:0;background:#6a1b9a">▶ このレビュー結果からテストケースを登録（再レビューはしません）</button> <span id="m-aiApplyMsg" class="muted" style="font-size:12px"></span><div class="muted" style="font-size:11px;margin-top:3px">今のレビュー結果に沿って、不足観点の追加（無料）＋AI改善ケース生成（Claude API・従量課金）を行い、<b>そのまま追加ケースの1回目(N)を実行して比較対象にします</b>（レビューは再実行しません）。進捗はこの下に表示されます。</div><pre id="m-aiApplyLog" class="hidden" style="background:#0f1620;color:#cfe3ff;padding:10px;border-radius:8px;margin-top:8px;font-size:12px;white-space:pre-wrap;max-height:200px;overflow:auto"></pre></div>')
      +'</div><div class="ai-grid">'+cards+'</div><div class="ai-disc">'+esc2(r.disclaimer||'')+'</div>';
    var ab=$('m-aiApply'); if(ab) ab.addEventListener('click',function(){ if(!mSuite)return;
      if(!apiMode){ alert('AI改善ケース生成にはAPI利用ONとANTHROPIC_API_KEYが必要です（上部でAPI利用に切替）。※不足観点の追加のみなら「② 推奨アクションを反映」で無料実行できます'); return; }
-     if(!confirm('このレビュー結果に沿って、不足観点＋AI改善ケースを1ラウンド追加します（Claude API・従量課金）。実行しますか？')) return;
-     ab.disabled=true; $('m-aiApplyMsg').textContent='反映中…（レビュー→改善を1ラウンド）'; var lg=$('m-aiLog'); if(lg){lg.classList.remove('hidden');}
-     fetch(withTok('/api/auto-improve'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,target:100,maxRounds:1,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
+     if(!confirm('このレビュー結果からテストケースを登録し、そのまま1回目(N)を実行します（再レビューはしません・Claude API従量課金）。実行しますか？')) return;
+     ab.disabled=true; $('m-aiApplyMsg').textContent='登録を開始しています…'; var lg=$('m-aiApplyLog'); if(lg){lg.classList.remove('hidden'); lg.textContent='開始しています…';}
+     // 既存レビュー(mAiReview)から生成するだけ（再レビューなし）。この後 captureBaselines でNを実行。
+     fetch(withTok('/api/apply-review'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,review:mAiReview,depth:aiDepth()},collectLlm()))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
       .then(function(r){ if(r.error){ ab.disabled=false; $('m-aiApplyMsg').innerHTML='<span style="color:#c62828">'+esc2(r.error)+'</span>'; return; }
         poll(r.runId,lg||document.createElement('pre'),function(s){ ab.disabled=false;
-          if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; renderAiReview(s.aiReview); } renderCases();
-            var added=(s.summary&&s.summary.added)||0; $('m-aiApplyMsg') && ($('m-aiApplyMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 反映しました</span>'+(added?'（+'+added+'件）':''));
-            if(typeof toast==='function') toast('レビュー結果を反映しました'+(added?'（テストケース +'+added+'件）':''),'ok');
+          if(s.suite){ mSuite=s.suite; markDirty(); renderCases();
+            var added=(s.summary&&s.summary.added)||0; $('m-aiApplyMsg') && ($('m-aiApplyMsg').innerHTML='<span style="color:#2e7d32;font-weight:700">✓ 登録しました</span>'+(added?'（+'+added+'件）':''));
+            if(typeof toast==='function') toast('レビュー結果をテストケースに登録しました'+(added?'（+'+added+'件）':''),'ok');
+            if(added>0) captureBaselines(true, lg); // そのまま追加ケースの1回目(N)を実行＝比較対象化（登録と実行を一つの流れに）
           } },ab);
       }); });
  }
@@ -2358,7 +2883,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var gb=document.createElement('button'); gb.type='button'; gb.className='goldbadge'+(sc.approved?' on':''); gb.textContent=sc.approved?'★ 承認済':'☆ 未承認';
    gb.title=sc.approved?'この挙動を「正」として承認済み（回帰対象）。クリックで解除':'未承認（開発中扱い・差分は回帰NGにしない）。クリックで現挙動を承認';
    gb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); if(!sc.approved&&!sc.baseline){ alert('このケースは1回目(N)未取得です。先に「追加ケースの1回目(N)を実行」してから承認してください。'); return; } sc.approved=!sc.approved; sc.approvedAt=sc.approved?new Date().toISOString():undefined; markDirty(); gb.className='goldbadge'+(sc.approved?' on':''); gb.textContent=sc.approved?'★ 承認済':'☆ 未承認'; gb.title=sc.approved?'承認済み（回帰対象）。クリックで解除':'未承認。クリックで承認'; updateApproveCount&&updateApproveCount(); }; sm.appendChild(gb);
-   var iss=issuesForCase(sc.id); if(iss.length){ var openN=iss.filter(function(x){return x.status!=='完了'&&x.status!=='対象外';}).length; var ib=document.createElement('span'); ib.className='issbadge'; ib.textContent=''+iss.length; ib.title='このケースの課題 '+iss.length+'件（未完了'+openN+'）。クリックで課題管理へ'; ib.onclick=function(e){ e.preventDefault(); e.stopPropagation(); mSelIssue=iss[0].id; showView('issues'); renderIssueList(); renderIssueDetail(mSelIssue); }; sm.appendChild(ib); }
+   var iss=issuesForCase(sc.id); if(iss.length){ var openN=iss.filter(function(x){return x.status!=='完了'&&x.status!=='対象外';}).length; var ib=document.createElement('span'); ib.className='issbadge'; ib.textContent='🐞 課題'+iss.length+'件'+(openN?'（未完了'+openN+'）':''); ib.title='このケースに紐づく課題 '+iss.length+'件（未完了'+openN+'）。クリックで課題を開く'; ib.onclick=function(e){ e.preventDefault(); e.stopPropagation(); mSelIssue=iss[0].id; showView('issues'); showIssTab('list'); renderIssueList(); renderIssueDetail(mSelIssue); }; sm.appendChild(ib); }
    var nmspan=document.createElement('span'); nmspan.className='cname'; nmspan.textContent=' '+(sc.name||'(無題)'); sm.appendChild(nmspan);
    if(meta&&meta.tags&&meta.tags.length){ var ch=document.createElement('span'); ch.className='chips'; ch.innerHTML=' '+meta.tags.map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join(''); sm.appendChild(ch); }
    var hint=document.createElement('span'); hint.className='muted cedit'; hint.textContent='クリックで内容表示'; sm.appendChild(hint);
@@ -2607,17 +3132,37 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    // 続けて実行するか確認。OKならテスト実行タブへ（保存したスイートが自動選択される）
    if(confirm('「'+r.name+'」を保存しました（'+r.count+'件）。\n続けてテスト実行しますか？')){ var e=$('sub-exec'); if(e) e.click(); }
  });
- // 追加ケースの1回目(N)ベースライン取得（比較対象化）
- $('m-captureBtn').addEventListener('click',function(){
-   if(!mSuite){alert('先に捜索または読み込みをしてください');return;}
-   var btn=$('m-captureBtn'); btn.disabled=true; var lg=$('m-captureLog'); lg.classList.remove('hidden'); lg.textContent='1回目(N)を実行中…'; $('m-captureMsg').textContent='';
+ // 追加ケース（1回目Nが未取得）の件数。捜索で得たケースは baseline を持つが、
+ // 手動追加/推奨反映/AI改善で足したケースは baseline が無い＝比較対象外になる。
+ function countMissingBaseline(){ if(!mSuite||!mSuite.scenarios) return 0; return mSuite.scenarios.filter(function(s){ return !s.baseline; }).length; }
+ // 1回目(N)ベースライン取得（比較対象化）。手動ボタンと自動トリガの両方から呼ぶ共通処理。
+ // auto=true のときは自動トリガ（ケース追加直後）で、専用の文言・トーストにする。
+ // 追加ケースの1回目(N)を実行して比較対象にする。反映フロー（改善/推奨反映/このレビューを反映）から
+ // logEl を渡して呼び、同じ進捗パネルで「登録→実行」を一続きに見せる。手動ボタンは廃止。
+ // レビューからの登録＋N実行が終わった後、スイート保存を促し④保存の段落へ移動する（自動/手動問わず）。
+ function promptSaveSuite(){
+   if(mSaveAsked) return; // 「保存しますか」は一度だけ
+   setTimeout(function(){
+     if(mSaveAsked) return; mSaveAsked=true;
+     var save=$('m-save'); if(save) save.classList.remove('hidden');
+     var msg='レビュー結果の登録と、追加ケースの1回目(N)実行まで完了しました。\nこのスイートを保存しますか？（保存すると「テスト実行」タブで選んで実行できます）';
+     if(confirm(msg)){ if(save){ save.scrollIntoView({behavior:'smooth',block:'center'}); } var nm=$('m-name'); if(nm){ nm.focus(); if(!nm.value){ nm.value=(typeof defaultSuiteName==='function')?defaultSuiteName():''; } }
+       if(typeof toast==='function') toast('スイート名を入力して「保存」してください','ok'); }
+   }, 400);
+ }
+ function captureBaselines(auto,logEl){
+   if(!mSuite) return;
+   if(countMissingBaseline()<=0) return;
+   var lg=logEl; if(lg){ lg.classList.remove('hidden'); lg.textContent='追加したケースの1回目(N)を実行して比較対象にします…'; }
    fetch(withTok('/api/capture-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({suite:mSuite,onlyMissing:true},mSuiteId?{suiteId:mSuiteId,name:($('m-name').value||'').trim()||undefined}:{}))}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};})
-    .then(function(r){ if(r.error){lg.textContent='エラー: '+r.error;btn.disabled=false;return;}
-      poll(r.runId,lg,function(s){ btn.disabled=false; if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.captured)||0; var miss=(s.summary&&s.summary.missing)||0;
-        if(miss>0){ $('m-captureMsg').innerHTML='<span style="color:#c62828;font-weight:700">取得 '+n+'件／未取得 '+miss+'件</span> <span class="muted">未取得ケースは比較対象外です。最大実行時間を延ばすか、対象を分けて再実行してください。</span>'; toast('取得 '+n+'件・未取得 '+miss+'件（時間上限）','ng'); }
-        else { $('m-captureMsg').textContent='取得しました（'+n+'件を比較対象に）'; toast('追加ケースの1回目(N)を取得しました（'+n+'件が比較対象に）','ok'); } } },btn);
+    .then(function(r){ if(r.error){ if(lg) lg.textContent='エラー: '+r.error; return; }
+      poll(r.runId,lg||document.createElement('pre'),function(s){ if(s.suite){ mSuite=s.suite; markDirty(); renderCases(); var n=(s.summary&&s.summary.captured)||0; var miss=(s.summary&&s.summary.missing)||0;
+        if(miss>0){ toast('1回目(N)取得 '+n+'件・未取得 '+miss+'件（時間上限）','ng'); }
+        else if(n>0){ toast('追加ケースの1回目(N)を実行しました（'+n+'件が比較対象に）','ok'); }
+        // レビュー→登録→N実行の後（自動/手動問わず）、スイート保存へ誘導
+        if(auto) promptSaveSuite(); } });
     });
- });
+ }
  $('m-runBtn').addEventListener('click',async function(){
    if(!mSuiteId){alert('実行するスイートを選択してください（先に「テスト設計」で作成→④で保存し、上の一覧から選びます）');return;}
    if(!mSuite){alert('スイートがありません');return;}
@@ -2627,7 +3172,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
    var apiIgnore=($('m-apiIgnore')?$('m-apiIgnore').value:'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
    var sensitivity=$('m-sensitivity')?$('m-sensitivity').value:'standard';
-   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,sensitivity:sensitivity,shots:$('m-shots').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
+   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,sensitivity:sensitivity,ignoreApi:($('m-ignoreApi')?$('m-ignoreApi').checked:false),shots:$('m-shots').checked,video:$('m-video').checked,maxRunSec:+$('m-maxRunSec').value};
    $('m-runBtn').disabled=true; var lg=$('m-runlog'); lg.classList.remove('hidden'); lg.textContent='N+1を実行して比較を開始…'; $('m-resultCard').classList.add('hidden');
    var r=await fetch(withTok('/api/run-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-runBtn').disabled=false;return;}
@@ -2669,9 +3214,11 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      $('m-dashDetails').open=true; // テスト実施終了後はダッシュボードを開いた状態にする
      $('m-reportLink').href=withTok('runs/'+r.runId+'/report.html'); $('m-xlsxLink').href=withTok('runs/'+r.runId+'/testcases.xlsx');
      mLastRunId=r.runId;
-     var il=$('m-issuesLink'); il.classList.toggle('hidden',!problem); il.onclick=function(e){ e.preventDefault(); showView('issues'); loadIssues(); };
-     // 自動起票はしない。問題ありなら「起票」ボタンを出し、確認画面から登録する。
-     var fb=$('m-fileIssueBtn'); if(fb) fb.classList.toggle('hidden',!problem);
+     var il=$('m-issuesLink'); il.classList.toggle('hidden',!problem); il.onclick=function(e){ e.preventDefault(); showView('issues'); showIssTab('list'); loadIssues(); };
+     // 自動起票はしない。問題ありなら「起票」セクション（ダッシュボードの下）を出し、確認画面から登録する。
+     var fsec=$('m-fileSec'); if(fsec) fsec.classList.toggle('hidden',!problem);
+     var fb=$('m-fileIssueBtn'); if(fb){ fb.classList.remove('hidden'); fb.disabled=false; }
+     mUnfiledAsked=false; mIssueNavAsked=false; // 新しい結果ごとに「起票しますか」「課題管理を確認」は一度だけ聞く
      // 差分（明確に異なる）があり、保存済みスイートなら「変化を承認」ボタンを出す。
      var hasClearDiff=((bk['diff-structure']||0)+(bk['diff-network']||0)+(bk['diff-api']||0)+(bk['diff-visual']||0))>0;
      var ab=$('m-approveChangesBtn'); if(ab) ab.classList.toggle('hidden', !(hasClearDiff&&mSuiteId));
@@ -2746,7 +3293,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    $('m-draftBulk').onclick=function(){ var idxs=mDrafts.map(function(_,i){return i;}).filter(function(i){return !mDrafts[i].alreadyOpen;}); if(!idxs.length){alert('新規に起票する課題がありません（すべて既存課題と重複）');return;} registerDrafts(idxs, $('m-draftBulk')); };
    box.querySelectorAll('.dft-file').forEach(function(b){ b.onclick=function(){ registerDrafts([+b.getAttribute('data-i')], b); }; });
    // 「OK（許容）」＝この結果を問題なしと判断し、起票対象から除外
-   box.querySelectorAll('.dft-ok').forEach(function(b){ b.onclick=function(){ var i=+b.getAttribute('data-i'); mDrafts.splice(i,1); if(!mDrafts.length){ box.classList.add('hidden'); box.innerHTML=''; $('m-fileIssueBtn').classList.add('hidden'); toast('すべてOK（許容）として判定しました（起票なし）','ok'); } else { renderDrafts(); toast('この結果はOK（許容）にしました（起票対象から除外）','ok'); } }; });
+   box.querySelectorAll('.dft-ok').forEach(function(b){ b.onclick=function(){ var i=+b.getAttribute('data-i'); mDrafts.splice(i,1); if(!mDrafts.length){ box.classList.add('hidden'); box.innerHTML=''; var fs=$('m-fileSec'); if(fs) fs.classList.add('hidden'); mUnfiledAsked=true; toast('すべてOK（許容）として判定しました（起票なし）','ok'); } else { renderDrafts(); toast('この結果はOK（許容）にしました（起票対象から除外）','ok'); } }; });
  }
  // 指定インデックスのドラフト（編集値を反映）を登録。個別/一括で共用。
  async function registerDrafts(idxs, btn){ var box=$('m-issueDraft');
@@ -2759,10 +3306,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    // 登録済みの行を無効化
    idxs.forEach(function(i){ var row=box.querySelector('.draft-row[data-i="'+i+'"]'); if(row){ var fb=row.querySelector('.dft-file'); if(fb){ fb.disabled=true; fb.textContent='登録済'; fb.style.background='#90a4ae'; } var st=row.querySelector('.dft-state'); if(st){ st.textContent='✓ 登録済み'; st.style.color='#2e7d32'; } } });
    toast('課題管理に登録しました（新規 '+(r.created||0)+' 件／更新 '+(r.updated||0)+' 件）','ok');
-   updateNavCount();
-   // 全件登録済みなら閉じて課題管理へ
+   updateNavCount(); loadIssues(); mUnfiledAsked=true; // 起票済み＝未起票ガードは無効化
+   // 全件登録済みなら起票セクションを閉じ、一度だけ「課題管理を確認しますか」を聞く
    var remain=box.querySelectorAll('.dft-file:not(:disabled)').length;
-   if(remain===0){ box.classList.add('hidden'); box.innerHTML=''; $('m-fileIssueBtn').classList.add('hidden'); showView('issues'); loadIssues(); }
+   if(remain===0){ box.classList.add('hidden'); box.innerHTML=''; var fs=$('m-fileSec'); if(fs) fs.classList.add('hidden');
+     if(!mIssueNavAsked){ mIssueNavAsked=true;
+       if(confirm('起票しました。課題管理を確認しますか？\n（はい＝課題一覧を開く／いいえ＝この画面に留まる）')){ showView('issues'); showIssTab('list'); } } }
    else { loadIssues(); if(btn){ btn.disabled=false; btn.textContent=oldT; } }
  }
  // ダッシュボード詳細は開いた時に読み込む（初期表示を軽く）
