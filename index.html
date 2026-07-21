@@ -649,6 +649,7 @@
 
 
 
+
 <header><h1>AgentQA</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -2726,7 +2727,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
       poll(r.runId,lg,function(s){ b.disabled=false;
         if(s.suite){ mSuite=s.suite; markDirty(); if(s.aiReview){ mAiReview=s.aiReview; } renderCases();
           var sm=s.summary||{}; var added=(sm.rounds||[]).reduce(function(a,x){return a+(x.added||0);},0);
-          $('m-simpleReviewResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:#2e7d32">✓ '+esc2(sm.note||'改善しました')+'</b>'+(added?' ／ テストケースを '+added+' 件追記':'')+'</div>';
+          $('m-simpleReviewResult').innerHTML='<div class="sufbar" style="padding:8px 12px"><b style="color:#2e7d32">✓ '+esc2(sm.note||'改善しました')+'</b>'+(added?' ／ テストケースを '+added+' 件追記':'')+'</div>'
+            +'<details class="editsec revfold" open style="margin-top:8px"><summary>AIレビュー結果 ── 各観点の評価・指摘・合議（クリックで開閉）</summary><div id="m-simpleAiReview" style="margin-top:8px"></div></details>';
+          if(s.aiReview){ try{ renderAiReview(s.aiReview, true, $('m-simpleAiReview')); }catch(e){} }
           $('m-simpleReviewMsg').textContent='完了';
           toast('AIレビューで '+added+' 件追記しました','ok');
           showNextCta('<span>✅ 改善まで完了。</span><b>次：</b>④で名前を付けて保存し、実行へ。 <button id="m-nextToSave2" class="btn-sm" style="background:#0a74a8;margin:0">④保存へ</button>');
@@ -2738,10 +2741,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  var mAiReview=null;
  function esc2(s){ return (s==null?'':String(s)).replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];}); }
  // applied=true（自動改善の結果）＝ケースは自動登録済み→登録ボタンは出さない。
- function renderAiReview(r,applied){
+ function renderAiReview(r,applied,targetEl){
    var sevColor={'高':'#c62828','中':'#ef6c00','低':'#607d8b'};
-   var fold=$('m-aiResultFold'); if(fold){ fold.classList.remove('hidden'); fold.open=true; } // 結果が出たら畳めるパネルを表示（既定は開く）
-   var el=$('m-aiResult');
+   if(!targetEl){ var fold=$('m-aiResultFold'); if(fold){ fold.classList.remove('hidden'); fold.open=true; } } // 結果が出たら畳めるパネルを表示（既定は開く）。simple用は独自コンテナに描画。
+   var el=targetEl||$('m-aiResult');
    var sy=r.synthesis||{};
    var cards=(r.personas||[]).map(function(p){
      var issues=(p.issues||[]).map(function(i){return '<li><span class="ai-sev" style="background:'+(sevColor[i.severity]||'#888')+'">'+esc2(i.severity)+'</span>'+esc2(i.point)+'</li>';}).join('');
