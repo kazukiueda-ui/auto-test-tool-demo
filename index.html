@@ -653,6 +653,7 @@
 
 
 
+
 <header><h1>AgentQA</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -709,8 +710,8 @@
    <datalist id="m-urlHistory"></datalist>
    <div class="adv" style="margin-top:4px"><a href="#" id="m-sampleUrl2" class="muted" style="font-size:12px">サンプルURLを入れて試す</a></div>
 
-   <!-- 捜索の方針（表出スライダー） -->
-   <div class="slider main adv">
+   <!-- 捜索の方針（表出スライダー）。かんたん/詳細の両モードで表示。 -->
+   <div class="slider main">
     <div class="lab"><span>捜索の方針：<b>重要なものから</b> ⇔ <b>均等に</b></span><b id="m-priorityv">0.20</b></div>
     <input type="range" id="m-priority" min="0" max="1" step="0.01" value="0.2">
     <div class="muted">左＝<b>重要な操作導線を優先</b>し、そこを<b>そこそこ深く</b>探索（既定0.2＝おすすめ）／ 右＝優先度を無視して全リンクを均等に浅く捜索</div>
@@ -782,15 +783,15 @@ graph TD
     <div id="m-simpleReviewResult" style="margin-top:8px"></div>
    </div>
 
-   <!-- 追加アクション。かんたんモードでは「① テスト観点の網羅（品質バー）」だけ表示、②③は詳細モードのみ。 -->
-   <div class="actions-box" id="m-actions">
-    <h4 class="adv" style="margin:0 0 4px">結果を確認したら、追加するものを選びましょう</h4>
-    <p class="adv muted" style="margin:0 0 10px">下の各アクションは、<b>上のレビューの対応する項目に紐づいています</b>（見出しに「レビューのどこに対応するか」を明記）。<b>いずれも既存テストは保持したまま「追加」します</b>（作り直しません。誤りは下の③で修正）。</p>
+   <!-- 結果を一通り見た後の「追加アクション」を末尾にまとめて設置（くわしくモードのみ） -->
+   <div class="actions-box adv" id="m-actions">
+    <h4 style="margin:0 0 4px">結果を確認したら、追加するものを選びましょう</h4>
+    <p class="muted" style="margin:0 0 10px">下の各アクションは、<b>上のレビューの対応する項目に紐づいています</b>（見出しに「レビューのどこに対応するか」を明記）。<b>いずれも既存テストは保持したまま「追加」します</b>（作り直しません。誤りは下の③で修正）。</p>
     <div class="act-sec">
-     <div class="act-hd">① テスト観点の網羅（未カバー観点と充足状況）<span class="muted adv" style="font-weight:400">← 上のレビュー「① テスト観点の網羅性」の<b>未カバー観点</b>に対応</span></div>
+     <div class="act-hd">① テスト観点の網羅を上げる <span class="muted" style="font-weight:400">← 上のレビュー「① テスト観点の網羅性」の<b>未カバー観点</b>に対応</span></div>
      <div id="m-covActions"><span class="muted">捜索後に表示されます</span></div>
     </div>
-    <div class="act-sec adv">
+    <div class="act-sec">
      <div class="act-hd">② 信頼度を上げる推奨アクションを反映 <span class="muted" style="font-weight:400">← 上のレビュー「テストの信頼性」内の<b>「信頼度を上げる推奨アクション（自動提示）」</b>を反映</span></div>
      <p class="muted" style="margin:2px 0 6px">レビューが提示した推奨（弱いロケータの置換・不足観点の追加など）を、このボタンでまとめて反映します。</p>
      <button id="m-applyRecBtn" class="btn-sm" style="background:#37507a">上の推奨アクションを反映（不足観点追加＋LLM補強）</button>
