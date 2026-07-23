@@ -677,6 +677,37 @@
 
 
 
+<!-- ==== デモ用ログインゲート（クライアント側・モックデモ専用。ID/PASSはソースに露出します） ==== -->
+<div id="demo-login" style="position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a5a80,#0097d7);font-family:'Segoe UI','Meiryo',sans-serif">
+  <form id="demo-login-form" autocomplete="on" style="background:#fff;border-radius:14px;padding:30px 32px;box-shadow:0 12px 40px rgba(0,0,0,.3);width:320px;max-width:90vw">
+    <div style="font-size:22px;font-weight:800;color:#0a5a80">AgentQA</div>
+    <div style="font-size:12.5px;color:#667;margin:2px 0 18px">デモサイト ログイン</div>
+    <label for="demo-login-id" style="display:block;font-size:12px;color:#556;font-weight:700;margin-bottom:4px">ID</label>
+    <input id="demo-login-id" name="username" type="text" autocomplete="username" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #cdd6e2;border-radius:8px;font-size:14px;margin-bottom:12px">
+    <label for="demo-login-pw" style="display:block;font-size:12px;color:#556;font-weight:700;margin-bottom:4px">パスワード</label>
+    <input id="demo-login-pw" name="password" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid #cdd6e2;border-radius:8px;font-size:14px;margin-bottom:8px">
+    <div id="demo-login-err" style="color:#c62828;font-size:12px;min-height:16px;margin-bottom:6px" role="alert"></div>
+    <button type="submit" style="width:100%;padding:10px;border:0;border-radius:8px;background:linear-gradient(90deg,#0a5a80,#0097d7);color:#fff;font-size:15px;font-weight:700;cursor:pointer">ログイン</button>
+  </form>
+</div>
+<script>
+(function(){
+  var USER='agest', PASS='agent';
+  function hide(){ var o=document.getElementById('demo-login'); if(o&&o.parentNode) o.parentNode.removeChild(o); try{document.documentElement.style.overflow='';}catch(e){} }
+  try{ if(sessionStorage.getItem('demo_auth')==='1'){ hide(); return; } }catch(e){}
+  try{ document.documentElement.style.overflow='hidden'; }catch(e){}
+  function submit(e){ if(e&&e.preventDefault) e.preventDefault();
+    var id=((document.getElementById('demo-login-id')||{}).value||'').trim();
+    var pw=((document.getElementById('demo-login-pw')||{}).value||'');
+    if(id===USER&&pw===PASS){ try{ sessionStorage.setItem('demo_auth','1'); }catch(e){} hide(); }
+    else { var er=document.getElementById('demo-login-err'); if(er) er.textContent='IDまたはパスワードが違います'; var p=document.getElementById('demo-login-pw'); if(p){p.value='';p.focus();} }
+    return false; }
+  function wire(){ var f=document.getElementById('demo-login-form'); if(f) f.addEventListener('submit',submit); var i=document.getElementById('demo-login-id'); if(i) i.focus(); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
+})();
+</script>
+
+
 <header><h1>AgentQA</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
