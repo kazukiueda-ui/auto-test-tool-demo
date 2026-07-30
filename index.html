@@ -729,6 +729,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -1530,7 +1531,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(s.specMermaid&&$('m-specMermaid')) $('m-specMermaid').value=s.specMermaid;
    window.__specDocs=Array.isArray(s.specDocs)?s.specDocs:[]; window.__specTerms=Array.isArray(s.specTerms)?s.specTerms:[]; if(typeof renderSpecFiles==='function') renderSpecFiles();
    if(typeof s.specMode==='boolean'&&$('m-specMode')) $('m-specMode').checked=s.specMode;
-   if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;
+   if(s.defaultUrl&&$('m-url')) $('m-url').value=s.defaultUrl;              // 設計URL（前回値）
+   if(s.afterUrl&&$('m-after')) $('m-after').value=s.afterUrl;             // 実行URL（前回値）
+   // スライダー・数値入力（設計/レビューのフェーダー）を復元。input発火で表示ラベルも追従させる。
+   if(s.sliders&&typeof s.sliders==='object'){ PROJ_SLIDERS.forEach(function(id){ var v=s.sliders[id]; var e=$(id); if(e&&v!=null&&v!==''){ e.value=v; try{ e.dispatchEvent(new Event('input')); }catch(x){} } }); }
    if(s.reviewMode&&$('m-reviewMode')){ $('m-reviewMode').value=s.reviewMode; try{ $('m-reviewMode').dispatchEvent(new Event('change')); }catch(e){} }
    if(Array.isArray(s.apiIgnore)&&$('m-apiIgnore')) $('m-apiIgnore').value=s.apiIgnore.join('\n');
    if($('set-notifyUrl')) $('set-notifyUrl').value=s.notifyWebhook||'';
@@ -1549,7 +1553,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    window.__issueFields=Array.isArray(s.issueFields)?s.issueFields:[]; // 課題カスタム項目定義（プロジェクト共通）
    applyModeUi();
  }).catch(function(){}); }
- function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, engine:$('cb-engine')?$('cb-engine').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, ignoreApi:$('m-ignoreApi')?$('m-ignoreApi').checked:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined };
+ // プロジェクトに紐づけて保存/復元するスライダー・数値入力のID一覧（設計＋レビューのフェーダー）。
+ var PROJ_SLIDERS=['m-depth','m-breadth','m-exception','m-priority','m-maxPages','m-maxRunSec','m-aiDepth','m-aiRounds','m-aiTarget','m-supplement'];
+ function saveProjectSettings(){ var s={ model:$('cb-model')?$('cb-model').value:undefined, engine:$('cb-engine')?$('cb-engine').value:undefined, reviewMode:$('m-reviewMode')?$('m-reviewMode').value:undefined, apiIgnore:$('m-apiIgnore')?$('m-apiIgnore').value.split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean):undefined, sensitivity:$('m-sensitivity')?$('m-sensitivity').value:undefined, ignoreApi:$('m-ignoreApi')?$('m-ignoreApi').checked:undefined, domain:$('cb-domain')?$('cb-domain').value:undefined, domainPrompts:window.__domainPrompts||undefined, customDomains:window.__customDomains||undefined, llmMode:apiMode, knowhow:$('m-knowhow')?$('m-knowhow').value:undefined, specMermaid:$('m-specMermaid')?$('m-specMermaid').value:undefined, specMode:$('m-specMode')?$('m-specMode').checked:undefined, specDocs:window.__specDocs||undefined, specTerms:window.__specTerms||undefined, defaultUrl:$('m-url')?$('m-url').value:undefined, afterUrl:$('m-after')?$('m-after').value:undefined, sliders:(function(){ var o={}; PROJ_SLIDERS.forEach(function(id){ var e=$(id); if(e) o[id]=e.value; }); return o; })() };
    return fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,settings:s})}).then(function(r){return r.json();}).then(function(){ if(typeof toast==='function') toast('設定を保存しました','ok'); }).catch(function(){}); }
  function initCtrlBar(){
    loadEnv().then(loadProjects).then(loadProjectSettings).then(function(){ loadSchedules&&loadSchedules(); renderTokenBar(); handleDeepLink&&handleDeepLink(); });
@@ -2789,6 +2795,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
    if(!projectUrlGate(u)) return;
    pushUrlHist(u);
+   if(typeof saveProjectSettings==='function') saveProjectSettings(); // 設計URL・スライダーをプロジェクトに記憶（次回選択時に復元）
    var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value,roleExplore:($('m-roleExplore')?$('m-roleExplore').checked:false),itemCap:($('m-itemCap')?(+$('m-itemCap').value>=10?9999:+$('m-itemCap').value):undefined)};
    Object.assign(body,collectSpec()); Object.assign(body,collectLlm());
    var had=!!(mSuite&&mSuite.scenarios&&mSuite.scenarios.length);
@@ -2836,6 +2843,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(!/^https?:\/\//.test(u)){alert('http(s):// のURLを入力してください');return;}
    if(!projectUrlGate(u)) return;
    if(!apiMode){ alert('全自動生成には API利用ON と ANTHROPIC_API_KEY が必要です（上部でAPI利用に切替）。'); return; }
+   if(typeof saveProjectSettings==='function') saveProjectSettings(); // スライダー最大化の前に、設計URL・手動スライダー値をプロジェクトに記憶
    var ab=$('m-autoAllBtn'), eb=$('m-exploreBtn'); if(ab){ab.disabled=true; ab.textContent='⚡ 全自動生成 実行中…';} if(eb) eb.disabled=true;
    var lg=$('m-log'); if(lg){ lg.classList.remove('hidden'); }
    // フェーダーを最大に（深さ/広さ=最大、画面数/実行時間=スライダー上限）。表示ラベルも更新。
@@ -3699,6 +3707,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var after=$('m-after').value.trim();
    if(!/^https?:\/\//.test(after)){alert('修正後(N+1)の http(s):// URLを入力してください');return;}
    pushUrlHist(after);
+   if(typeof saveProjectSettings==='function') saveProjectSettings(); // 実行URL(N+1)をプロジェクトに記憶（次回選択時に復元）
    var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
    var apiIgnore=($('m-apiIgnore')?$('m-apiIgnore').value:'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
    var sensitivity=$('m-sensitivity')?$('m-sensitivity').value:'standard';
