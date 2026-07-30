@@ -734,6 +734,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -2577,12 +2578,16 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var lines=[], running=true, t0=Date.now(), lastChangeT=Date.now(), prevLen=0, lastChips='', lastSteps='', lastIco='', lastRounds='';
    // リアルタイム探索/実行マップ：最終の画面遷移図と同一の「操作ラベルでマージした木」を丸ごと受け取って描く。
    var gNodes=[], gDirty=false, gMaxD=0, gRunPos=null, gNewNo=0, gNewPos=null;
+   // 確定済みの設計マップを引き継ぐ：全自動では①捜索の後、③改善生成・④レビューが新しい進捗パネルを
+   // 作り直す。これらのフェーズは探索マップを再送しないため、直近の設計マップをモジュール保持して
+   // 後続パネルにも表示する（「改善生成になるとマップが消える」対策）。
+   if(window.__designGraph&&window.__designGraph.length){ gNodes=window.__designGraph.slice(); gDirty=true; gNodes.forEach(function(n){ if((n.depth||0)>gMaxD)gMaxD=n.depth||0; }); }
    // 探索マップの手動スクロール制御：gUserHold=最後にユーザーが操作した時刻、gAutoTop/Left=直近に自動追従で設定した位置。
    var gUserHold=0, gAutoTop=-1, gAutoLeft=-1;
    function addGraphEvent(ev){ if(!ev||!ev.full||!Array.isArray(ev.nodes)) return;
      gNodes=ev.nodes; gMaxD=0; gNewNo=0;
      gNodes.forEach(function(n){ if((n.depth||0)>gMaxD)gMaxD=n.depth||0; (n.nos||[]).forEach(function(no){ if(no>gNewNo)gNewNo=no; }); });
-     gDirty=true; }
+     gDirty=true; window.__designGraph=gNodes; } // 後続フェーズのパネルへ引き継ぐため保持
    // ノードの実行状態＝そこで trace が終わるケース(nos)の集約（いずれか実行中→テスト中／それ以外は最悪判定）
    function nodeExec(n){ if(!n.nos||!n.nos.length) return null; var anyRun=false,worst=null,RANK={ok:0,done:0,idle:0,skip:1,warn:2,diff:3,ng:4};
      for(var k=0;k<n.nos.length;k++){ var e=eRows[n.nos[k]]; if(!e) continue; if(e.status==='running'&&!e.verdict) anyRun=true; var vv=execVerdict(e); if(worst===null||(RANK[vv.c]||0)>(RANK[worst.c]||0)) worst=vv; }
@@ -2802,6 +2807,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(!projectUrlGate(u)) return;
    pushUrlHist(u);
    if(typeof saveProjectSettings==='function') saveProjectSettings(); // 設計URL・スライダーをプロジェクトに記憶（次回選択時に復元）
+   window.__designGraph=null; // 新規探索：前回の設計マップを破棄（この探索で作り直す）
    var body={url:u,depth:+$('m-depth').value,breadth:+$('m-breadth').value,nonfunc:0.3,exception:+$('m-exception').value,priority:+$('m-priority').value,maxPages:+$('m-maxPages').value,maxRunSec:+$('m-maxRunSec').value,llm:$('m-llm').checked,supplement:$('m-supplement').value,knowhow:$('m-knowhow').value,roleExplore:($('m-roleExplore')?$('m-roleExplore').checked:false),itemCap:($('m-itemCap')?(+$('m-itemCap').value>=10?9999:+$('m-itemCap').value):undefined)};
    Object.assign(body,collectSpec()); Object.assign(body,collectLlm());
    var had=!!(mSuite&&mSuite.scenarios&&mSuite.scenarios.length);
@@ -2850,6 +2856,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(!projectUrlGate(u)) return;
    if(!apiMode){ alert('全自動生成には API利用ON と ANTHROPIC_API_KEY が必要です（上部でAPI利用に切替）。'); return; }
    if(typeof saveProjectSettings==='function') saveProjectSettings(); // スライダー最大化の前に、設計URL・手動スライダー値をプロジェクトに記憶
+   window.__designGraph=null; // 新規実行：前回の設計マップを破棄（①捜索で作り直し、③④へ引き継ぐ）
    var ab=$('m-autoAllBtn'), eb=$('m-exploreBtn'); if(ab){ab.disabled=true; ab.textContent='⚡ 全自動生成 実行中…';} if(eb) eb.disabled=true;
    var lg=$('m-log'); if(lg){ lg.classList.remove('hidden'); }
    // フェーダーを最大に（深さ/広さ=最大、画面数/実行時間=スライダー上限）。表示ラベルも更新。
