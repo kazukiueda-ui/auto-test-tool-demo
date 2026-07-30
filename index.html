@@ -727,6 +727,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3311,6 +3312,31 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  }
  // 期待結果の重要な具体値（「…」で囲った値・HTTPステータス）を強調表示にする
  function hlExpect(s){ return String(s).replace(/「([^」]*)」/g,'「<span class="exv">$1</span>」').replace(/(＝)(\d+)(（正常到達）)/g,'$1<span class="exv">$2</span>$3'); }
+ // 認証(メール/ユーザ・パスワード)入力かどうか
+ function isAuthFill(a){ if(!a||a.kind!=='fill') return false; var l=(a.label||'')+' '+(a.selector||''); return /メール|mail|email|ユーザ|user|ログインID|パスワード|password/i.test(l); }
+ // ケースを「前提（対象画面への到達＝URL/認証/ナビ）」と「操作手順（画面上のテスト操作）」に分ける。
+ function caseSplit(sc){
+   var acts=sc.actions||[]; var firstTest=-1;
+   for(var i=0;i<acts.length;i++){ if(acts[i].kind==='fill' && !isAuthFill(acts[i])){ firstTest=i; break; } }
+   if(firstTest>=0) return { pre:acts.slice(0,firstTest), steps:acts.slice(firstTest) };
+   // 認証以外の入力が無い＝ナビ/ログインが主。ログイン送信を境界に、以降を手順とする。
+   var b=-1, sawPw=false;
+   for(var j=0;j<acts.length;j++){ if(isAuthFill(acts[j])) sawPw=true; if(sawPw && (acts[j].kind==='submit'||/ログイン|login|enter/i.test(acts[j].label||''))){ b=j; break; } }
+   if(b>=0 && b<acts.length-1) return { pre:acts.slice(0,b+1), steps:acts.slice(b+1) };
+   return { pre:acts.filter(function(a){return a.kind==='goto';}), steps:acts.filter(function(a){return a.kind!=='goto';}) };
+ }
+ // 前提条件テキスト：開始URLを開く→（必要なら）認証→対象画面までのナビ。データが要る場合も記載。
+ function preText(sc, pre, hasBaseline){
+   var email=null, hasPw=false;
+   (sc.actions||[]).forEach(function(a){ if(a.kind!=='fill') return; var l=(a.label||'')+' '+(a.selector||''); if(/メール|mail|email|ユーザ|user|ログインID/i.test(l)&&!/パスワード|password/i.test(l)){ if(a.value) email=a.value; } if(/パスワード|password/i.test(l)) hasPw=true; });
+   var navs=[]; (pre||[]).forEach(function(a){ if(a.kind==='goto'||a.kind==='fill'||a.kind==='submit') return; var nm=(a.label||'').replace(/^\s*(リンク|ボタン|クリック|選択|送信)\s*[:：]\s*/,'').replace(/[（(【].*$/,'').replace(/=.*$/,'').trim(); if(nm&&nm.length<=40&&!/ログイン|login/i.test(nm)) navs.push(nm); });
+   var out=['開始URL（下記「対象画面の開始URL」）を開く'];
+   if(hasPw) out.push((email?'メール「'+esc(email)+'」で':'')+'ログイン済みであること');
+   if(navs.length) out.push('「'+navs.map(esc).join('」→「')+'」と辿って対象画面へ');
+   var t='・'+out.join('<br>・');
+   if(!hasBaseline) t+='<br><span class="muted">※自動生成：1回目(N)の観測はまだ無い</span>';
+   return t;
+ }
  // 1回目カードの「このテストが何をするか」パネル（N観測=baselineから。2回目と同じ項目のうち出せるものだけ）
  function caseInfo(sc,meta){
    var b=sc.baseline||null; var rows=[];
@@ -3319,14 +3345,21 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    dl('カテゴリ階層', ((meta&&meta.category)||['未分類']).filter(Boolean).map(esc).join(' ＞ '));
    dl('タグ', ((meta&&meta.tags)||[]).map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join('')||'—');
    dl('目的', esc(purposeJs(sc,meta)));
-   // 前提条件は「手順」で示す（テスターはURLを入力せず、画面操作で対象画面まで進むため）。
-   dl('前提条件', '対象画面を表示していること（認証状態は捜索時のまま）'+(b?'':'／自動生成：Nの観測はまだ無い'));
-   // 対象画面の開始URLは別項目として表示（手順には出さない）。
+   // 前提条件＝対象画面への到達方法（開始URL→必要なら認証→ナビ）。操作手順＝画面上のテスト操作。
+   var sp=caseSplit(sc);
+   dl('前提条件', preText(sc, sp.pre, !!b));
+   // 対象画面の開始URLは別項目としてリンク表示（手順には出さない）。
    var gto=(sc.actions||[]).filter(function(a){return a.kind==='goto';}); var startUrl=(gto[0]&&(gto[0].value||gto[0].label))||(b&&b.url)||sc.startUrl||'';
-   if(startUrl) dl('対象画面の開始URL', '<span class="muted" style="word-break:break-all">'+esc(startUrl)+'</span>');
-   // 操作手順：URL遷移(goto)は開始URLとして別掲するため除外し、画面操作だけを並べる。
-   var steps=(sc.actions||[]).filter(function(a){return a.kind!=='goto';}).map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join('');
+   if(startUrl) dl('対象画面の開始URL', '<a href="'+encodeURI(startUrl)+'" target="_blank" rel="noopener" style="word-break:break-all">'+esc(startUrl)+'</a>');
+   // 操作手順：前提（到達）で消化した操作を除く。断定ステップ（「〜が表示される」「〜であるか確認」）は
+   // 操作ではなく設計時の期待なので、手順から分離して「期待（設計時の意図）」に回す。
+   var stepActs=(sp.steps||[]).filter(function(a){return a.kind!=='goto';});
+   var isAssert=function(a){ return /表示される|であるか|かを?確認|されているか|減っている|増えている|更新され|遷移する|成功メッセージ|エラー(が|の)?(表示|確認|メッセージ)?|期待どおり/.test(a.label||''); };
+   var opActs=stepActs.filter(function(a){return !isAssert(a);});
+   var asserts=stepActs.filter(isAssert);
+   var steps=opActs.map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join('');
    dl('操作手順', '<ol class="steps">'+(steps||'<li>対象画面を表示</li>')+'</ol>');
+   if(asserts.length) dl('期待（設計時の意図）', '<ul class="steps">'+asserts.map(function(a){return '<li>'+hlExpect(esc(a.label))+'</li>';}).join('')+'</ul>');
    var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' = <code>'+esc(a.value||'(空)')+'</code>';}).join(' ／ ')||'—';
    dl('入力値', inputs);
    if(b){
@@ -3345,7 +3378,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      dl('状態','自動生成ケース（ベースライン未取得）── 2回目で実行すると表示・通信が観測されます');
    }
    var wrap=document.createElement('div'); wrap.className='cinfo';
-   wrap.innerHTML='<div class="cihd">このテストの内容（1回目=N観測。差分/判定は2回目で確定）</div><dl>'+rows.join('')+'</dl>';
+   wrap.innerHTML='<dl>'+rows.join('')+'</dl>';
    return wrap;
  }
  function caseEl(sc,ci,meta){
