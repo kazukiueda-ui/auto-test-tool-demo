@@ -366,6 +366,9 @@
  .prog-graph{max-height:300px;overflow:auto;padding:6px 8px}
  .prog-graph svg{display:block}
  .prog-graph .pg-node{transition:opacity .12s}.prog-graph .pg-node:hover{opacity:.72}
+ .prog-graph .pg-legend{display:flex;flex-wrap:wrap;gap:3px 12px;padding:2px 2px 7px;font-size:11px;color:#556;position:sticky;left:0}
+ .prog-graph .pg-lg{display:inline-flex;align-items:center;gap:4px}
+ .prog-graph .pg-lg i{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
  /* 自動改善のラウンド表示（今が何回目か＋各ラウンドの評価値） */
  .prog-rounds{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 4px}
  .prog-rounds.hidden{display:none}
@@ -722,6 +725,7 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
 })();
 </script>
+
 
 
 
@@ -2584,6 +2588,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      for(var k=0;k<n.nos.length;k++){ var e=eRows[n.nos[k]]; if(!e) continue; if(e.status==='running'&&!e.verdict) anyRun=true; var vv=execVerdict(e); if(worst===null||(RANK[vv.c]||0)>(RANK[worst.c]||0)) worst=vv; }
      if(anyRun) return {c:'run',t:'テスト中'}; return worst; }
    var GKCOL={start:'#075e86',link:'#0a74a8',button:'#37507a',input:'#2e7d32',submit:'#6a1b9a',state:'#607d8b'};
+   // マップの色の凡例（探索＝操作種別／実行＝判定結果）。マップ上部に固定表示する。
+   function gLegend(exec){ var items=exec?[['一致','#2e7d32'],['差異の疑い','#c77700'],['明確に異なる','#c62828'],['対象外','#90a4ae'],['実行中','#0a74a8']]:[['開始','#075e86'],['リンク遷移','#0a74a8'],['ボタン','#37507a'],['入力','#2e7d32'],['送信','#6a1b9a'],['その他','#607d8b']]; return '<div class="pg-legend" aria-label="凡例">凡例：'+items.map(function(it){return '<span class="pg-lg"><i style="background:'+it[1]+'"></i>'+it[0]+'</span>';}).join('')+'</div>'; }
    var GKNAME={start:'開始',link:'画面遷移',button:'機能操作',input:'入力',submit:'登録/送信',state:'状態'};
    function gclip(s){ s=String(s||''); return s.length>16?s.slice(0,16)+'…':s; }
    function renderGraph(){ if(!gNodes.length) return ''; gRunPos=null; gNewPos=null; var execMode2=(eOrder.length>0);
@@ -2721,7 +2727,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      var execMode=eOrder.length>0; // 実行中は遷移図＝テスト実行マップとして扱う
      if(els.graphWrap){ if(gNodes.length){ els.graphWrap.classList.remove('hidden');
        if(els.graphTitle) els.graphTitle.textContent=execMode?'テスト実行マップ（どこをテスト中か・結果）':'探索マップ（リアルタイム）';
-       if(gDirty){ els.graph.innerHTML=renderGraph();
+       if(gDirty){ els.graph.innerHTML=gLegend(execMode)+renderGraph();
          if(els.graphMeta){ if(execMode){ var ok=eOrder.filter(function(n){return eRows[n].verdict;}).length; els.graphMeta.textContent=' ─ '+ok+'/'+eDen()+'ケース判定済'; } else els.graphMeta.textContent=' ─ '+gNodes.length+'状態／深さ'+gMaxD; }
          gDirty=false;
          // ユーザーがマップを手動スクロール中(直近2秒以内に操作)は追従しない。無操作に戻れば追従を再開する。
@@ -3321,6 +3327,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  }
  // 期待結果の重要な具体値（「…」で囲った値・HTTPステータス）を強調表示にする
  function hlExpect(s){ return String(s).replace(/「([^」]*)」/g,'「<span class="exv">$1</span>」').replace(/(＝)(\d+)(（正常到達）)/g,'$1<span class="exv">$2</span>$3'); }
+ // ロケータ(#id/[name]/[placeholder]/.class)から人が読める名称を導く（ロケータを表に出さない代替）
+ function humanSel(sel){ var s=(sel||'').trim(); if(!s) return '入力欄'; var m=s.match(/\[(?:name|placeholder)=["']?([^"'\]]+)/i)||s.match(/#([\w-]+)/)||s.match(/\.([\w-]+)/); var raw=m?m[1]:s; return raw.replace(/[-_]+/g,' ').trim()||'入力欄'; }
+ // 手順の1操作を人間可読なラベルにする（ラベルが無ければロケータから項目名を導く）
+ function stepLabel(a){ if(a&&a.label) return a.label; if(a&&a.kind==='fill') return humanSel(a.selector); return (a&&a.kind)||''; }
  // 認証(メール/ユーザ・パスワード)入力かどうか
  function isAuthFill(a){ if(!a||a.kind!=='fill') return false; var l=(a.label||'')+' '+(a.selector||''); return /メール|mail|email|ユーザ|user|ログインID|パスワード|password/i.test(l); }
  // ケースを「前提（対象画面への到達＝URL/認証/ナビ）」と「操作手順（画面上のテスト操作）」に分ける。
@@ -3366,10 +3376,10 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var isAssert=function(a){ return /表示される|であるか|かを?確認|されているか|減っている|増えている|更新され|遷移する|成功メッセージ|エラー(が|の)?(表示|確認|メッセージ)?|期待どおり/.test(a.label||''); };
    var opActs=stepActs.filter(function(a){return !isAssert(a);});
    var asserts=stepActs.filter(isAssert);
-   var steps=opActs.map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join('');
+   var steps=opActs.map(function(a){return '<li>'+esc(stepLabel(a))+'</li>';}).join('');
    dl('操作手順', '<ol class="steps">'+(steps||'<li>対象画面を表示</li>')+'</ol>');
    if(asserts.length) dl('期待（設計時の意図）', '<ul class="steps">'+asserts.map(function(a){return '<li>'+hlExpect(esc(a.label))+'</li>';}).join('')+'</ul>');
-   var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' ＝ <span class="exv">「'+esc(a.value||'(空)')+'」</span>';}).join(' ／ ')||'—';
+   var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||humanSel(a.selector))+' ＝ <span class="exv">「'+esc(a.value||'(空)')+'」</span>';}).join(' ／ ')||'—';
    dl('入力値', inputs);
    if(b){
      dl('期待結果（あるべき値／1回目Nを正とする）', '修正後(N+1)が下記のとおり1回目(N)と一致すること：<br>・'+hlExpect(expectLinesJs(b).join('<br>・'))+'<br><span class="muted">※日時/ID/UUID/桁数の大きい数値など動的値の違いは判定感度に応じて無視されます</span>'+(b.url?'<br><span class="muted">到達URL: '+esc(b.url)+'</span>':''));
