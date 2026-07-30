@@ -253,7 +253,8 @@
  details.catgroup{border:1px solid #dbe2ec;border-radius:8px;margin:10px 0;background:#f4f7fb;padding:2px 10px}
  details.catgroup>summary{cursor:pointer;font-weight:700;padding:8px 4px;font-size:14px;color:#2a4b7c}
  .chips{margin:2px 0 6px}.tchip{display:inline-block;background:#eef4ff;color:#2455b0;border:1px solid #d6e2fb;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px 4px 1px 0}
- .exv{background:#fff3cd;color:#664d03;font-weight:700;border-radius:3px;padding:0 3px} /* 期待結果の重要な具体値を強調 */
+ .exv{background:#fff3cd;color:#664d03;font-weight:700;border-radius:3px;padding:0 3px} /* 期待結果/入力値の具体値を強調（黄） */
+ .tgt{background:#e0f2f1;color:#00695c;font-weight:700;border-radius:3px;padding:0 3px} /* 操作対象の部品名を強調（青緑・入力値とは別色） */
  .obadge{display:inline-block;color:#fff;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;margin:0 4px}
  .o-捜索{background:#607d8b}.o-自動生成{background:#2e7d32}.o-推奨反映{background:#37507a}.o-AI改善{background:#6a1b9a}.o-手動追加{background:#ef6c00}
  details.caserow{border:1px solid #e2e7ee;border-radius:8px;margin:8px 0;background:#fafbfc}
@@ -725,6 +726,7 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
 })();
 </script>
+
 
 
 
@@ -3338,6 +3340,17 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function humanSel(sel){ var s=(sel||'').trim(); if(!s) return '入力欄'; var m=s.match(/\[(?:name|placeholder)=["']?([^"'\]]+)/i)||s.match(/#([\w-]+)/)||s.match(/\.([\w-]+)/); var raw=m?m[1]:s; return raw.replace(/[-_]+/g,' ').trim()||'入力欄'; }
  // 手順の1操作を人間可読なラベルにする（ラベルが無ければロケータから項目名を導く）
  function stepLabel(a){ if(a&&a.label) return a.label; if(a&&a.kind==='fill') return humanSel(a.selector); return (a&&a.kind)||''; }
+ // 手順を、操作対象の「部品名」を青緑ハイライトで示すHTMLにする（入力値の黄とは別色）。
+ function stepHtml(a){
+   var lbl=stepLabel(a)||'';
+   var eq=lbl.search(/[=＝]/);
+   if(eq>=0){ var name=lbl.slice(0,eq).trim(), rest=lbl.slice(eq+1).trim(); return '<span class="tgt">「'+esc(name)+'」</span>'+(rest?' に '+esc(rest):''); }
+   var mm=lbl.match(/^\s*(リンク|ボタン|クリック|選択|入力|送信)\s*[:：]\s*(.+)$/);
+   if(mm){ return esc(mm[1])+'：<span class="tgt">「'+esc(mm[2].trim())+'」</span>'; }
+   var ms=lbl.match(/^\s*(送信|クリック|入力)\s*[（(]\s*([^)）]+)[)）]\s*$/);
+   if(ms){ return esc(ms[1])+'：<span class="tgt">「'+esc(ms[2].trim())+'」</span>'; }
+   return '<span class="tgt">「'+esc(lbl)+'」</span>';
+ }
  // 認証(メール/ユーザ・パスワード)入力かどうか
  function isAuthFill(a){ if(!a||a.kind!=='fill') return false; var l=(a.label||'')+' '+(a.selector||''); return /メール|mail|email|ユーザ|user|ログインID|パスワード|password/i.test(l); }
  // ケースを「前提（対象画面への到達＝URL/認証/ナビ）」と「操作手順（画面上のテスト操作）」に分ける。
@@ -3383,7 +3396,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var isAssert=function(a){ return /表示される|であるか|かを?確認|されているか|減っている|増えている|更新され|遷移する|成功メッセージ|エラー(が|の)?(表示|確認|メッセージ)?|期待どおり/.test(a.label||''); };
    var opActs=stepActs.filter(function(a){return !isAssert(a);});
    var asserts=stepActs.filter(isAssert);
-   var steps=opActs.map(function(a){return '<li>'+esc(stepLabel(a))+'</li>';}).join('');
+   var steps=opActs.map(function(a){return '<li>'+stepHtml(a)+'</li>';}).join('');
    dl('操作手順', '<ol class="steps">'+(steps||'<li>対象画面を表示</li>')+'</ol>');
    if(asserts.length) dl('期待（設計時の意図）', '<ul class="steps">'+asserts.map(function(a){return '<li>'+hlExpect(esc(a.label))+'</li>';}).join('')+'</ul>');
    var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||humanSel(a.selector))+' ＝ <span class="exv">「'+esc(a.value||'(空)')+'」</span>';}).join(' ／ ')||'—';
