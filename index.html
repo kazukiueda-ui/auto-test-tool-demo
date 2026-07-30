@@ -737,6 +737,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -1571,6 +1572,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var cbn=$('cb-newProj'); if(cbn) cbn.addEventListener('click',function(){ var name=prompt('新規プロジェクト名'); if(!name) return; fetch(withTok('/api/projects'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}).then(function(r){return r.json();}).then(function(p){ curProject=p.id; localStorage.setItem('att_project',curProject); loadProjects().then(loadProjectSettings).then(function(){ loadSavedList(); }); }); });
    var cbr=$('cb-renameProj'); if(cbr) cbr.addEventListener('click',function(){ var name=prompt('プロジェクト名を変更'); if(!name) return; fetch(withTok('/api/project'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:curProject,name:name})}).then(function(){ loadProjects(); }); });
    var cbeng=$('cb-engine'); if(cbeng) cbeng.addEventListener('change',function(){ cbeng.dataset.userset='1'; updateEngineUi(); if(typeof saveProjectSettings==='function') saveProjectSettings(); if(typeof toast==='function') toast(cbeng.value==='local'?'エンジン：ローカルQwen に切替':'エンジン：Claude（API）に切替','ok'); });
+   // API比較OFFトグルは、切り替えた値を即プロジェクトへ保存（＝明示的な選択のみ永続化）。
+   // 既定は未設定＝ON。ユーザーがOFF/ONにした時だけ保存し、次回選択でその値を尊重する。
+   var cbia=$('m-ignoreApi'); if(cbia) cbia.addEventListener('change',function(){ if(typeof saveProjectSettings==='function') saveProjectSettings(); if(typeof toast==='function') toast(cbia.checked?'API通信の差分を比較しません（この設定を保存）':'API通信の差分も比較します（この設定を保存）','ok'); });
    var cbmodel=$('cb-model'); if(cbmodel) cbmodel.addEventListener('change',function(){ if(typeof mEstimate==='function') mEstimate();
      var lab=cbmodel.options[cbmodel.selectedIndex]?cbmodel.options[cbmodel.selectedIndex].text:cbmodel.value;
      if(typeof toast==='function') toast('次回の実行から「'+lab+'」を使用します（実行中の処理には影響しません）','ok');
