@@ -252,7 +252,8 @@
  .sufbar .excl{display:inline-block;margin:2px 8px 2px 0;font-size:12px;background:#fff;border:1px solid #d6dee8;border-radius:12px;padding:2px 8px;cursor:pointer}
  details.catgroup{border:1px solid #dbe2ec;border-radius:8px;margin:10px 0;background:#f4f7fb;padding:2px 10px}
  details.catgroup>summary{cursor:pointer;font-weight:700;padding:8px 4px;font-size:14px;color:#2a4b7c}
- .chips{margin:2px 0 6px}.chips .tchip{display:inline-block;background:#eef4ff;color:#2455b0;border:1px solid #d6e2fb;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px 3px 1px 0}
+ .chips{margin:2px 0 6px}.tchip{display:inline-block;background:#eef4ff;color:#2455b0;border:1px solid #d6e2fb;border-radius:10px;padding:1px 8px;font-size:11px;margin:1px 4px 1px 0}
+ .exv{background:#fff3cd;color:#664d03;font-weight:700;border-radius:3px;padding:0 3px} /* 期待結果の重要な具体値を強調 */
  .obadge{display:inline-block;color:#fff;border-radius:4px;font-size:10px;font-weight:700;padding:1px 6px;margin:0 4px}
  .o-捜索{background:#607d8b}.o-自動生成{background:#2e7d32}.o-推奨反映{background:#37507a}.o-AI改善{background:#6a1b9a}.o-手動追加{background:#ef6c00}
  details.caserow{border:1px solid #e2e7ee;border-radius:8px;margin:8px 0;background:#fafbfc}
@@ -721,6 +722,7 @@
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',wire); else wire();
 })();
 </script>
+
 
 
 
@@ -2861,8 +2863,29 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      // 表示フェーダー（最大化済み）とレビュー方式(full)を実行値に反映＝表示と実態を一致させる。
      var s4=await runJobP('/api/auto-improve',Object.assign({suite:mSuite,target:+$('m-aiTarget').value,maxRounds:+$('m-aiRounds').value,depth:aiDepth(),reviewMode:'full'},collectLlm()),lg);
      if(s4.suite){ mSuite=s4.suite; markDirty(); if(s4.aiReview){ mAiReview=s4.aiReview; renderAiReview(s4.aiReview,true); } renderCases(); }
-     if(typeof toast==='function') toast('✅ 全自動生成が完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。④保存へ進んでください。','ok');
-     showNextCta('<span>✅ 全自動生成が完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。</span><b>次：</b>下で確認し、変更後URLと比較します。');
+     if(typeof toast==='function') toast('✅ ①〜④が完了（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。続けて2回目（N+1）を実施します…','ok');
+     // ⑤ 2回目（N+1）の実施も可能な限り自動で行う：保存→不足N(修正前)の補完→比較実行。
+     //   変更後URL(m-after)が未指定なら、同一URLで自己再現チェックとして実施する（「出来るだけ」の原則）。
+     try {
+       // 保存（mSuiteId取得。以降の実行・比較に必須）
+       var sv=await fetch(withTok('/api/suites'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:($('m-name').value||'').trim()||defaultSuiteName(),suite:mSuite})}).then(function(r){return r.json();});
+       if(sv&&sv.id){ mSuiteId=sv.id; markClean(); refreshStepMarks(); loadSavedList(); }
+       // ②③④で増えたケースの「1回目(N)」を補完（比較の基準づくり）。無ければスキップ。停止ボタンで中断可。
+       if(typeof countMissingBaseline==='function' && countMissingBaseline()>0){
+         if(typeof toast==='function') toast('⑤増えたケースの1回目(N)を補完中…','ok');
+         try{ var cap=await runJobP('/api/capture-baseline',Object.assign({suite:mSuite,onlyMissing:true,maxRunSec:+$('m-maxRunSec').value},mSuiteId?{suiteId:mSuiteId,name:($('m-name').value||'').trim()||undefined}:{}),lg); if(cap&&cap.suite){ mSuite=cap.suite; markDirty(); renderCases(); } }catch(ec){ /* 一部未取得でも比較は続行 */ }
+       }
+       // 変更後URL：指定があればそれ、無ければ同一URL（自己再現チェック）
+       var afterU=($('m-after')&&$('m-after').value.trim())||''; if(!/^https?:\/\//.test(afterU)){ afterU=u; if($('m-after')) $('m-after').value=u; }
+       // 実行タブへ切替え、既存の実行ボタン処理（実行＋比較＋描画＋エラー/停止処理）を起動する。
+       if(typeof applyPhase==='function') applyPhase('exec');
+       var rb=$('m-runBtn'); if(rb) rb.click();
+       if(typeof toast==='function') toast('⑤2回目（N+1）の実施を開始しました（結果は「テスト実行」タブに表示）。','ok');
+       showNextCta('<span>✅ 全自動生成＋2回目（N+1）の実施を開始しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件'+(($('m-after')&&$('m-after').value.trim()===u)?'・変更後URL未指定のため同一URLで自己再現チェック':'')+'）。</span><b>結果：</b>「テスト実行」タブで比較を確認します。');
+     } catch(e5){
+       if(typeof toast==='function') toast('⑤2回目の実施はスキップ：'+(e5&&e5.message||e5)+'（保存済みなら手動で実行できます）','ng');
+       showNextCta('<span>✅ 全自動生成が完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。</span><b>次：</b>「テスト実行」タブで変更後URLと比較します。');
+     }
    } catch(e){ alert('全自動生成が中断しました：'+(e&&e.message||e)); }
    finally { if(ab){ab.disabled=false; ab.textContent='⚡ 全自動生成（最大設定・最後まで）';} if(eb) eb.disabled=false; }
  }
@@ -3283,6 +3306,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(tags.indexOf('異常系')>=0) return func+'での異常系入力に対する挙動が適切であることを確認';
    return func+'の'+(sub||'画面表示')+'が期待通りであることを確認';
  }
+ // 期待結果の重要な具体値（「…」で囲った値・HTTPステータス）を強調表示にする
+ function hlExpect(s){ return String(s).replace(/「([^」]*)」/g,'「<span class="exv">$1</span>」').replace(/(＝)(\d+)(（正常到達）)/g,'$1<span class="exv">$2</span>$3'); }
  // 1回目カードの「このテストが何をするか」パネル（N観測=baselineから。2回目と同じ項目のうち出せるものだけ）
  function caseInfo(sc,meta){
    var b=sc.baseline||null; var rows=[];
@@ -3291,13 +3316,13 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    dl('カテゴリ階層', ((meta&&meta.category)||['未分類']).filter(Boolean).map(esc).join(' ＞ '));
    dl('タグ', ((meta&&meta.tags)||[]).map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join('')||'—');
    dl('目的', esc(purposeJs(sc,meta)));
-   dl('前提条件', '開始URLへ到達（認証状態は捜索時のまま）'+(b?'／N(修正前)の観測あり':'／自動生成：Nの観測はまだ無い'));
+   dl('前提条件', '開始URLへ到達（認証状態は捜索時のまま）'+(b?'':'／自動生成：Nの観測はまだ無い'));
    var steps=(sc.actions||[]).map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join(''); // セレクタは手順に表示しない（可読性）
    dl('操作手順', '<ol class="steps">'+(steps||'<li>開始ページを表示</li>')+'</ol>');
    var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' = <code>'+esc(a.value||'(空)')+'</code>';}).join(' ／ ')||'—';
    dl('入力値', inputs);
    if(b){
-     dl('期待結果（あるべき値／1回目Nを正とする）', '修正後(N+1)が下記のとおり1回目(N)と一致すること：<br>・'+expectLinesJs(b).join('<br>・')+'<br><span class="muted">※日時/ID/UUID/桁数の大きい数値など動的値の違いは判定感度に応じて無視されます</span>'+(b.url?'<br><span class="muted">到達URL: '+esc(b.url)+'</span>':''));
+     dl('期待結果（あるべき値／1回目Nを正とする）', '修正後(N+1)が下記のとおり1回目(N)と一致すること：<br>・'+hlExpect(expectLinesJs(b).join('<br>・'))+'<br><span class="muted">※日時/ID/UUID/桁数の大きい数値など動的値の違いは判定感度に応じて無視されます</span>'+(b.url?'<br><span class="muted">到達URL: '+esc(b.url)+'</span>':''));
      var api=b.api||[];
      if(api.length){
        var ar=api.map(function(c){var w=/POST|PUT|DELETE|PATCH/i.test(c.method);return '<tr><td>'+esc(c.op||'—')+'</td><td>'+esc(c.method)+' <span class="apath">'+esc(c.path)+'</span></td><td>'+(w?'<b style="color:#c2185b">データ更新</b>':'参照')+'</td><td>'+(c.status==null?'-':c.status)+'</td></tr>';}).join('');
@@ -3635,7 +3660,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var suiteName=(($('m-execSuite')&&$('m-execSuite').selectedOptions&&$('m-execSuite').selectedOptions[0]&&$('m-execSuite').selectedOptions[0].textContent)||$('m-name').value||'').replace(/（\d+件）$/,'').trim();
    var apiIgnore=($('m-apiIgnore')?$('m-apiIgnore').value:'').split(/\r?\n/).map(function(x){return x.trim();}).filter(Boolean);
    var sensitivity=$('m-sensitivity')?$('m-sensitivity').value:'standard';
-   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,sensitivity:sensitivity,ignoreApi:($('m-ignoreApi')?$('m-ignoreApi').checked:false),shots:$('m-shots').checked,video:$('m-video').checked,headed:($('m-headed')?$('m-headed').checked:false),maxRunSec:+$('m-maxRunSec').value};
+   var body={suite:mSuite,after:after,suiteId:mSuiteId,suiteName:suiteName,apiIgnore:apiIgnore,sensitivity:sensitivity,ignoreApi:($('m-ignoreApi')?$('m-ignoreApi').checked:true),shots:$('m-shots').checked,video:$('m-video').checked,headed:($('m-headed')?$('m-headed').checked:false),maxRunSec:+$('m-maxRunSec').value};
    $('m-runBtn').disabled=true; var lg=$('m-runlog'); lg.classList.remove('hidden'); lg.textContent='N+1を実行して比較を開始…'; $('m-resultCard').classList.add('hidden');
    var r=await fetch(withTok('/api/run-baseline'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json();}).catch(function(e){return {error:String(e)};});
    if(r.error){lg.textContent='エラー: '+r.error;$('m-runBtn').disabled=false;return;}
