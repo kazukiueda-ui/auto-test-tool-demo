@@ -728,6 +728,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3360,7 +3361,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var steps=opActs.map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join('');
    dl('操作手順', '<ol class="steps">'+(steps||'<li>対象画面を表示</li>')+'</ol>');
    if(asserts.length) dl('期待（設計時の意図）', '<ul class="steps">'+asserts.map(function(a){return '<li>'+hlExpect(esc(a.label))+'</li>';}).join('')+'</ul>');
-   var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' = <code>'+esc(a.value||'(空)')+'</code>';}).join(' ／ ')||'—';
+   var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' ＝ <span class="exv">「'+esc(a.value||'(空)')+'」</span>';}).join(' ／ ')||'—';
    dl('入力値', inputs);
    if(b){
      dl('期待結果（あるべき値／1回目Nを正とする）', '修正後(N+1)が下記のとおり1回目(N)と一致すること：<br>・'+hlExpect(expectLinesJs(b).join('<br>・'))+'<br><span class="muted">※日時/ID/UUID/桁数の大きい数値など動的値の違いは判定感度に応じて無視されます</span>'+(b.url?'<br><span class="muted">到達URL: '+esc(b.url)+'</span>':''));
