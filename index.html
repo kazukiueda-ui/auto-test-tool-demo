@@ -726,6 +726,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -2252,13 +2253,15 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      +(ev.reason?'<div class="ip-row"><span class="ip-k">判定不能の理由</span><span class="ip-v">'+escHtml(ev.reason)+'</span></div>':'')
      +tags+asserts
      +'</div>'; }
+ // エビデンス動画の再生速度セレクタ（.vspeed）を委譲で処理。既定は onloadedmetadata で0.5倍。
+ (function(){ document.addEventListener('change',function(e){ var t=e.target; if(t&&t.classList&&t.classList.contains('vspeed')){ var box=t.closest('.ivbox'); var v=box&&box.querySelector('video'); if(v) v.playbackRate=parseFloat(t.value)||1; } }); })();
  function issEvidenceHtml(ev,issue){
    ev=ev||{};
    var link=(issue&&issue.dashboardUrl)?'<div style="margin-bottom:6px"><a href="'+withTok(issue.dashboardUrl)+'" target="_blank" style="font-weight:700;color:#1565c0">▶ 詳細ダッシュボードで全ログ・通信詳細を開く（ドリルダウン）</a></div>':'';
    var expect=ev.expect?'<details style="margin:4px 0"><summary>期待結果（あるべき値／N観測）</summary><pre style="background:#f4f8ff;color:#20324d;padding:8px;border-radius:6px;font-size:12px;white-space:pre-wrap">'+escHtml(ev.expect)+'</pre></details>':'';
    var concrete=issConcreteHtml(ev.concrete);
    var shots=(ev.nShot||ev.n1Shot||ev.diffShot)?'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:4px">'+issShot('修正前(N)',ev.nShot)+issShot('修正後(N+1)',ev.n1Shot)+issShot('差分(赤=変化箇所)',ev.diffShot)+'</div>':'';
-   var vid=ev.video?'<div style="margin-top:6px"><video controls preload="metadata" style="max-width:100%;max-height:320px;border-radius:6px;border:1px solid #ddd" src="'+withTok(ev.video)+'"></video></div>':'';
+   var vid=ev.video?'<div class="ivbox" style="margin-top:6px"><video controls preload="metadata" onloadedmetadata="this.playbackRate=0.5" style="max-width:100%;max-height:320px;border-radius:6px;border:1px solid #ddd" src="'+withTok(ev.video)+'"></video><div style="margin-top:3px;font-size:12px;color:#556">再生速度 <select class="vspeed"><option value="0.25">0.25x（ゆっくり）</option><option value="0.5" selected>0.5x（既定）</option><option value="1">1x（等倍）</option><option value="1.5">1.5x</option><option value="2">2x</option></select></div></div>':'';
    var meta=(ev.visualRatio!=null||ev.screen)?'<div class="muted" style="font-size:12px;margin-bottom:4px">'+(ev.visualRatio!=null?'画素差 <b>'+(ev.visualRatio*100).toFixed(2)+'%</b> ／ ':'')+(ev.screen?'画面: '+escHtml(ev.screen)+' ':'')+(ev.loadMsN!=null||ev.loadMsN1!=null?' ／ 表示 N='+(ev.loadMsN||'-')+'ms / N+1='+(ev.loadMsN1||'-')+'ms':'')+'</div>':'';
    var logs=issLogSec('差分の詳細',ev.details)+issLogSec('実行ログ(コンソール)',ev.console)+issLogSec('API通信(N・修正前)',ev.apiN)+issLogSec('API通信(N+1・修正後)',ev.api)+issLogSec('API差分',ev.apiDiffs)+issLogSec('操作手順(再現)',ev.trace)+issLogSec('入力値',ev.inputs);
    if(!link&&!shots&&!vid&&!logs&&!meta&&!concrete&&!expect) return '<span class="muted">証跡なし</span>';
@@ -3316,9 +3319,14 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    dl('カテゴリ階層', ((meta&&meta.category)||['未分類']).filter(Boolean).map(esc).join(' ＞ '));
    dl('タグ', ((meta&&meta.tags)||[]).map(function(t){return '<span class="tchip">'+esc(t)+'</span>';}).join('')||'—');
    dl('目的', esc(purposeJs(sc,meta)));
-   dl('前提条件', '開始URLへ到達（認証状態は捜索時のまま）'+(b?'':'／自動生成：Nの観測はまだ無い'));
-   var steps=(sc.actions||[]).map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join(''); // セレクタは手順に表示しない（可読性）
-   dl('操作手順', '<ol class="steps">'+(steps||'<li>開始ページを表示</li>')+'</ol>');
+   // 前提条件は「手順」で示す（テスターはURLを入力せず、画面操作で対象画面まで進むため）。
+   dl('前提条件', '対象画面を表示していること（認証状態は捜索時のまま）'+(b?'':'／自動生成：Nの観測はまだ無い'));
+   // 対象画面の開始URLは別項目として表示（手順には出さない）。
+   var gto=(sc.actions||[]).filter(function(a){return a.kind==='goto';}); var startUrl=(gto[0]&&(gto[0].value||gto[0].label))||(b&&b.url)||sc.startUrl||'';
+   if(startUrl) dl('対象画面の開始URL', '<span class="muted" style="word-break:break-all">'+esc(startUrl)+'</span>');
+   // 操作手順：URL遷移(goto)は開始URLとして別掲するため除外し、画面操作だけを並べる。
+   var steps=(sc.actions||[]).filter(function(a){return a.kind!=='goto';}).map(function(a){return '<li>'+esc(a.label||a.kind)+'</li>';}).join('');
+   dl('操作手順', '<ol class="steps">'+(steps||'<li>対象画面を表示</li>')+'</ol>');
    var inputs=(sc.actions||[]).filter(function(a){return a.kind==='fill';}).map(function(a){return esc(a.label||a.selector)+' = <code>'+esc(a.value||'(空)')+'</code>';}).join(' ／ ')||'—';
    dl('入力値', inputs);
    if(b){
