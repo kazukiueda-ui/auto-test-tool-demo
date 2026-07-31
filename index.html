@@ -742,6 +742,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -2847,16 +2848,18 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    },$('m-exploreBtn'));
  });
  // ==== 全自動生成（最大設定でノンストップ：①捜索→②観点網羅→③推奨反映→④AIレビュー改善）====
- // ジョブAPI(runId→poll)を Promise 化。s.suite が返った時点で完了とみなし解決する。
+ // ジョブAPI(runId→poll)を Promise 化。pollのonDoneは「完了時に一度だけ」呼ばれるので、
+ // その時点で（error/stopped以外は）必ず解決する。suiteの有無は呼出側で確認する。
+ // ※以前は s.suite が無いと解決せず、doneでもsuiteが載らない場合に永久ハングしていた（全自動が①で停止）。
  function runJobP(apiPath, body, lg){
    return fetch(withTok(apiPath),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
      .then(function(r){return r.json();})
      .then(function(r){ if(r.error) throw new Error(r.error);
        return new Promise(function(resolve,reject){ var done=false;
-         poll(r.runId,lg,function(s){ if(done) return;
-           if(s.suite){ done=true; resolve(s); }
-           else if(s.status==='error'){ done=true; reject(new Error(s.error||'失敗')); }
-           else if(s.status==='stopped'){ done=true; reject(new Error('停止しました')); }
+         poll(r.runId,lg,function(s){ if(done) return; done=true;
+           if(s&&s.status==='error') reject(new Error((s&&s.error)||'失敗'));
+           else if(s&&s.status==='stopped') reject(new Error('停止しました'));
+           else resolve(s||{}); // done等 → 解決（suiteは呼出側でチェック）
          }); });
      });
  }
@@ -2885,12 +2888,17 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      Object.assign(exBody,collectSpec()); Object.assign(exBody,collectLlm());
      if(typeof toast==='function') toast('①捜索を開始（最大設定）…','ok');
      var s1=await runJobP('/api/explore',exBody,lg);
+     if(!s1||!s1.suite||!(s1.suite.scenarios||[]).length){ throw new Error('①捜索でテストケースを生成できませんでした（0件）。URL・ログイン情報・時間上限をご確認ください'); }
      mSuite=s1.suite; mSuiteId=null; mCompared=false; markDirty(); clearNarrative(); $('m-name').value=defaultSuiteName(); renderCases();
      if(s1.summary&&s1.summary.detectedDomain){ applyDetectedDomain(s1.summary.detectedDomain,false); }
-     // ② 観点網羅の追加（/api/augment は同期でsuiteを返す）
+     // ② 観点網羅の追加（/api/augment は同期でsuiteを返す）。応答が無くても全体が止まらないよう上限を設ける。
      if(typeof toast==='function') toast('②不足観点のケースを追加中…','ok');
-     var aug=await fetch(withTok('/api/augment'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(r){return r.json();}).catch(function(){return null;});
+     var aug=await Promise.race([
+       fetch(withTok('/api/augment'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({suite:mSuite})}).then(function(r){return r.json();}).catch(function(){return null;}),
+       new Promise(function(res){ setTimeout(function(){res(null);},90000); })
+     ]);
      if(aug&&aug.suite){ mSuite=aug.suite; markDirty(); renderCases(); }
+     else if(typeof toast==='function') toast('②観点網羅はスキップ（応答なし/対象なし）。③へ進みます','ng');
      // ③ 推奨アクションの反映
      if(typeof toast==='function') toast('③信頼度の推奨アクションを反映中…','ok');
      try{ var s3=await runJobP('/api/apply-recs',Object.assign({suite:mSuite},collectLlm()),lg); if(s3.suite){ mSuite=s3.suite; markDirty(); renderCases(); } }catch(e3){ /* 推奨が無い等は続行 */ }
