@@ -740,6 +740,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3360,7 +3361,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    if(eq>=0){ target=lbl.slice(0,eq).trim(); detail=lbl.slice(eq+1).trim(); }
    else { var mm=lbl.match(/^\s*(リンク|ボタン|クリック|選択|入力|送信)\s*[:：（(]\s*([^)）]+)[)）]?\s*$/); if(mm){ target=mm[2].trim(); } }
    var tHtml='<span class="tgt">「'+esc(target)+'」</span>';
-   if(kind==='fill'){ var v=(a&&a.value!=null&&a.value!=='')?a.value:(detail||'(空)'); return '入力 '+tHtml+' に <span class="exv">「'+esc(v)+'」</span> を入力'; }
+   if(kind==='fill'){ var v=(a&&a.value!=null&&a.value!=='')?a.value:(detail||'(空)'); return tHtml+' に <span class="exv">「'+esc(v)+'」</span> を入力'; }
    if(kind==='submit'){ return '送信 '+tHtml+' を押下'; }
    if(kind==='click'){ var pre=/リンク/.test(lbl)?'リンク ':(/ボタン/.test(lbl)?'ボタン ':''); return pre+tHtml+' を押下'; }
    if(detail) return tHtml+' に <span class="exv">「'+esc(detail)+'」</span>';
