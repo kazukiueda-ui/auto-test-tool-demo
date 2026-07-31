@@ -738,6 +738,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3298,8 +3299,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    L.push('画面タイトル＝「'+esc(b.title||'-')+'」であること');
    var heads=(d.headings||[]).filter(Boolean).slice(0,4);
    if(heads.length) L.push('主な見出し＝「'+esc(heads.join(' ｜ '))+'」が表示されること');
-   var body=(d.text||'').replace(/\s+/g,' ').trim(); if(body.length>120) body=body.slice(0,120)+'…';
-   if(body) L.push('本文に「'+esc(body)+'」が含まれること');
+   // 本文は要素ごとに区切って「」で個別表示（hlExpectが各要素を黄ハイライトする）。
+   var raw=(d.text||'').replace(/�/g,'').trim();
+   if(raw){ var parts=raw.split(/[\n\r]+/).map(function(s){return s.trim();}).filter(Boolean);
+     if(parts.length<=1){ var toks=raw.split(/\s+/).filter(Boolean); parts=toks.length>6?toks:[raw]; }
+     var shown=parts.slice(0,20).map(function(s){ if(s.length>40) s=s.slice(0,40)+'…'; return '「'+esc(s)+'」'; }).join('');
+     if(shown) L.push('本文に '+shown+(parts.length>20?' ほか':'')+' が含まれること'); }
    if(typeof d.formCount==='number'&&d.formCount>0) L.push('入力フォーム＝'+d.formCount+'個が存在すること');
    L.push('HTTPステータス＝'+((b.http&&b.http.status!=null)?b.http.status:'-')+'（正常到達）で応答すること');
    var api=b.api||[]; if(api.length){ var ex=api.slice(0,4).map(function(c){return esc(c.method)+' '+esc(c.path)+'→'+(c.status==null?'-':c.status);}); L.push('API通信＝'+api.length+'件が同一結果（例: '+ex.join(' , ')+(api.length>4?' ほか':'')+'）であること'); }
@@ -3344,16 +3349,21 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
  function humanSel(sel){ var s=(sel||'').trim(); if(!s) return '入力欄'; var m=s.match(/\[(?:name|placeholder)=["']?([^"'\]]+)/i)||s.match(/#([\w-]+)/)||s.match(/\.([\w-]+)/); var raw=m?m[1]:s; return raw.replace(/[-_]+/g,' ').trim()||'入力欄'; }
  // 手順の1操作を人間可読なラベルにする（ラベルが無ければロケータから項目名を導く）
  function stepLabel(a){ if(a&&a.label) return a.label; if(a&&a.kind==='fill') return humanSel(a.selector); return (a&&a.kind)||''; }
- // 手順を、操作対象の「部品名」を青緑ハイライトで示すHTMLにする（入力値の黄とは別色）。
+ // 手順を、部品名（青緑）＋入力値（黄・カッコ付き）＋語尾（押下／を入力）のHTMLにする。
  function stepHtml(a){
+   var kind=(a&&a.kind)||'';
    var lbl=stepLabel(a)||'';
+   // 部品名（target）と補足（detail＝観点/値の記述）を分離する。
+   var target=lbl, detail='';
    var eq=lbl.search(/[=＝]/);
-   if(eq>=0){ var name=lbl.slice(0,eq).trim(), rest=lbl.slice(eq+1).trim(); return '<span class="tgt">「'+esc(name)+'」</span>'+(rest?' に '+esc(rest):''); }
-   var mm=lbl.match(/^\s*(リンク|ボタン|クリック|選択|入力|送信)\s*[:：]\s*(.+)$/);
-   if(mm){ return esc(mm[1])+'：<span class="tgt">「'+esc(mm[2].trim())+'」</span>'; }
-   var ms=lbl.match(/^\s*(送信|クリック|入力)\s*[（(]\s*([^)）]+)[)）]\s*$/);
-   if(ms){ return esc(ms[1])+'：<span class="tgt">「'+esc(ms[2].trim())+'」</span>'; }
-   return '<span class="tgt">「'+esc(lbl)+'」</span>';
+   if(eq>=0){ target=lbl.slice(0,eq).trim(); detail=lbl.slice(eq+1).trim(); }
+   else { var mm=lbl.match(/^\s*(リンク|ボタン|クリック|選択|入力|送信)\s*[:：（(]\s*([^)）]+)[)）]?\s*$/); if(mm){ target=mm[2].trim(); } }
+   var tHtml='<span class="tgt">「'+esc(target)+'」</span>';
+   if(kind==='fill'){ var v=(a&&a.value!=null&&a.value!=='')?a.value:(detail||'(空)'); return '入力 '+tHtml+' に <span class="exv">「'+esc(v)+'」</span> を入力'; }
+   if(kind==='submit'){ return '送信 '+tHtml+' を押下'; }
+   if(kind==='click'){ var pre=/リンク/.test(lbl)?'リンク ':(/ボタン/.test(lbl)?'ボタン ':''); return pre+tHtml+' を押下'; }
+   if(detail) return tHtml+' に <span class="exv">「'+esc(detail)+'」</span>';
+   return tHtml;
  }
  // 認証(メール/ユーザ・パスワード)入力かどうか
  function isAuthFill(a){ if(!a||a.kind!=='fill') return false; var l=(a.label||'')+' '+(a.selector||''); return /メール|mail|email|ユーザ|user|ログインID|パスワード|password/i.test(l); }
