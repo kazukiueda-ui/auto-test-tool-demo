@@ -739,6 +739,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -909,7 +910,7 @@ graph TD
      <div id="m-autoOpts" style="margin:2px 0 8px">
       <div class="slider" style="max-width:480px;margin:2px 0 8px">
        <div class="lab"><span>反復回数（レビュー→改善→再評価を何回まで繰り返すか）</span><b id="m-aiRoundsv">1回</b></div>
-       <input type="range" id="m-aiRounds" min="1" max="5" step="1" value="1">
+       <input type="range" id="m-aiRounds" min="1" max="3" step="1" value="1">
       </div>
       <div class="slider" style="max-width:480px;margin:2px 0 8px">
        <div class="lab"><span>目標 総合評価（到達したら停止）</span><b id="m-aiTargetv">80点</b></div>
@@ -2891,8 +2892,8 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      // ③ 推奨アクションの反映
      if(typeof toast==='function') toast('③信頼度の推奨アクションを反映中…','ok');
      try{ var s3=await runJobP('/api/apply-recs',Object.assign({suite:mSuite},collectLlm()),lg); if(s3.suite){ mSuite=s3.suite; markDirty(); renderCases(); } }catch(e3){ /* 推奨が無い等は続行 */ }
-     // ④ AIレビュー＋自動改善（目標100点・最大5ラウンド・深度最大）
-     if(typeof toast==='function') toast('④AIレビュー＋自動改善を実行中（複数レビュー・最大5ラウンド）…','ok');
+     // ④ AIレビュー＋自動改善（目標100点・最大3ラウンド・深度最大）
+     if(typeof toast==='function') toast('④AIレビュー＋自動改善を実行中（複数レビュー・最大3ラウンド）…','ok');
      // 表示フェーダー（最大化済み）とレビュー方式(full)を実行値に反映＝表示と実態を一致させる。
      var s4=await runJobP('/api/auto-improve',Object.assign({suite:mSuite,target:+$('m-aiTarget').value,maxRounds:+$('m-aiRounds').value,depth:aiDepth(),reviewMode:'full'},collectLlm()),lg);
      if(s4.suite){ mSuite=s4.suite; markDirty(); if(s4.aiReview){ mAiReview=s4.aiReview; renderAiReview(s4.aiReview,true); } renderCases(); }
