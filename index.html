@@ -741,6 +741,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3305,7 +3306,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var raw=(d.text||'').replace(/�/g,'').trim();
    if(raw){ var parts=raw.split(/[\n\r]+/).map(function(s){return s.trim();}).filter(Boolean);
      if(parts.length<=1){ var toks=raw.split(/\s+/).filter(Boolean); parts=toks.length>6?toks:[raw]; }
-     var shown=parts.slice(0,20).map(function(s){ if(s.length>40) s=s.slice(0,40)+'…'; return '「'+esc(s)+'」'; }).join('');
+     var shown=parts.slice(0,20).map(function(s){ if(s.length>40) s=s.slice(0,40)+'…'; return '［'+esc(s)+'］'; }).join(''); // 本文要素は数が多いので黄ハイライト対象の「」ではなく［］で区切る
      if(shown) L.push('本文に '+shown+(parts.length>20?' ほか':'')+' が含まれること'); }
    if(typeof d.formCount==='number'&&d.formCount>0) L.push('入力フォーム＝'+d.formCount+'個が存在すること');
    L.push('HTTPステータス＝'+((b.http&&b.http.status!=null)?b.http.status:'-')+'（正常到達）で応答すること');
