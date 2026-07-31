@@ -745,6 +745,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3330,16 +3331,23 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var tags=(meta&&meta.tags)||[];
    function h(w){ return hay.indexOf(w)>=0; } // w は小文字で渡す
    var emptyReq=fills.some(function(a){return String(a.value==null?'':a.value).trim()==='';});
-   var isAuth=h('pass')||h('パスワード')||h('認証')||h('ログイン')||h('login')||h('signin')||func.indexOf('認証')>=0;
-   // 異常系（入力値・ラベルから種別を特定）
+   var fl=func.toLowerCase();
+   var isAuth=h('pass')||h('パスワード')||h('認証')||h('ログイン')||h('login')||h('signin')||fl.indexOf('認証')>=0;
+   var authFunc=fl.indexOf('認証')>=0||fl.indexOf('ログイン')>=0||fl.indexOf('login')>=0;
+   // 異常系・特定観点（入力値・ラベル・機能名から種別を特定）
    if((h('誤')||h('wrong')||h('invalid')||h('不正'))&&isAuth) return '誤った認証情報でログインが拒否されることを確認';
+   if(h('ログアウト')||h('logout')||h('サインアウト')||fl.indexOf('ログアウト')>=0) return 'ログアウトして未ログイン状態に戻ることを確認';
    if(emptyReq||h('未入力')||h('必須チェック')||h('空送信')) return '必須項目が未入力のとき検証エラーになることを確認';
    if(h('最大長')||h('文字数上限')||h('maxlength')||vals.length>=200) return '最大長を超える入力が適切に制限されることを確認';
    if(h('xss')||h('<script')||h('sql')||h('特殊文字')||h('記号')) return '不正な文字列（XSS/SQL等）が無害化されることを確認';
-   if(h('境界')||h('範囲外')||h('上限')||h('下限')||h('最小')||h('最大')) return '境界値（上限・下限の前後）で期待通り扱われることを確認';
+   if(fl.indexOf('条件表示')>=0||h('有効化')||h('無効化')||(h('表示される')&&h('確認'))) return '選択値に応じて入力欄の表示・必須が切り替わることを確認';
+   if(fl.indexOf('境界')>=0||h('境界')||h('範囲外')||h('上限')||h('下限')||h('超え')||h('超過')||h('定員')||h('ヶ月')||h('最終日')||h('直近')){
+     return (h('超え')||h('超過')||h('範囲外')||h('以上')||h('オーバー')||h('超える'))?'範囲外の値が適切に弾かれる（エラーになる）ことを確認':'境界値（上限・下限の前後）で期待通り扱われることを確認';
+   }
+   if(fl.indexOf('計算')>=0||fl.indexOf('料金')>=0||fl.indexOf('金額')>=0||fl.indexOf('価格')>=0||h('合計金額')||h('割増')) return '入力に応じた金額（合計・割増等）が正しく計算されることを確認';
    if(h('重複')||h('既存')||h('duplicate')) return '重複データの登録が拒否されることを確認';
    // 正常系（主たる操作から目的を導く）
-   if(isAuth&&(h('送信')||h('submit')||h('ログイン')||h('login'))) return '正しい認証情報でログインが成立することを確認';
+   if(isAuth&&authFunc&&(h('送信')||h('submit')||h('ログイン')||h('login'))) return '正しい認証情報でログインが成立することを確認';
    if(h('購入')||h('checkout')||h('決済')||h('注文')||h('order')) return '商品を選択し注文（決済）まで正常に完了できることを確認';
    if(h('予約')||h('reserve')||h('booking')) return func+'の条件を指定して予約が正常に確定できることを確認';
    if(h('検索')||h('search')||h('フィルタ')||h('絞')||h('並べ')||h('sort')||h('filter')) return '条件を指定した'+func+'で期待する結果が表示されることを確認';
