@@ -743,6 +743,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -2907,9 +2908,9 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      // 表示フェーダー（最大化済み）とレビュー方式(full)を実行値に反映＝表示と実態を一致させる。
      var s4=await runJobP('/api/auto-improve',Object.assign({suite:mSuite,target:+$('m-aiTarget').value,maxRounds:+$('m-aiRounds').value,depth:aiDepth(),reviewMode:'full'},collectLlm()),lg);
      if(s4.suite){ mSuite=s4.suite; markDirty(); if(s4.aiReview){ mAiReview=s4.aiReview; renderAiReview(s4.aiReview,true); } renderCases(); }
-     if(typeof toast==='function') toast('✅ ①〜④が完了（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。続けて2回目（N+1）を実施します…','ok');
-     // ⑤ 2回目（N+1）の実施も可能な限り自動で行う：保存→不足N(修正前)の補完→比較実行。
-     //   変更後URL(m-after)が未指定なら、同一URLで自己再現チェックとして実施する（「出来るだけ」の原則）。
+     if(typeof toast==='function') toast('✅ ①〜④が完了（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。保存して追加ケースの1回目(N)を取得します…','ok');
+     // ⑤ 保存＋「追加ケースの1回目(N=修正前)」を取得するまで（＝比較の基準づくり）。
+     //   N+1(修正後)との比較は修正後URLを指定して行う別ステップなので、全自動では実行しない。
      try {
        // 保存（mSuiteId取得。以降の実行・比較に必須）
        var sv=await fetch(withTok('/api/suites'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:($('m-name').value||'').trim()||defaultSuiteName(),suite:mSuite})}).then(function(r){return r.json();});
@@ -2919,16 +2920,12 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
          if(typeof toast==='function') toast('⑤増えたケースの1回目(N)を補完中…','ok');
          try{ var cap=await runJobP('/api/capture-baseline',Object.assign({suite:mSuite,onlyMissing:true,maxRunSec:+$('m-maxRunSec').value},mSuiteId?{suiteId:mSuiteId,name:($('m-name').value||'').trim()||undefined}:{}),lg); if(cap&&cap.suite){ mSuite=cap.suite; markDirty(); renderCases(); } }catch(ec){ /* 一部未取得でも比較は続行 */ }
        }
-       // 変更後URL：指定があればそれ、無ければ同一URL（自己再現チェック）
-       var afterU=($('m-after')&&$('m-after').value.trim())||''; if(!/^https?:\/\//.test(afterU)){ afterU=u; if($('m-after')) $('m-after').value=u; }
-       // 実行タブへ切替え、既存の実行ボタン処理（実行＋比較＋描画＋エラー/停止処理）を起動する。
-       if(typeof applyPhase==='function') applyPhase('exec');
-       var rb=$('m-runBtn'); if(rb) rb.click();
-       if(typeof toast==='function') toast('⑤2回目（N+1）の実施を開始しました（結果は「テスト実行」タブに表示）。','ok');
-       showNextCta('<span>✅ 全自動生成＋2回目（N+1）の実施を開始しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件'+(($('m-after')&&$('m-after').value.trim()===u)?'・変更後URL未指定のため同一URLで自己再現チェック':'')+'）。</span><b>結果：</b>「テスト実行」タブで比較を確認します。');
+       // N+1(修正後)との比較は、修正後URLを指定して行う別ステップ。全自動では実行しない。
+       if(typeof toast==='function') toast('✅ 全自動生成が完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件・1回目N取得済み）。','ok');
+       showNextCta('<span>✅ 全自動生成が完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件／1回目Nは取得済み）。</span><b>次：</b>「テスト実行」タブで<b>修正後(N+1)のURL</b>を入れて比較すると回帰チェックできます。');
      } catch(e5){
-       if(typeof toast==='function') toast('⑤2回目の実施はスキップ：'+(e5&&e5.message||e5)+'（保存済みなら手動で実行できます）','ng');
-       showNextCta('<span>✅ 全自動生成が完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。</span><b>次：</b>「テスト実行」タブで変更後URLと比較します。');
+       if(typeof toast==='function') toast('⑤保存/N取得でエラー：'+(e5&&e5.message||e5),'ng');
+       showNextCta('<span>✅ ①〜④は完了しました（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。</span><b>次：</b>④保存→「テスト実行」タブで修正後URLと比較します。');
      }
    } catch(e){ alert('全自動生成が中断しました：'+(e&&e.message||e)); }
    finally { if(ab){ab.disabled=false; ab.textContent='⚡ 全自動生成（最大設定・最後まで）';} if(eb) eb.disabled=false; }
