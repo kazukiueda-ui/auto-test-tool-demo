@@ -746,6 +746,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -2905,12 +2906,17 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
      // ③ 推奨アクションの反映
      if(typeof toast==='function') toast('③信頼度の推奨アクションを反映中…','ok');
      try{ var s3=await runJobP('/api/apply-recs',Object.assign({suite:mSuite},collectLlm()),lg); if(s3.suite){ mSuite=s3.suite; markDirty(); renderCases(); } }catch(e3){ /* 推奨が無い等は続行 */ }
-     // ④ AIレビュー＋自動改善（目標100点・最大3ラウンド・深度最大）
+     // ④ AIレビュー＋自動改善（目標100点・最大3ラウンド・深度最大）。LLMが落ちても①〜③のケースは
+     //   失わないよう、④の失敗は致命的にせずスキップして⑤(保存)へ進む。
      if(typeof toast==='function') toast('④AIレビュー＋自動改善を実行中（複数レビュー・最大3ラウンド）…','ok');
-     // 表示フェーダー（最大化済み）とレビュー方式(full)を実行値に反映＝表示と実態を一致させる。
-     var s4=await runJobP('/api/auto-improve',Object.assign({suite:mSuite,target:+$('m-aiTarget').value,maxRounds:+$('m-aiRounds').value,depth:aiDepth(),reviewMode:'full'},collectLlm()),lg);
-     if(s4.suite){ mSuite=s4.suite; markDirty(); if(s4.aiReview){ mAiReview=s4.aiReview; renderAiReview(s4.aiReview,true); } renderCases(); }
-     if(typeof toast==='function') toast('✅ ①〜④が完了（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。保存して追加ケースの1回目(N)を取得します…','ok');
+     try{
+       var s4=await runJobP('/api/auto-improve',Object.assign({suite:mSuite,target:+$('m-aiTarget').value,maxRounds:+$('m-aiRounds').value,depth:aiDepth(),reviewMode:'full'},collectLlm()),lg);
+       if(s4.suite){ mSuite=s4.suite; markDirty(); if(s4.aiReview){ mAiReview=s4.aiReview; renderAiReview(s4.aiReview,true); } renderCases(); }
+       if(typeof toast==='function') toast('✅ ①〜④が完了（'+(mSuite&&mSuite.scenarios?mSuite.scenarios.length:0)+'件）。保存して追加ケースの1回目(N)を取得します…','ok');
+     }catch(e4){
+       var msg4=(e4&&e4.message||e4)+''; var isNet=/fetch failed|failed to fetch|network|timed out|接続/i.test(msg4);
+       if(typeof toast==='function') toast('④AIレビューはスキップ（'+(isNet?'LLMに接続できません（エンジン設定/エンドポイントを確認）':msg4)+'）。①〜③のケースは保持して保存します','ng');
+     }
      // ⑤ 保存＋「追加ケースの1回目(N=修正前)」を取得するまで（＝比較の基準づくり）。
      //   N+1(修正後)との比較は修正後URLを指定して行う別ステップなので、全自動では実行しない。
      try {
