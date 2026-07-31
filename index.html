@@ -744,6 +744,7 @@
 
 
 
+
 <header><h1>Agest AI Agent</h1><span id="hdr-mode" class="hdr-mode" title="表示モード（設定画面で切替）"></span><img id="hdr-logo" class="hdr-logo" alt="会社ロゴ" style="display:none"><span id="hdr-logo-ph" class="hdr-logo-ph">（会社ロゴ）</span></header>
 <div class="ctrlbar" id="m-ctrlbar">
  <span class="cb-item"><select id="cb-project" aria-label="プロジェクト選択" title="プロジェクト選択"><option value="">既定プロジェクト</option></select> <button id="cb-newProj" class="cb-mini" type="button">＋新規</button> <button id="cb-renameProj" class="cb-mini adv" type="button">名称変更</button></span>
@@ -3332,7 +3333,7 @@ API仕様書が無いため、パッチ前レスポンスは「期待結果」�
    var isAuth=h('pass')||h('パスワード')||h('認証')||h('ログイン')||h('login')||h('signin')||func.indexOf('認証')>=0;
    // 異常系（入力値・ラベルから種別を特定）
    if((h('誤')||h('wrong')||h('invalid')||h('不正'))&&isAuth) return '誤った認証情報でログインが拒否されることを確認';
-   if(emptyReq||h('未入力')||h('必須')) return '必須項目が未入力のとき検証エラーになることを確認';
+   if(emptyReq||h('未入力')||h('必須チェック')||h('空送信')) return '必須項目が未入力のとき検証エラーになることを確認';
    if(h('最大長')||h('文字数上限')||h('maxlength')||vals.length>=200) return '最大長を超える入力が適切に制限されることを確認';
    if(h('xss')||h('<script')||h('sql')||h('特殊文字')||h('記号')) return '不正な文字列（XSS/SQL等）が無害化されることを確認';
    if(h('境界')||h('範囲外')||h('上限')||h('下限')||h('最小')||h('最大')) return '境界値（上限・下限の前後）で期待通り扱われることを確認';
